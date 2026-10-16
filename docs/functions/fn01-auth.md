@@ -3,9 +3,9 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-FD-01 |
-| 版数 | 0.1 |
+| 版数 | 0.2 |
 | 作成日 | 2026-10-16 |
-| 最終更新日 | 2026-10-16 |
+| 最終更新日 | 2026-10-17 |
 | 作成者 | （氏名） |
 | 上位文書 | [機能定義書](function-definition.md)（RT-FD） |
 | 状態 | 承認待ち |
@@ -15,6 +15,7 @@
 | 版数 | 日付 | 内容 | 作成者 |
 | --- | --- | --- | --- |
 | 0.1 | 2026-10-16 | 初版。機能要件定義書 2.1（A-1〜A-9）を移し、3 章以降を追加 | （氏名） |
+| 0.2 | 2026-10-17 | ログインの方式をセッションから JWT 認証に変更。3 章（トークンの取り直し・ログアウトの流れ）、5〜7 章・9 章・10 章を直した | （氏名） |
 
 本書は機能定義書の一部である。承認は[機能定義書](function-definition.md)で一括して行う。API とメッセージの共通の決まりは機能定義書 3 章・4 章のとおり。
 
@@ -24,7 +25,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 目的 | 誰でもアカウントを作れるようにし、ログインした人だけがアプリを使えるようにする |
+| 目的 | 誰でもアカウントを作れるようにし、ログインした人だけがアプリを使えるようにする。ログインの状態は JWT で持つ（JWT 認証。機能定義書 3.2） |
 | 版 | 第 1 版 |
 | 使う画面 | G-1 ログイン画面、G-2 ユーザー登録画面、全画面のヘッダー（ログアウト） |
 | 関係する機能 | すべての機能（ログインしていないと使えない） |
@@ -61,8 +62,9 @@ sequenceDiagram
     A->>A: 全項目を確かめる（4 章）
     A->>A: パスワードを BCrypt にする
     A->>D: users に追加（同じユーザー ID があれば一意の制約で失敗 → 409）
-    A->>A: セッションを作る（ログインした状態にする）
-    A-->>B: 201 と自分の情報
+    A->>A: JWT（アクセストークン）とリフレッシュトークンを作る
+    A->>D: リフレッシュトークンのハッシュを refresh_tokens に追加
+    A-->>B: 201 と自分の情報（Cookie に access_token・refresh_token）
     B->>B: G-3 を表示
 ```
 
@@ -75,7 +77,7 @@ flowchart TD
     find -- いる --> lock{locked_until が<br>今より後？}
     lock -- はい --> ng7[423・M-7<br>パスワードは確かめない]
     lock -- いいえ --> pw{パスワードが<br>合っている？}
-    pw -- はい --> ok[失敗回数を 0 に戻す<br>セッションを作る → G-3]
+    pw -- はい --> ok[失敗回数を 0 に戻す<br>JWT とリフレッシュトークンを<br>Cookie で渡す → G-3]
     pw -- いいえ --> inc[失敗回数を 1 増やす]
     inc --> five{5 回目？}
     five -- はい --> setlock[locked_until を 15 分後にする<br>423・M-7]
@@ -83,6 +85,53 @@ flowchart TD
 ```
 
 ユーザーがいないときも、いるときと同じくらいの時間をかけて返す（BCrypt の確認と同じ時間待つ）。返す時間の差で、ユーザー ID があるかどうかを調べられないようにするため。
+
+### 3.3 API を呼ぶときと、JWT の取り直し
+
+```mermaid
+sequenceDiagram
+    participant B as 画面
+    participant A as API
+    participant D as DB（refresh_tokens）
+
+    B->>A: GET /api/timeline（Cookie の access_token が自動で付く）
+    A->>A: JWT の署名と期限を確かめる（DB は読まない）
+    alt 正しい
+        A-->>B: 200
+    else 期限切れ
+        A-->>B: 401 TOKEN_EXPIRED
+        B->>A: POST /api/auth/refresh（Cookie の refresh_token が自動で付く）
+        A->>D: ハッシュで探す
+        alt 有効（期限内で、まだ無効にしていない）
+            A->>D: 今のものを無効にし、新しいものを追加（BR-9）
+            A-->>B: 200（Cookie に新しい access_token・refresh_token）
+            B->>A: GET /api/timeline をやり直す（1 回だけ）
+        else 期限切れ・見つからない
+            A-->>B: 401 REFRESH_FAILED
+            B->>B: M-19 を出して G-1 に移す（A-8）
+        else すでに無効にしたものが使われた
+            A->>D: その人のリフレッシュトークンをすべて無効にする（盗まれた疑い。BR-9）
+            A-->>B: 401 REFRESH_FAILED
+            B->>B: M-19 を出して G-1 に移す
+        end
+    end
+```
+
+同じ画面から同時に複数の API が 401 TOKEN_EXPIRED を返したときは、取り直しは 1 回だけ行い、そのあとで全部をやり直す（2 回取り直すと、2 回目は無効にしたものを使ったことになり、全部のログインが切れるため）。
+
+### 3.4 ログアウト
+
+```mermaid
+sequenceDiagram
+    participant B as 画面
+    participant A as API
+    participant D as DB（refresh_tokens）
+
+    B->>A: POST /api/auth/logout（Cookie の refresh_token が付く）
+    A->>D: そのリフレッシュトークンを無効にする
+    A-->>B: 204（access_token・refresh_token の Cookie を消す）
+    B->>B: G-1 を表示
+```
 
 ## 4. 入力の確認
 
@@ -101,8 +150,11 @@ flowchart TD
 | --- | --- |
 | 1 | ユーザー ID は登録したときの大文字・小文字のまま表示し、比べるときは小文字にして比べる（データ設計書 4.1） |
 | 2 | ログインの失敗の数え方はデータ設計書 BR-8 のとおり。失敗の回数は、存在するユーザー ID についてだけ数える |
-| 3 | ログアウトしたときは、セッションと remember-me の Cookie の両方を消す |
-| 4 | ログインした後は、セッションの ID を新しくする（セッション固定攻撃の対策。Spring Security の既定の動き） |
+| 3 | ログアウトしたときは、リフレッシュトークンをデータベースで無効にし、access_token・refresh_token の両方の Cookie を消す |
+| 4 | セッションは使わない（Spring Security を STATELESS にする）。ログインした人が誰かは、毎回 JWT の署名と期限で確かめる |
+| 5 | JWT には、ユーザーの ID とユーザー ID 以外の情報（表示名・パスワードなど）を入れない。JWT の中身は暗号化されておらず、誰でも読めるため |
+| 6 | リフレッシュトークンは使うたびに新しいものに替える。古いものが使われたら盗まれたとみなし、その人のリフレッシュトークンをすべて無効にする（データ設計書 BR-9） |
+| 7 | 1 人が複数のブラウザでログインしたときは、ブラウザごとにリフレッシュトークンを持つ。あるブラウザでログアウトしても、ほかのブラウザのログインは続く |
 
 ## 6. API（案）
 
@@ -110,11 +162,12 @@ flowchart TD
 | --- | --- | --- | --- | --- |
 | GET | /api/auth/username-availability?username= | ユーザー ID | 200 `{"available": true}` | 400 USERNAME_INVALID |
 | POST | /api/auth/signup | `{"username","displayName","password"}` | 201 自分の情報 | 400、409 USERNAME_TAKEN |
-| POST | /api/auth/login | `{"username","password","rememberMe":true}` | 200 自分の情報 | 401 LOGIN_FAILED、423 LOGIN_LOCKED |
-| POST | /api/auth/logout | なし | 204 | |
+| POST | /api/auth/login | `{"username","password"}` | 200 自分の情報。Cookie に access_token・refresh_token | 401 LOGIN_FAILED、423 LOGIN_LOCKED |
+| POST | /api/auth/refresh | なし（Cookie の refresh_token） | 200 自分の情報。Cookie に新しい access_token・refresh_token | 401 REFRESH_FAILED |
+| POST | /api/auth/logout | なし（Cookie の refresh_token） | 204。両方の Cookie を消す | |
 | GET | /api/auth/me | なし | 200 自分の情報 | 401（ログインしていない） |
 
-自分の情報：`{"username":"taro_y","displayName":"たろう"}`。画面は起動したときに GET /api/auth/me を呼び、401 なら G-1 を出す（A-9）。
+自分の情報：`{"username":"taro_y","displayName":"たろう","iconUrl":null}`。画面は起動したときに GET /api/auth/me を呼ぶ。401 TOKEN_EXPIRED なら 3.3 のとおり取り直し、それでも 401 なら G-1 を出す（A-9）。JWT は画面の JavaScript から読めないため、誰がログインしているかは必ずこの API で知る。
 
 ## 7. 使うデータ
 
@@ -123,6 +176,9 @@ flowchart TD
 | users | C | ユーザー登録 |
 | users | R | ユーザー ID の確認、ログイン |
 | users | U | ログインの失敗回数・ログインできない期限の更新 |
+| refresh_tokens | C | 登録・ログイン・取り直しのときに追加 |
+| refresh_tokens | R U | 取り直し・ログアウトのときに探して無効にする |
+| refresh_tokens | D | 有効期限を過ぎたものを 1 日 1 回まとめて消す |
 
 ## 8. 権限
 
@@ -141,7 +197,9 @@ flowchart TD
 | 表示名が空 | 400 | DISPLAY_NAME_REQUIRED | M-5 |
 | ユーザー ID かパスワードが違う | 401 | LOGIN_FAILED | M-6 |
 | 失敗が続いてログインできない | 423 | LOGIN_LOCKED | M-7 |
-| ログインの期限切れ | 401 | UNAUTHENTICATED | M-19 |
+| ログインしていない（access_token がない・署名が正しくない） | 401 | UNAUTHENTICATED | G-1 を出す（操作の途中なら M-19） |
+| アクセストークンの期限切れ | 401 | TOKEN_EXPIRED | 出さない（画面が取り直してやり直す） |
+| リフレッシュトークンの期限切れ・無効 | 401 | REFRESH_FAILED | M-19 |
 
 ## 10. テストの観点
 
@@ -152,3 +210,9 @@ flowchart TD
 - ブラウザを閉じて開き直してもログインしたまま。ログアウトした後は G-3 の URL を開いても G-1 になる
 - ログインしていない状態で /posts/1 を開く → G-1 → ログイン後に /posts/1 に戻る
 - CSRF トークンなしの POST /api/auth/logout が 403 になる
+- ブラウザの開発者ツールで、access_token・refresh_token の Cookie に HttpOnly が付いていて、JavaScript（document.cookie）から読めない
+- JWT の中身を書き換えた（署名が合わない）Cookie・期限を過ぎた JWT・別の秘密の値で署名した JWT では 401 になる
+- 15 分以上たってから操作すると、画面に何も出ずに操作が成功する（取り直しが動く）。同時に複数の API が 401 になっても、取り直しは 1 回だけ
+- 取り直しで替わる前の古いリフレッシュトークンで POST /api/auth/refresh を送ると 401 になり、その人のほかのブラウザのログインも切れる
+- ログアウトした後に、ログアウト前のリフレッシュトークンで POST /api/auth/refresh を送ると 401 になる
+- 14 日と 1 分操作しなかった後に操作すると、M-19 が出て G-1 になる

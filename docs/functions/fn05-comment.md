@@ -3,9 +3,9 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-FD-05 |
-| 版数 | 0.1 |
+| 版数 | 0.2 |
 | 作成日 | 2026-10-16 |
-| 最終更新日 | 2026-10-16 |
+| 最終更新日 | 2026-10-17 |
 | 作成者 | （氏名） |
 | 上位文書 | [機能定義書](function-definition.md)（RT-FD） |
 | 状態 | 承認待ち |
@@ -15,6 +15,7 @@
 | 版数 | 日付 | 内容 | 作成者 |
 | --- | --- | --- | --- |
 | 0.1 | 2026-10-16 | 初版。機能要件定義書 2.5（C-1〜C-6）を移し、3 章以降を追加 | （氏名） |
+| 0.2 | 2026-10-17 | Comment の author にアイコンの URL（iconUrl）を追加（FN-09 PF-10） | （氏名） |
 
 本書は機能定義書の一部である。承認は[機能定義書](function-definition.md)で一括して行う。API とメッセージの共通の決まりは機能定義書 3 章・4 章のとおり。
 
@@ -84,7 +85,7 @@ sequenceDiagram
 | POST | /api/posts/{id}/comments | `{"body":"…"}` | 201 Comment | 400 COMMENT_INVALID、404 POST_NOT_FOUND |
 | DELETE | /api/comments/{commentId} | なし | 204 | 403 FORBIDDEN、404 COMMENT_NOT_FOUND |
 
-Comment の形：`{"id":9,"author":{"username":"hana","displayName":"はなこ"},"body":"…","mine":false,"createdAt":"…"}`
+Comment の形：`{"id":9,"author":{"username":"hana","displayName":"はなこ","iconUrl":null},"body":"…","mine":false,"createdAt":"…"}`
 
 ## 7. 使うデータ
 

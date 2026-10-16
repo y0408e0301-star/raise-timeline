@@ -29,13 +29,14 @@ X（Twitter）のようなタイムライン形式のテキスト SNS です。�
 
 すべて予定です。詳しくは[要件定義書の 8 章（機能一覧）](docs/requirements/requirements.md#8-機能一覧)と、機能ごとの機能定義書を見てください。
 
-- **ユーザー登録・ログイン**：ユーザー ID とパスワードで登録・ログインする。5 回続けて失敗したら 15 分間ログインできない。ログインしていないと何も使えない
+- **ユーザー登録・ログイン（JWT 認証）**：ユーザー ID とパスワードで登録・ログインする。ログインの状態は JWT で持ち、HttpOnly の Cookie に入れる。5 回続けて失敗したら 15 分間ログインできない。ログインしていないと何も使えない
 - **タイムライン**：「フォロー中」（自分とフォローした人）と「すべて」（全員）のタブで、投稿を新しい順に 20 件ずつ出す
-- **投稿と画像**：280 文字までの文章に、画像を 4 枚まで（1 枚 5MB まで）添えて投稿する。画像は拡大して見られる
+- **投稿と画像（AWS S3）**：280 文字までの文章に、画像を 4 枚まで（1 枚 5MB まで）添えて投稿する。画像は S3 に保存し、拡大して見られる
+- **投稿の編集・削除**：自分の投稿の本文を直せる（画像は変えられない）。編集した投稿には「（編集済み）」と出す。削除すると画像・コメント・いいねも消える
 - **いいね・コメント**：件数と中身（いいねした人・コメント）は誰でも見られる
 - **フォロー**：承認なしでフォロー・解除する。フォロー中・フォロワーの一覧と件数は誰でも見られる
 - **ユーザー検索**：ヘッダーの検索欄から、ユーザー ID・表示名の部分一致で探す
-- **プロフィール**：プロフィールとその人の投稿の一覧（第 1 版）、表示名・自己紹介の編集（第 2 版）
+- **プロフィール**：プロフィールとその人の投稿の一覧（第 1 版）、アイコン画像・表示名・自己紹介の編集（第 2 版）。アイコンを設定していない人は表示名の頭文字を丸の中に出す
 
 ## 画面
 
@@ -54,7 +55,7 @@ X（Twitter）のようなタイムライン形式のテキスト SNS です。�
 │ └──────────────────────────────────────────────────────────┘ │
 │   [ フォロー中 ]   すべて                                     │
 ├──────────────────────────────────────────────────────────────┤
-│ (た) たろう  @taro_y · 3 分前                              … │
+│ (た) たろう  @taro_y · 3 分前（編集済み）                  … │
 │      今日は晴れ。川沿いを散歩してきた                         │
 │      ♡ 12   💬 3                                            │
 └──────────────────────────────────────────────────────────────┘
@@ -68,7 +69,7 @@ X（Twitter）のようなタイムライン形式のテキスト SNS です。�
 | G-4 | 投稿の詳細（コメント） | /posts/{投稿 ID} |
 | G-5 | いいねした人の一覧 | /posts/{投稿 ID}/likes |
 | G-6 | プロフィール | /users/{ユーザー ID} |
-| G-7 | プロフィールの編集（第 2 版） | /settings/profile |
+| G-7 | プロフィールの編集（アイコン・表示名・自己紹介。第 2 版） | /settings/profile |
 | G-8 | フォロー中・フォロワーの一覧 | /users/{ユーザー ID}/following、/followers |
 | G-9 | ユーザー検索の結果 | /search?q={検索した文字} |
 | G-10 | 画像の拡大（ダイアログ） | — |
@@ -88,7 +89,7 @@ flowchart LR
             app["Spring Boot 8080<br/>API ＋ 画面（React のビルド）"]
         end
         rds[("RDS<br/>PostgreSQL 17")]
-        s3[("S3<br/>投稿の画像（非公開）")]
+        s3[("S3<br/>投稿の画像・アイコン（非公開）")]
         ssm["Parameter Store<br/>秘密の値"]
     end
 
@@ -108,12 +109,13 @@ flowchart LR
 | 公開環境 | AWS（ALB・EC2・RDS・S3・Parameter Store・CloudWatch）を Terraform で作成 |
 | CI | GitHub Actions（PR ごとに画面・API・Terraform のチェックとテスト） |
 
-画面も API と同じ Spring Boot から配るので、ログインの Cookie と CSRF 対策が簡単になり、CORS の設定も要りません。
+画面も API と同じ Spring Boot から配るので、JWT を入れる Cookie と CSRF 対策が簡単になり、CORS の設定も要りません。
 
 ## 工夫した点
 
 設計の段階で決めたことです。
 
+- **JWT を JavaScript から読めなくする**：JWT（15 分）とリフレッシュトークン（14 日）を HttpOnly の Cookie に入れ、XSS で盗まれないようにします。リフレッシュトークンはデータベースにハッシュだけを持ち、使うたびに新しくして、古いものが使われたら盗まれたとみなしてその人のログインを全部切ります（[機能定義書 3.2](docs/functions/function-definition.md#32-ログインjwt-認証と-csrf-対策)、[データ設計書 7 章](docs/design/data-design.md#7-データのルール) BR-9）
 - **画像を EC2 を通さずに配る**：S3 のバケットは非公開にし、API が発行した署名付き URL（15 分）で、ブラウザが S3 から直接読みます。EC2 の負荷と通信量を抑えられます（[インフラ設計書 5.1](docs/design/infra-design.md#51-画像つきの投稿と表示)）
 - **投稿と画像の保存を食い違わせない**：S3 への保存に失敗したら投稿を作らず、データベースへの保存に失敗したら S3 に置いた画像を消します。削除は データベース → S3 の順にし、S3 で消せなかったものは記録してあとで消します（[データ設計書 7 章](docs/design/data-design.md#7-データのルール) BR-4・BR-5）
 - **部分一致の検索を索引で速くする**：ユーザー ID・表示名に pg_trgm の GIN 索引を張り、`LIKE '%…%'` でも全件を調べずに済むようにします。並びは「ID の完全一致 → 前方一致 → 表示名の前方一致 → それ以外」、同じならフォロワーの多い順です（[データ設計書 8 章](docs/design/data-design.md#8-ユーザー検索の実装)）
@@ -125,7 +127,7 @@ flowchart LR
 
 - **Issue → ブランチ → Pull Request → squash マージ**：文書 1 行の修正でも同じ流れにしています。main への直接のコミットは git フック（[.githooks/](.githooks/)）で止めます（[CONTRIBUTING.md](CONTRIBUTING.md)）
 - **文書から作る**：要件定義書 → 機能定義書 → 基本設計書 → 技術スタック定義書の順に書き、実装はそれに合わせて進めます。仕様が変わったら、実装と同じ PR で文書も直します
-- **タスク管理アプリ（[kadai](https://github.com/y0408e0301-star/kadai)）と同じ技術・同じバージョン**：kadai で覚えたことをそのまま使い、新しく学ぶことを S3・ログイン・フォロー・検索に絞ります（[技術スタック定義書 4 章](docs/tech-stack.md#4-kadai-との違い)）
+- **タスク管理アプリ（[kadai](https://github.com/y0408e0301-star/kadai)）と同じ技術・同じバージョン**：kadai で覚えたことをそのまま使い、新しく学ぶことを S3・JWT 認証・フォロー・検索に絞ります（[技術スタック定義書 4 章](docs/tech-stack.md#4-kadai-との違い)）
 - **AI（Claude Code）を使った開発**：文書とコードの多くは AI のコーディングエージェント Claude Code と一緒に書いています（コミットの `Co-Authored-By` はそのためです）。開発ルールの中で動かし、方針の決定と、PR を確認してマージするかどうかの判断は自分で行います。Claude Code 用のスキル（サーバーの起動・品質チェック）は [.claude/skills/](.claude/skills/) にあります
 
 ## 機能の一覧
@@ -152,7 +154,7 @@ flowchart LR
 | 部分 | 使うもの |
 | --- | --- |
 | 画面 | Node.js 24、React 19 + TypeScript 6 + Vite 8、React Router 7、CSS Modules、コードチェックは oxlint、テストは Vitest・Testing Library、E2E テストは Playwright |
-| API サーバー | Java 21 + Spring Boot 4.1（Web MVC・Data JPA・Validation・Security・Actuator）、AWS SDK for Java 2.x（S3）、ビルドは Maven（`mvnw` 同梱）、コードチェックは spring-javaformat・SpotBugs、テストは JUnit 5・Testcontainers |
+| API サーバー | Java 21 + Spring Boot 4.1（Web MVC・Data JPA・Validation・Security・OAuth2 Resource Server（JWT）・Actuator）、AWS SDK for Java 2.x（S3）、ビルドは Maven（`mvnw` 同梱）、コードチェックは spring-javaformat・SpotBugs、テストは JUnit 5・Testcontainers |
 | データベース・画像 | PostgreSQL 17・MinIO（開発は Docker Compose）、テーブルは Flyway で作成 |
 | 公開環境 | AWS（ALB・EC2 t4g.micro・RDS db.t4g.micro・S3・ACM・Route 53・Parameter Store・Session Manager・CloudWatch・Budgets）、環境は Terraform 1.16 で作成 |
 | CI | GitHub Actions |
@@ -249,11 +251,13 @@ Pull Request を作ったときは、GitHub Actions が E2E テスト以外を�
 | GET | `/api/auth/username-availability?username=` | ユーザー ID が使えるか | FN-01 |
 | POST | `/api/auth/signup` | ユーザー登録 | FN-01 |
 | POST | `/api/auth/login` | ログイン | FN-01 |
+| POST | `/api/auth/refresh` | JWT の取り直し（リフレッシュトークンを使う） | FN-01 |
 | POST | `/api/auth/logout` | ログアウト | FN-01 |
 | GET | `/api/auth/me` | ログインしている自分 | FN-01 |
 | GET | `/api/timeline?tab=&cursor=` | タイムライン（`following`・`all`） | FN-02 |
 | POST | `/api/posts` | 投稿（multipart：本文と画像 0〜4 個） | FN-03・FN-04 |
 | GET | `/api/posts/{id}` | 投稿の詳細 | FN-03 |
+| PATCH | `/api/posts/{id}` | 投稿の本文の編集（自分のものだけ） | FN-03 |
 | DELETE | `/api/posts/{id}` | 投稿の削除（自分のものだけ） | FN-03 |
 | POST | `/api/images/urls` | 画像の署名付き URL を発行し直す | FN-04 |
 | GET | `/api/posts/{id}/comments?cursor=` | コメントの一覧 | FN-05 |
@@ -268,8 +272,10 @@ Pull Request を作ったときは、GitHub Actions が E2E テスト以外を�
 | GET | `/api/users/{username}` | プロフィール | FN-09 |
 | GET | `/api/users/{username}/posts?cursor=` | その人の投稿の一覧 | FN-09 |
 | PATCH | `/api/me/profile` | プロフィールの編集（第 2 版） | FN-09 |
+| PUT / DELETE | `/api/me/icon` | アイコン画像の設定・外す（第 2 版） | FN-09 |
 
-- ログインがいらないのは、ユーザー登録・ログイン・ユーザー ID の確認の 3 つだけです。それ以外はログインしていなければ 401 を返します
+- ログインがいらないのは、ユーザー登録・ログイン・JWT の取り直し・ユーザー ID の確認の 4 つだけです。それ以外は JWT（Cookie の `access_token`）がなければ 401 を返します
+- JWT の期限（15 分）が切れると 401 `TOKEN_EXPIRED` を返し、画面は `/api/auth/refresh` で取り直してから元の操作をやり直します
 - GET 以外は CSRF トークン（Cookie の `XSRF-TOKEN` を `X-XSRF-TOKEN` ヘッダーで送り返す）を確かめます
 - 一覧は 20 件ずつ（コメントは 50 件）で、続きは前回の `nextCursor` を `cursor` に渡して読みます
 - エラーは HTTP ステータスと次の JSON で返します。画面は `message` をそのまま出します
@@ -284,12 +290,13 @@ Pull Request を作ったときは、GitHub Actions が E2E テスト以外を�
 
 | テーブル | 内容 | 主な列 |
 | --- | --- | --- |
-| `users` | ユーザー | `id`、`username`（一意）、`display_name`、`password_hash`（BCrypt）、`bio`、`failed_login_count`、`locked_until` |
-| `posts` | 投稿 | `id`、`user_id`、`body`（280 文字まで）、`created_at` |
+| `users` | ユーザー | `id`、`username`（一意）、`display_name`、`password_hash`（BCrypt）、`bio`、`icon_key`（アイコンの S3 のキー）、`failed_login_count`、`locked_until` |
+| `posts` | 投稿 | `id`、`user_id`、`body`（280 文字まで）、`created_at`、`edited_at`（編集日時） |
 | `post_images` | 投稿の画像 | `id`、`post_id`、`storage_key`（S3 のキー）、`content_type`、`byte_size`、`sort_order`（0〜3） |
 | `comments` | コメント | `id`、`post_id`、`user_id`、`body`（280 文字まで）、`created_at` |
 | `likes` | いいね | `user_id` と `post_id`（2 つで主キー）、`created_at` |
 | `follows` | フォロー | `follower_id` と `followee_id`（2 つで主キー）、`created_at` |
+| `refresh_tokens` | リフレッシュトークン | `id`、`user_id`、`token_hash`（SHA-256。一意）、`expires_at`、`revoked_at` |
 
 ## 公開環境
 
