@@ -20,7 +20,9 @@
 
 ## 要件定義書
 
-[docs/要件定義書.md](docs/要件定義書.md) は Claude Docs の「Raise timeline 要件定義書」と同じ内容にする。片方を直したら、もう片方も同じ PR の中で直す。
+- ドキュメントは Markdown で docs/ に書く。[docs/要件定義書.md](docs/要件定義書.md) が要件の正本
+- 図は Mermaid やテキストで書き、画像ファイルにしない（GitHub 上で読めて、差分も追えるようにする）
+- 仕様が変わったら、実装と同じ PR の中で要件定義書も直す
 
 ## サーバーのポート
 
@@ -29,6 +31,7 @@
 | サーバー | ポート | 決めている場所 |
 | --- | --- | --- |
 | データベース（PostgreSQL） | 5432 | compose.yaml（作成予定） |
+| S3 互換ストレージ（MinIO） | 9000 | compose.yaml（作成予定） |
 | API（Spring Boot） | 8080 | Spring Boot の既定値（`server.port` は指定しない） |
 | 画面（Vite） | 5173 | Vite の既定値（`--port` は指定しない） |
 
