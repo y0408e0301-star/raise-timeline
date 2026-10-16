@@ -8,7 +8,7 @@
 | 最終更新日 | 2026-10-16 |
 | 作成者 | （氏名） |
 | 上位文書 | [基本設計書](basic-design.md)（RT-BD） |
-| 元にした文書 | [データ要件定義書](../requirements/data-requirements.md)、[機能要件定義書](../requirements/functional-requirements.md)（要件定義書 版数 0.3） |
+| 元にした文書 | [データ要件定義書](../requirements/data-requirements.md)、[機能定義書](../functions/function-definition.md)（要件定義書 版数 0.4） |
 | 状態 | 承認待ち |
 
 ## 改訂履歴
@@ -229,7 +229,7 @@ ORDER BY
   END,
   (SELECT count(*) FROM follows f WHERE f.followee_id = u.id) DESC,
   lower(u.username)
-LIMIT 20 OFFSET :offset;
+LIMIT 21 OFFSET :offset;  -- 21 件目は「続きがあるか」を知るため
 ```
 
 - 検索語に含まれる「%」「_」「\」は、LIKE の特別な記号として扱わないようにエスケープする
