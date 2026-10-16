@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Raise timeline（Mock）</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- 画面はすべて js/app.js が #app の中に描く。URL は「#/…」で画面一覧の URL に合わせる -->
+  <div id="app"></div>
+
+  <!-- トースト（画面設計書 3.4） -->
+  <div id="toast" class="toast" role="status" hidden>
+    <span class="toast-text"></span>
+    <button type="button" class="toast-close" aria-label="閉じる">×</button>
+  </div>
+
+  <!-- ダイアログ（G-10・G-11）を重ねる場所 -->
+  <div id="dialog-root"></div>
+
+  <!-- モック用の操作（本番の画面にはない） -->
+  <div id="mock-panel" class="mock-panel">
+    <button type="button" class="mock-toggle" data-mock="toggle">モック操作</button>
+    <div class="mock-body" hidden>
+      <p class="mock-title">失敗・状態の再現（本番にはない）</p>
+      <label><input type="checkbox" data-mock="failLoad"> 次の読み込みを失敗させる（M-9）</label>
+      <label><input type="checkbox" data-mock="failAction"> 次の送信を失敗させる（M-14・M-18）</label>
+      <label><input type="checkbox" data-mock="offline"> 通信切れにする（M-20）</label>
+      <button type="button" class="btn btn-secondary btn-sm" data-mock="expire">ログインの期限切れ（M-19）</button>
+      <button type="button" class="btn btn-secondary btn-sm" data-mock="deleted">削除された投稿を開く（M-11）</button>
+      <button type="button" class="btn btn-secondary btn-sm" data-mock="reset">サンプルデータに戻す</button>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
