@@ -3,12 +3,12 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-BD-INFRA |
-| 版数 | 0.2 |
+| 版数 | 0.3 |
 | 作成日 | 2026-10-16 |
-| 最終更新日 | 2026-10-16 |
+| 最終更新日 | 2026-10-17 |
 | 作成者 | （氏名） |
 | 上位文書 | [基本設計書](basic-design.md)（RT-BD） |
-| 元にした文書 | [要件定義書](../requirements/requirements.md)（RT-REQ）版数 0.5 の P-2〜P-4・11 章、[技術スタック定義書](../tech-stack.md) 版数 0.2 |
+| 元にした文書 | [要件定義書](../requirements/requirements.md)（RT-REQ）版数 0.6 の P-2〜P-4・11 章、[技術スタック定義書](../tech-stack.md) 版数 0.3 |
 | 状態 | 承認待ち |
 
 ## 改訂履歴
@@ -17,6 +17,7 @@
 | --- | --- | --- | --- |
 | 0.1 | 2026-10-16 | 初版。EC2・RDS・ALB・S3 を前提にした構成図を作成 | （氏名） |
 | 0.2 | 2026-10-16 | 技術スタックを kadai と同じにしたため、EC2 を t3.small から t4g.micro（ARM・Amazon Linux 2023 arm64）に変更し、費用の目安を直した（7 章）。AWS の構築を Terraform に決定（8 章） | （氏名） |
+| 0.3 | 2026-10-17 | JWT 認証に合わせ、Parameter Store の秘密の値をセッションのものから JWT の署名のものに変更（3.3）。アイコン画像（FN-09）のために S3 の icons/ と IAM ロールの権限を追加（2 章・3.2・3.3・7 章） | （氏名） |
 
 本書は基本設計書の一部である。承認は[基本設計書](basic-design.md)で一括して行う。表記のルールは基本設計書 1.3 のとおり。
 
@@ -29,7 +30,7 @@ AWS に公開するかどうかは、まだ決めていない（要件定義書 
 | No | 方針 | 理由 |
 | --- | --- | --- |
 | 1 | ALB（ロードバランサー）→ EC2（サーバー）→ RDS（データベース）の基本の 3 層にし、画像は S3 に置く | 要件定義書 P-2・P-3。学習のため、Web アプリの基本の構成を一通り作る |
-| 2 | EC2 は 1 台にする。画面（React をビルドしたファイル）も API と同じ Spring Boot から配る | 利用者は数十人で 1 台で足りる。同じ URL から配ればログインの Cookie と CSRF 対策が簡単になる |
+| 2 | EC2 は 1 台にする。画面（React をビルドしたファイル）も API と同じ Spring Boot から配る | 利用者は数十人で 1 台で足りる。同じ URL から配れば、JWT を入れる Cookie と CSRF 対策が簡単になる。JWT 認証でサーバーにログインの状態を持たないため、将来 2 台以上にしてもログインはそのまま使える |
 | 3 | EC2 はパブリックサブネットに置くが、ALB からの通信しか受け付けない（SG-2）。SSH は開けず、操作は Session Manager で行う | プライベートサブネットに置くと、外へ出る通信のために NAT ゲートウェイ（月 7,000 円ほど）が要る。費用を抑えつつ、外から直接入れないようにする |
 | 4 | RDS はプライベートサブネットに置き、EC2 からしか接続できないようにする。Multi-AZ にはしない | データベースは外から見えないのが基本。Multi-AZ は費用が 2 倍になり、学習用には要らない |
 | 5 | S3 のバケットは非公開にし、画像は署名付き URL でブラウザに直接渡す | 要件定義書 N-14。画像を EC2 経由で送らないので、EC2 の負荷と通信量を抑えられる |
@@ -54,7 +55,7 @@ flowchart LR
             end
             s3ep["S3 ゲートウェイ<br>エンドポイント"]
         end
-        s3[("S3 バケット<br>投稿の画像<br>（非公開）")]
+        s3[("S3 バケット<br>投稿の画像・アイコン<br>（非公開）")]
         acm["ACM<br>証明書"]
         ssm["Systems Manager<br>Parameter Store<br>Session Manager"]
         cw["CloudWatch<br>ログ・監視"]
@@ -76,7 +77,7 @@ flowchart LR
 | ① | ブラウザ → ALB | 画面（HTML・JS）と API。HTTP（80）で来たら HTTPS（443）に移す |
 | ② | ALB → EC2 | ALB で HTTPS を解いて、HTTP の 8080 で EC2 に送る |
 | ③ | EC2 → RDS | PostgreSQL の 5432。VPC の中だけで通る |
-| ④ | EC2 → S3 | 投稿された画像の保存と、投稿の削除に合わせた削除。S3 ゲートウェイエンドポイントを通るので、インターネットに出ない |
+| ④ | EC2 → S3 | 投稿された画像・アイコンの保存と、投稿の削除・アイコンの変更に合わせた削除。S3 ゲートウェイエンドポイントを通るので、インターネットに出ない |
 | ⑤ | ブラウザ → S3 | API が発行した署名付き URL（15 分）で、ブラウザが S3 から画像を直接読む |
 
 ## 3. リソース一覧
@@ -99,7 +100,7 @@ flowchart LR
 | ターゲットグループ | rt-tg | EC2 の 8080。ヘルスチェックは /actuator/health（200 を正常） |
 | EC2 | rt-app | t4g.micro（ARM・2 vCPU・メモリ 1GB）、Amazon Linux 2023（arm64）、EBS gp3 20GB。Java 21（java-21-amazon-corretto-headless）で Spring Boot の jar を systemd で動かす。ヒープの上限は kadai と同じ -Xmx384m から始め、足りなければ t4g.small（メモリ 2GB）にする。パブリック IP あり（Session Manager と OS の更新のため） |
 | RDS | rt-db | PostgreSQL（バージョンは技術スタック定義書）、db.t4g.micro、gp3 20GB、Single-AZ、パブリックアクセスなし、自動バックアップ 7 日（N-7）、保存時の暗号化あり |
-| S3 バケット | rt-images-{アカウント ID} | パブリックアクセスをすべてブロック、保存時の暗号化（SSE-S3）、バージョニングなし。画像は posts/ の下に置く |
+| S3 バケット | rt-images-{アカウント ID} | パブリックアクセスをすべてブロック、保存時の暗号化（SSE-S3）、バージョニングなし。投稿の画像は posts/、アイコン画像は icons/ の下に置く |
 | ACM の証明書 | | 独自ドメインの証明書（U-2）。DNS で検証する |
 | Route 53 | | 独自ドメインを ALB に向ける（エイリアスレコード）。U-2 で独自ドメインを取らない場合は 9 章の No.1 のとおり |
 
@@ -107,8 +108,8 @@ flowchart LR
 
 | リソース | 名前 | 設定 |
 | --- | --- | --- |
-| IAM ロール（EC2） | rt-app-role | S3：rt-images-{アカウント ID}/posts/* への PutObject・GetObject・DeleteObject のみ。Systems Manager：AmazonSSMManagedInstanceCore。Parameter Store：/rt/ の下の読み取り。CloudWatch：ログの書き込み |
-| Parameter Store | /rt/db/password など | データベースのパスワード、セッションの秘密の値。SecureString（暗号化）で置く |
+| IAM ロール（EC2） | rt-app-role | S3：rt-images-{アカウント ID}/posts/*・icons/* への PutObject・GetObject・DeleteObject のみ。Systems Manager：AmazonSSMManagedInstanceCore。Parameter Store：/rt/ の下の読み取り。CloudWatch：ログの書き込み |
+| Parameter Store | /rt/db/password、/rt/jwt/secret など | データベースのパスワード、JWT の署名に使う秘密の値（32 バイト以上の乱数。N-16・R-7）。SecureString（暗号化）で置く。JWT の秘密の値を変えると、全員のアクセストークンが使えなくなる |
 | CloudWatch Logs | /rt/app | Spring Boot のログ。30 日で消す |
 | CloudWatch アラーム | | ALB のヘルスチェックの失敗、RDS の空き容量 2GB 未満で、メールを送る |
 | AWS Budgets | rt-budget | 月の費用が予算（R-1）を超えそうなときにメールを送る |
@@ -180,7 +181,7 @@ S3 への保存か、データベースへの保存のどちらかに失敗し�
 | ALB | 1 台 ＋ 少ない通信量 | 約 3,000 円 |
 | EC2 | t4g.micro ＋ EBS 20GB ＋ パブリック IP | 約 2,000 円 |
 | RDS | db.t4g.micro ＋ gp3 20GB ＋ バックアップ | 約 3,200 円 |
-| S3 | 画像 12GB（データ設計書 10 章）＋ 読み出し | 約 300 円 |
+| S3 | 画像 14GB（投稿の画像とアイコン。データ設計書 10 章）＋ 読み出し | 約 300 円 |
 | Route 53 | ホストゾーン 1 つ（ドメイン代は別） | 約 80 円 |
 | CloudWatch・Parameter Store・ACM | 少ない量 | 約 100 円 |
 | 合計 | | 約 8,700 円 |

@@ -3,11 +3,11 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-TECH |
-| 版数 | 0.2 |
+| 版数 | 0.3 |
 | 作成日 | 2026-10-16 |
-| 最終更新日 | 2026-10-16 |
+| 最終更新日 | 2026-10-17 |
 | 作成者 | （氏名） |
-| 元にした文書 | [要件定義書](requirements/requirements.md) 版数 0.5、[基本設計書](design/basic-design.md) 版数 0.3 |
+| 元にした文書 | [要件定義書](requirements/requirements.md) 版数 0.6、[基本設計書](design/basic-design.md) 版数 0.4 |
 | 状態 | 承認待ち |
 
 ## 改訂履歴
@@ -16,6 +16,7 @@
 | --- | --- | --- | --- |
 | 0.1 | 2026-10-16 | 初版。kadai と同じ構成（Spring Boot・React・PostgreSQL）に、S3（開発では MinIO）を足して選定 | （氏名） |
 | 0.2 | 2026-10-16 | 技術スタックをタスク管理アプリ（kadai）とほぼ同じにし、バージョンも kadai と同じものに指定（3 章）。EC2 を t4g.micro（ARM）に、AWS の構築を Terraform に決定。kadai との違いを 4 章にまとめ、候補の比較を 5 章に移した | （氏名） |
+| 0.3 | 2026-10-17 | ログインをセッション認証から JWT 認証に変更。Spring Security の OAuth2 Resource Server（JWT の作成・確認）を追加し、4 章を直し、5.3（ログインの方式の比較）を追加した | （氏名） |
 
 ## 承認
 
@@ -57,7 +58,7 @@
 | No | 確認すること | 理由 |
 | --- | --- | --- |
 | 1 | RDB で、部分一致の検索を索引で速くできる | P-1、S-4、N-5 |
-| 2 | パスワードを BCrypt で保存でき、ログインの仕組みを自分で一から作らなくてよい | N-12、A-5〜A-8 |
+| 2 | パスワードを BCrypt で保存でき、JWT の作成・確認を自分で一から作らなくてよい | N-12、N-25、A-5〜A-8 |
 | 3 | 画像をクラウドストレージに置き、署名付き URL を発行できる | P-2、N-14 |
 | 4 | 開発中は AWS を使わずに、手元で同じ動きを確かめられる | P-4（費用） |
 | 5 | 画面と API の両方で自動テストを書け、GitHub Actions で動かせる | N-24 |
@@ -87,7 +88,8 @@
 | 入力の確認 | Spring Boot Starter Validation | 同上 | ○ | 文字数などの確認 |
 | 表の作成・変更 | Flyway（spring-boot-starter-flyway・flyway-database-postgresql） | 同上 | ○ | 表の変更の履歴をリポジトリに残す |
 | データベースの接続 | PostgreSQL JDBC Driver | 同上 | ○ | |
-| ログイン・権限 | Spring Boot Starter Security | 同上 | 新 | セッション認証・BCrypt・CSRF 対策・remember-me（条件 2）。kadai はログインがないため新しく使う |
+| ログイン・権限 | Spring Boot Starter Security | 同上 | 新 | BCrypt・CSRF 対策・権限の確認（条件 2）。セッションは使わない（STATELESS）。kadai はログインがないため新しく使う |
+| JWT の作成・確認 | Spring Boot Starter Security OAuth2 Resource Server（spring-boot-starter-security-oauth2-resource-server。中で Nimbus JOSE + JWT を使う） | 同上 | 新 | JWT（HS256）の署名・期限の確認と、ログインのときの JWT の作成（JwtEncoder）。Cookie から JWT を読むところだけを自分で書く（機能定義書 3.2）。JWT を作るライブラリ（jjwt など）を別に足さなくてよい |
 | 稼働の確認 | Spring Boot Starter Actuator | 同上 | 新 | ALB のヘルスチェック（/actuator/health） |
 | S3 の操作 | AWS SDK for Java 2.x（s3） | BOM（software.amazon.awssdk:bom）で 2.x の最新に固定し、pom.xml に書く | 新 | 画像の保存・削除と署名付き URL（条件 3）。接続先を変えれば MinIO にも使える |
 | ビルド | Maven | 3.9.16（Maven Wrapper 3.3.4） | ○ | mvnw をリポジトリに入れる |
@@ -160,7 +162,7 @@ kadai で使っている dnd-kit（ドラッグ＆ドロップ）は、本アプ
 
 | 項目 | kadai | 本アプリ | 理由 |
 | --- | --- | --- | --- |
-| ログイン | なし | Spring Security（セッション・BCrypt） | 複数のユーザーが使うため（FN-01） |
+| ログイン | なし | Spring Security（JWT 認証・BCrypt） | 複数のユーザーが使うため（FN-01） |
 | 画面の数 | 1 画面 | 11 画面（React Router） | G-1〜G-11 |
 | 公開の入口 | CloudFront → EC2 の nginx | ALB → EC2 の Spring Boot | ALB を使う構成にするため（要件定義書 P-3）。画面も Spring Boot から配るので nginx は使わない |
 | 画像 | なし | S3（開発では MinIO）、AWS SDK for Java | FN-04 |
@@ -188,7 +190,15 @@ kadai と同じものを使うことを前提にしたため、比較したの�
 | **React Router** | — | — | — | ○ | ○ | ○ | 採用。利用者が最も多く、情報を探しやすい |
 | TanStack Router | — | — | — | ○ | ○ | ○ | URL の型を確かめられるが、学ぶことが増える |
 
-### 5.3 ユーザー検索
+### 5.3 ログインの方式
+
+| 候補 | 1 | 2 | 3 | 4 | 5 | 6 | 備考 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **JWT 認証（Cookie に入れる）** | — | ○ | — | ○ | ○ | — | 採用。サーバーにログインの状態を持たないため、EC2 を 2 台以上にしても使える。Web API の認証として広く使われている方式を学べる。HttpOnly の Cookie に入れて JavaScript から読めなくする（N-25） |
+| JWT 認証（Authorization ヘッダー） | — | ○ | — | ○ | ○ | — | CSRF 対策は要らなくなるが、JWT を画面の JavaScript で持つため、XSS で盗まれるおそれがある |
+| セッション認証（Spring Security の既定） | — | ○ | — | ○ | ○ | — | 作るのは一番簡単だが、ログインの状態をサーバーのメモリに持つため、EC2 を作り直す・2 台にするとログインが切れる |
+
+### 5.4 ユーザー検索
 
 | 候補 | 1 | 2 | 3 | 4 | 5 | 6 | 備考 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
