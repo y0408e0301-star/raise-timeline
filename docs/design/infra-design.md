@@ -3,12 +3,12 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-BD-INFRA |
-| 版数 | 0.1 |
+| 版数 | 0.2 |
 | 作成日 | 2026-10-16 |
 | 最終更新日 | 2026-10-16 |
 | 作成者 | （氏名） |
 | 上位文書 | [基本設計書](basic-design.md)（RT-BD） |
-| 元にした文書 | [要件定義書](../requirements/requirements.md)（RT-REQ）版数 0.3 の P-2〜P-4・11 章 |
+| 元にした文書 | [要件定義書](../requirements/requirements.md)（RT-REQ）版数 0.5 の P-2〜P-4・11 章、[技術スタック定義書](../tech-stack.md) 版数 0.2 |
 | 状態 | 承認待ち |
 
 ## 改訂履歴
@@ -16,6 +16,7 @@
 | 版数 | 日付 | 内容 | 作成者 |
 | --- | --- | --- | --- |
 | 0.1 | 2026-10-16 | 初版。EC2・RDS・ALB・S3 を前提にした構成図を作成 | （氏名） |
+| 0.2 | 2026-10-16 | 技術スタックを kadai と同じにしたため、EC2 を t3.small から t4g.micro（ARM・Amazon Linux 2023 arm64）に変更し、費用の目安を直した（7 章）。AWS の構築を Terraform に決定（8 章） | （氏名） |
 
 本書は基本設計書の一部である。承認は[基本設計書](basic-design.md)で一括して行う。表記のルールは基本設計書 1.3 のとおり。
 
@@ -46,7 +47,7 @@ flowchart LR
         subgraph vpc["VPC 10.0.0.0/16"]
             subgraph pub["パブリックサブネット（AZ-a・AZ-c）"]
                 alb["ALB<br>HTTPS 443<br>（SG-1）"]
-                ec2["EC2 t3.small<br>Spring Boot 8080<br>API ＋ 画面<br>（SG-2）"]
+                ec2["EC2 t4g.micro<br>Spring Boot 8080<br>API ＋ 画面<br>（SG-2）"]
             end
             subgraph pri["プライベートサブネット（AZ-a・AZ-c）"]
                 rds[("RDS PostgreSQL<br>db.t4g.micro<br>（SG-3）")]
@@ -96,7 +97,7 @@ flowchart LR
 | --- | --- | --- |
 | ALB | rt-alb | インターネット向け。リスナー：443（ACM の証明書）→ ターゲットグループ、80 → 443 へ移す |
 | ターゲットグループ | rt-tg | EC2 の 8080。ヘルスチェックは /actuator/health（200 を正常） |
-| EC2 | rt-app | t3.small（2 vCPU・メモリ 2GB）、Amazon Linux 2023、EBS gp3 20GB。Java 21（Amazon Corretto）で Spring Boot の jar を systemd で動かす。パブリック IP あり（Session Manager と OS の更新のため） |
+| EC2 | rt-app | t4g.micro（ARM・2 vCPU・メモリ 1GB）、Amazon Linux 2023（arm64）、EBS gp3 20GB。Java 21（java-21-amazon-corretto-headless）で Spring Boot の jar を systemd で動かす。ヒープの上限は kadai と同じ -Xmx384m から始め、足りなければ t4g.small（メモリ 2GB）にする。パブリック IP あり（Session Manager と OS の更新のため） |
 | RDS | rt-db | PostgreSQL（バージョンは技術スタック定義書）、db.t4g.micro、gp3 20GB、Single-AZ、パブリックアクセスなし、自動バックアップ 7 日（N-7）、保存時の暗号化あり |
 | S3 バケット | rt-images-{アカウント ID} | パブリックアクセスをすべてブロック、保存時の暗号化（SSE-S3）、バージョニングなし。画像は posts/ の下に置く |
 | ACM の証明書 | | 独自ドメインの証明書（U-2）。DNS で検証する |
@@ -177,18 +178,24 @@ S3 への保存か、データベースへの保存のどちらかに失敗し�
 | サービス | 内容 | 月額（概算） |
 | --- | --- | --- |
 | ALB | 1 台 ＋ 少ない通信量 | 約 3,000 円 |
-| EC2 | t3.small ＋ EBS 20GB ＋ パブリック IP | 約 3,900 円 |
+| EC2 | t4g.micro ＋ EBS 20GB ＋ パブリック IP | 約 2,000 円 |
 | RDS | db.t4g.micro ＋ gp3 20GB ＋ バックアップ | 約 3,200 円 |
 | S3 | 画像 12GB（データ設計書 10 章）＋ 読み出し | 約 300 円 |
 | Route 53 | ホストゾーン 1 つ（ドメイン代は別） | 約 80 円 |
 | CloudWatch・Parameter Store・ACM | 少ない量 | 約 100 円 |
-| 合計 | | 約 10,600 円 |
+| 合計 | | 約 8,700 円 |
 
-止めている間の費用：EC2 は EBS とパブリック IP の分（約 900 円／月）、RDS はストレージの分（約 500 円／月）だけかかる。ALB は止められないため、使わない間は消して、使うときに作り直す。RDS は止めても 7 日たつと自動で起動するため、長く止めるときは、スナップショットを取ってから消す。
+止めている間の費用：EC2 は EBS とパブリック IP の分（約 800 円／月）、RDS はストレージの分（約 500 円／月）だけかかる。ALB は止められないため、使わない間は消して、使うときに作り直す。RDS は止めても 7 日たつと自動で起動するため、長く止めるときは、スナップショットを取ってから消す。
 
 ## 8. 構築の方法
 
-AWS のリソースは、手作業ではなく Terraform（コードで AWS を作る道具）で作ることを第一の候補とする。消して作り直す（方針 7）ことが多いため、同じものを何度でも作れるようにする。events リポジトリの deploy/terraform と同じ書き方にそろえる。使うかどうかは、構築を始めるときに技術スタック定義書で決める。
+AWS のリソースは、手作業ではなく Terraform（コードで AWS を作る道具）で作る。消して作り直す（方針 7）ことが多いため、同じものを何度でも作れるようにする。バージョンと書き方は kadai の deploy/terraform と同じにする（Terraform 1.16.5、AWS プロバイダー 6.68.0、TFLint。[技術スタック定義書](../tech-stack.md) 3.4）。
+
+| 項目 | 内容 |
+| --- | --- |
+| 置き場所 | deploy/terraform/ |
+| 起動・停止 | kadai の deploy/start.sh・stop.sh と同じように、起動と停止をスクリプトにする。停止では ALB を消し、EC2・RDS を止める（7 章） |
+| CI | GitHub Actions で terraform fmt -check・terraform validate・tflint を動かす。plan・apply は手元で行う |
 
 ## 9. 未決事項
 

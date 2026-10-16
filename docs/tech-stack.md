@@ -3,11 +3,11 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-TECH |
-| 版数 | 0.1 |
+| 版数 | 0.2 |
 | 作成日 | 2026-10-16 |
 | 最終更新日 | 2026-10-16 |
 | 作成者 | （氏名） |
-| 元にした文書 | [要件定義書](requirements/requirements.md) 版数 0.3、[基本設計書](design/basic-design.md) 版数 0.1 |
+| 元にした文書 | [要件定義書](requirements/requirements.md) 版数 0.5、[基本設計書](design/basic-design.md) 版数 0.3 |
 | 状態 | 承認待ち |
 
 ## 改訂履歴
@@ -15,6 +15,7 @@
 | 版数 | 日付 | 内容 | 作成者 |
 | --- | --- | --- | --- |
 | 0.1 | 2026-10-16 | 初版。kadai と同じ構成（Spring Boot・React・PostgreSQL）に、S3（開発では MinIO）を足して選定 | （氏名） |
+| 0.2 | 2026-10-16 | 技術スタックをタスク管理アプリ（kadai）とほぼ同じにし、バージョンも kadai と同じものに指定（3 章）。EC2 を t4g.micro（ARM）に、AWS の構築を Terraform に決定。kadai との違いを 4 章にまとめ、候補の比較を 5 章に移した | （氏名） |
 
 ## 承認
 
@@ -27,13 +28,25 @@
 
 ## 1. 本書の目的
 
-使う言語・フレームワーク・サービス・開発ツールを決め、その理由を記録する。要件定義書の次の項目に対応する。
+使う言語・フレームワーク・サービス・開発ツールとそのバージョンを決め、その理由を記録する。要件定義書の次の項目に対応する。
 
 | 要件定義書 | 内容 |
 | --- | --- |
 | P-1 | データを保存する RDB（PostgreSQL）のバージョンと動かす場所を決める |
 | P-2 | 画像を保存するクラウドストレージ（S3）と、開発中の代わり（MinIO）を決める |
 | P-3 | 公開する場合の AWS のサービスを決める。構成は[インフラ設計書](design/infra-design.md)に書く |
+
+### 1.1 基本の方針
+
+技術スタックは、タスク管理アプリ（[kadai](https://github.com/y0408e0301-star/kadai)）とほぼ同じにする。**バージョンも kadai と同じものを使う**。kadai にないもの（S3・ALB など、本アプリで新しく必要になるもの）だけを新しく選ぶ。kadai との違いは 4 章にまとめる。
+
+| 理由 | 内容 |
+| --- | --- |
+| 学習 | kadai で覚えたことをそのまま使い、新しく学ぶことを S3・フォロー・検索などに絞る |
+| 動作の実績 | kadai で一緒に動くことを確かめた組み合わせなので、相性の問題が起きにくい |
+| 保守 | 2 つのリポジトリで、バージョンを上げる作業を同じ手順で行える |
+
+3 章のバージョンは、2026-10-16 時点で kadai の pom.xml・package-lock.json・compose.yaml・deploy/terraform で使っているものである。kadai でバージョンを上げたときは、本アプリも合わせて上げるかどうかを決め、本書の版数を上げて記録する。
 
 ---
 
@@ -54,80 +67,113 @@
 
 | 前提 | 根拠 |
 | --- | --- |
-| kadai と同じ Spring Boot・React・PostgreSQL を使い、学んだことを生かす | 要件定義書 1.1（学習の目的） |
+| kadai と同じ技術・同じバージョンを使う | 1.1 |
 | ソースコードは GitHub で管理する | N-21 |
 
 ---
 
-## 3. 選定の結果
+## 3. 使う技術とバージョン
+
+「kadai」の列：○ は kadai と同じもの・同じバージョン、新 は本アプリで新しく足すもの。
 
 ### 3.1 API（バックエンド）
 
-| 区分 | 決定 | バージョン | 理由 |
-| --- | --- | --- | --- |
-| 言語 | Java | 21 | kadai と同じ。長期サポート版 |
-| フレームワーク | Spring Boot | 4.1 | kadai と同じ |
-| ログイン・権限 | Spring Security | Spring Boot に合わせる | セッション認証・BCrypt・CSRF 対策がそろっている（条件 2） |
-| データベースの読み書き | Spring Data JPA（Hibernate） | 同上 | kadai と同じ。検索の SQL（データ設計書 8 章）はネイティブクエリで書く |
-| 入力の確認 | Spring Boot Starter Validation | 同上 | 文字数などの確認を宣言で書ける |
-| 表の作成・変更 | Flyway | 同上 | kadai と同じ。表の変更の履歴をリポジトリに残せる |
-| S3 の操作 | AWS SDK for Java | 2.x | 画像の保存・削除と署名付き URL の発行（条件 3）。接続先を変えれば MinIO にもそのまま使える |
-| 稼働の確認 | Spring Boot Actuator | 同上 | ALB のヘルスチェック（/actuator/health）に使う |
-| ビルド | Maven | 3.9（Maven Wrapper） | kadai と同じ |
+| 区分 | 使うもの | バージョン | kadai | 用途・理由 |
+| --- | --- | --- | --- | --- |
+| 言語 | Java | 21 | ○ | 長期サポート版 |
+| フレームワーク | Spring Boot | 4.1.1 | ○ | spring-boot-starter-parent で指定 |
+| Web | Spring Boot Starter Web MVC | Spring Boot 4.1.1 に合わせる | ○ | API |
+| データベースの読み書き | Spring Boot Starter Data JPA（Hibernate） | 同上 | ○ | 検索の SQL（データ設計書 8 章）はネイティブクエリで書く |
+| 入力の確認 | Spring Boot Starter Validation | 同上 | ○ | 文字数などの確認 |
+| 表の作成・変更 | Flyway（spring-boot-starter-flyway・flyway-database-postgresql） | 同上 | ○ | 表の変更の履歴をリポジトリに残す |
+| データベースの接続 | PostgreSQL JDBC Driver | 同上 | ○ | |
+| ログイン・権限 | Spring Boot Starter Security | 同上 | 新 | セッション認証・BCrypt・CSRF 対策・remember-me（条件 2）。kadai はログインがないため新しく使う |
+| 稼働の確認 | Spring Boot Starter Actuator | 同上 | 新 | ALB のヘルスチェック（/actuator/health） |
+| S3 の操作 | AWS SDK for Java 2.x（s3） | BOM（software.amazon.awssdk:bom）で 2.x の最新に固定し、pom.xml に書く | 新 | 画像の保存・削除と署名付き URL（条件 3）。接続先を変えれば MinIO にも使える |
+| ビルド | Maven | 3.9.16（Maven Wrapper 3.3.4） | ○ | mvnw をリポジトリに入れる |
+
+「同上」は、バージョンを自分で書かず、Spring Boot 4.1.1 が決めるバージョンを使うという意味である（kadai と同じ書き方）。
 
 ### 3.2 画面（フロントエンド）
 
-| 区分 | 決定 | バージョン | 理由 |
-| --- | --- | --- | --- |
-| 言語 | TypeScript | 6.0 | kadai と同じ。API の入出力の形を型で確かめられる |
-| ライブラリ | React | 19 | kadai と同じ |
-| 画面の切り替え | React Router | 7 | 11 個の画面（G-1〜G-11）を URL で切り替える。kadai は 1 画面だったため新しく使う |
-| 開発サーバー・ビルド | Vite | 8 | kadai と同じ。ポート 5173 |
-| 見た目 | CSS Modules | （Vite に含まれる） | 部品ごとに CSS を分けられ、追加のライブラリが要らない |
+| 区分 | 使うもの | バージョン | kadai | 用途・理由 |
+| --- | --- | --- | --- | --- |
+| 実行環境 | Node.js | 24 | ○ | GitHub Actions の setup-node と同じ |
+| 言語 | TypeScript | 6.0.3（package.json は ~6.0.2） | ○ | |
+| ライブラリ | React・React DOM | 19.3.0（package.json は ^19.2.8） | ○ | |
+| 開発サーバー・ビルド | Vite | 8.3.2（package.json は ^8.3.0） | ○ | ポート 5173 |
+| Vite の React 対応 | @vitejs/plugin-react | 6.1.1 | ○ | |
+| 型定義 | @types/react・@types/react-dom・@types/node | 19.3.0・19.3.0・24.19.1 | ○ | |
+| 画面の切り替え | React Router | 7 系の最新に固定し、package.json に書く | 新 | 11 個の画面（G-1〜G-11）を URL で切り替える。kadai は 1 画面のため新しく使う |
+| 見た目 | CSS Modules | （Vite に含まれる） | 新 | 部品ごとに CSS を分けられ、追加のライブラリが要らない |
+
+kadai で使っている dnd-kit（ドラッグ＆ドロップ）は、本アプリでは使わない。
+
+バージョンの「（package.json は …）」は、package.json に書く範囲である。実際に入るバージョンは package-lock.json で固定し、kadai の package-lock.json と同じものにそろえる。
 
 ### 3.3 データベース・ストレージ
 
-| 区分 | 開発環境 | AWS | 理由 |
-| --- | --- | --- | --- |
-| データベース | PostgreSQL 17（Docker のコンテナ） | Amazon RDS for PostgreSQL 17 | kadai と同じ。pg_trgm で部分一致の検索を速くできる（条件 1） |
-| 画像の保存先 | MinIO（Docker のコンテナ、ポート 9000） | Amazon S3 | S3 と同じ API で使えるため、開発中に費用をかけずに試せる（条件 4） |
+| 区分 | 開発環境 | AWS | kadai | 用途・理由 |
+| --- | --- | --- | --- | --- |
+| データベース | PostgreSQL 17（Docker のイメージ postgres:17） | Amazon RDS for PostgreSQL 17（engine_version = "17"） | ○ | pg_trgm で部分一致の検索を速くできる（条件 1） |
+| 画像の保存先 | MinIO（Docker のイメージ minio/minio。タグは compose.yaml を作るときに日付つきのものに固定する） | Amazon S3 | 新 | S3 と同じ API で使えるため、開発中に費用をかけずに試せる（条件 4） |
 
 ### 3.4 公開（AWS）
 
 構成と費用は[インフラ設計書](design/infra-design.md)に書く。
 
-| 区分 | 決定 | 理由 |
-| --- | --- | --- |
-| ロードバランサー | Elastic Load Balancing（ALB） | HTTPS の終端とヘルスチェック。P-3 |
-| サーバー | Amazon EC2（t3.small、Amazon Linux 2023） | Spring Boot の jar をそのまま動かせる。P-3 |
-| 証明書・DNS | AWS Certificate Manager、Amazon Route 53 | ALB を HTTPS にする（N-9）。独自ドメインは U-2 で決める |
-| 秘密の値 | AWS Systems Manager Parameter Store | N-16 |
-| サーバーの操作 | AWS Systems Manager Session Manager | SSH を開けずに EC2 を操作できる |
-| ログ・監視 | Amazon CloudWatch | |
-| 費用の通知 | AWS Budgets | R-1 |
-| AWS の構築 | Terraform（候補） | 消して作り直すことが多いため（インフラ設計書 8 章）。構築を始めるときに決める |
+| 区分 | 使うもの | バージョン・種類 | kadai | 用途・理由 |
+| --- | --- | --- | --- | --- |
+| サーバー | Amazon EC2 | t4g.micro（ARM・メモリ 1GB）、Amazon Linux 2023（arm64） | ○ | Spring Boot の jar を systemd で動かす |
+| サーバーの Java | Amazon Corretto | 21（java-21-amazon-corretto-headless） | ○ | ヒープの上限は kadai と同じ -Xmx384m から始める |
+| データベース | Amazon RDS for PostgreSQL | 17、db.t4g.micro | ○ | |
+| ロードバランサー | Elastic Load Balancing（ALB） | | 新 | HTTPS の終端とヘルスチェック。kadai は CloudFront ＋ nginx（4 章） |
+| 画像の保存先 | Amazon S3 | | 新 | P-2 |
+| 証明書・DNS | AWS Certificate Manager、Amazon Route 53 | | 新 | ALB を HTTPS にする（N-9）。独自ドメインは U-2 で決める |
+| 秘密の値 | AWS Systems Manager Parameter Store | | 新 | N-16。kadai は AMI を探すのにだけ使っている |
+| サーバーの操作 | AWS Systems Manager Session Manager | | 新 | SSH を開けずに EC2 を操作する |
+| ログ・監視 | Amazon CloudWatch | | 新 | |
+| 費用の通知 | AWS Budgets | | 新 | R-1 |
+| AWS の構築 | Terraform | 1.16.5（required_version = ">= 1.9"） | ○ | 消して作り直すことが多いため（インフラ設計書 8 章） |
+| Terraform の AWS プロバイダー | hashicorp/aws | 6.68.0（version = "~> 6.0"） | ○ | |
+| Terraform の lint | TFLint ＋ tflint-ruleset-aws | ruleset 0.49.0 | ○ | |
 
 ### 3.5 開発ツール
 
-| 区分 | 決定 | 理由 |
-| --- | --- | --- |
-| ソース管理 | Git・GitHub | N-21 |
-| 自動のチェック | GitHub Actions | N-24。Pull Request ごとに書式・lint・テスト・ビルドを動かす |
-| 開発用のコンテナ | Docker Compose | PostgreSQL と MinIO を 1 つのコマンドで起動する |
-| API のテスト | JUnit 5、MockMvc、Testcontainers | kadai と同じ。本物の PostgreSQL でテストする |
-| 画面のテスト | Vitest 5、Testing Library | kadai と同じ |
-| 画面を通したテスト | Playwright | kadai と同じ。主な流れ（登録 → 投稿 → いいね → フォロー → 検索）を確かめる |
-| Java の書式・静的解析 | spring-javaformat、SpotBugs | kadai と同じ |
-| TypeScript の lint | oxlint | kadai と同じ |
-| エディタ | Visual Studio Code | |
+| 区分 | 使うもの | バージョン | kadai | 用途・理由 |
+| --- | --- | --- | --- | --- |
+| ソース管理 | Git・GitHub | | ○ | N-21 |
+| 自動のチェック | GitHub Actions | actions/checkout@v7、actions/setup-node@v7、actions/setup-java@v6（temurin 21）、hashicorp/setup-terraform@v4、terraform-linters/setup-tflint@v6 | ○ | N-24。Pull Request ごとに書式・lint・テスト・ビルドを動かす |
+| 開発用のコンテナ | Docker Compose | | ○ | PostgreSQL と MinIO を 1 つのコマンドで起動する |
+| API のテスト | JUnit 5、MockMvc、Testcontainers（testcontainers-junit-jupiter・testcontainers-postgresql） | Spring Boot 4.1.1 に合わせる | ○ | 本物の PostgreSQL でテストする |
+| 画面のテスト | Vitest | 5.0.3 | ○ | |
+| 画面の部品のテスト | Testing Library（@testing-library/react） | 最新に固定し、package.json に書く | 新 | 画面が増えるため、部品を表示して確かめる |
+| 画面を通したテスト | Playwright（@playwright/test） | 1.63.0 | ○ | 主な流れ（登録 → 投稿 → いいね → フォロー → 検索）を確かめる |
+| Java の書式 | spring-javaformat | 0.0.48 | ○ | |
+| Java の静的解析 | SpotBugs（spotbugs-maven-plugin） | 4.10.4.1 | ○ | |
+| TypeScript の lint | oxlint | 1.86.0（package.json は ^1.81.0） | ○ | |
+| エディタ | Visual Studio Code | | ○ | |
 
 ---
 
-## 4. 候補の比較
+## 4. kadai との違い
 
-kadai と構成をそろえることを前提にしたため、比較したのは新しく足すものだけである。「2. 選定の条件」の No ごとに ○・△・× をつける。
+| 項目 | kadai | 本アプリ | 理由 |
+| --- | --- | --- | --- |
+| ログイン | なし | Spring Security（セッション・BCrypt） | 複数のユーザーが使うため（FN-01） |
+| 画面の数 | 1 画面 | 11 画面（React Router） | G-1〜G-11 |
+| 公開の入口 | CloudFront → EC2 の nginx | ALB → EC2 の Spring Boot | ALB を使う構成にするため（要件定義書 P-3）。画面も Spring Boot から配るので nginx は使わない |
+| 画像 | なし | S3（開発では MinIO）、AWS SDK for Java | FN-04 |
+| ヘルスチェック | なし | Spring Boot Actuator | ALB が EC2 の状態を確かめるため |
+| ドラッグ＆ドロップ | dnd-kit | 使わない | 本アプリに並べ替えの機能がないため |
 
-### 4.1 画像の保存先
+---
+
+## 5. 候補の比較
+
+kadai と同じものを使うことを前提にしたため、比較したのは新しく足すものだけである。「2. 選定の条件」の No ごとに ○・△・× をつける。
+
+### 5.1 画像の保存先
 
 | 候補 | 1 | 2 | 3 | 4 | 5 | 6 | 備考 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -135,14 +181,14 @@ kadai と構成をそろえることを前提にしたため、比較したの�
 | データベースに保存 | — | — | × | ○ | ○ | — | 署名付き URL が使えず、データベースが大きくなる |
 | EC2 のディスクに保存 | — | — | × | ○ | ○ | — | EC2 を作り直すと消える。2 台以上にできない |
 
-### 4.2 画面の切り替え
+### 5.2 画面の切り替え
 
 | 候補 | 1 | 2 | 3 | 4 | 5 | 6 | 備考 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | **React Router** | — | — | — | ○ | ○ | ○ | 採用。利用者が最も多く、情報を探しやすい |
 | TanStack Router | — | — | — | ○ | ○ | ○ | URL の型を確かめられるが、学ぶことが増える |
 
-### 4.3 ユーザー検索
+### 5.3 ユーザー検索
 
 | 候補 | 1 | 2 | 3 | 4 | 5 | 6 | 備考 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -151,9 +197,9 @@ kadai と構成をそろえることを前提にしたため、比較したの�
 
 ---
 
-## 5. 費用
+## 6. 費用
 
-AWS の月額の概算は[インフラ設計書](design/infra-design.md) 7 章のとおり（常に動かした場合 約 10,600 円）。構築の前に AWS Pricing Calculator で確かめ、ここに記録する。
+AWS の月額の概算は[インフラ設計書](design/infra-design.md) 7 章のとおり（常に動かした場合 約 8,700 円）。構築の前に AWS Pricing Calculator で確かめ、ここに記録する。
 
 | サービス | 項目 | 金額 | 確認日 | 確認した URL |
 | --- | --- | --- | --- | --- |

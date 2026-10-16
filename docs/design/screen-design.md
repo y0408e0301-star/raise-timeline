@@ -8,7 +8,7 @@
 | 最終更新日 | 2026-10-16 |
 | 作成者 | （氏名） |
 | 上位文書 | [基本設計書](basic-design.md)（RT-BD） |
-| 元にした文書 | [画面一覧](../requirements/screens.md)、[機能定義書](../functions/function-definition.md)（要件定義書 版数 0.4） |
+| 元にした文書 | [画面一覧](../requirements/screens.md)、[機能定義書](../functions/function-definition.md)（要件定義書 版数 0.5） |
 | 状態 | 承認待ち |
 
 ## 改訂履歴
