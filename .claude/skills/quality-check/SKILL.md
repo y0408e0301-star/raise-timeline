@@ -35,16 +35,16 @@ description: バックエンド（Spring Boot など）・フロントエンド�
 
 ## Raise timeline のチェック
 
-正は README の「テストとコードチェック」。食い違ったらそちらに合わせ、この表を直す。コードはまだない（作成予定）。導入するときは技術スタック定義書 3.5 のツールとバージョンを使い、kadai の設定をひな形にする（[references/setup.md](references/setup.md)）。
+正は README の「テストとコードチェック」。食い違ったらそちらに合わせ、この表を直す。API（`backend/`）と CI は作った。画面・Terraform はまだない（作成予定）。導入するときは技術スタック定義書 3.5 のツールとバージョンを使い、kadai の設定をひな形にする（[references/setup.md](references/setup.md)）。
 
-| 対象 | コマンド（それぞれのフォルダで） | 中身 | 設定（予定） |
+| 対象 | コマンド（それぞれのフォルダで） | 中身 | 設定 |
 | --- | --- | --- | --- |
 | 画面 | `npm run lint` | oxlint（警告もエラー） | `frontend/.oxlintrc.json` |
 | 画面 | `npm test` | Vitest・Testing Library のテスト | `frontend/vite.config.ts` の `test` |
 | 画面 | `npm run build` | `tsc -b`（型チェック）+ Vite のビルド | `frontend/tsconfig.*.json` |
 | 画面 | `npm run test:e2e` | Playwright（登録 → 投稿 → いいね → フォロー → 検索。サーバーを全部起動しておく。start-servers スキル） | `frontend/playwright.config.ts` |
 | API | `.\mvnw.cmd verify` | spring-javaformat・SpotBugs・テスト（DB は Testcontainers が起動するので、Docker Desktop を動かしておく） | `backend/pom.xml`、`backend/spotbugs-exclude.xml` |
-| CI | PR ごとに自動 | 上の lint・test・build・verify と Terraform の fmt・validate・tflint（E2E は除く） | `.github/workflows/ci.yml` |
+| CI | PR ごとに自動 | いまは API の verify だけ。画面の lint・test・build と Terraform の fmt・validate・tflint は、作ったときに足す（E2E は除く） | `.github/workflows/ci.yml` |
 | Terraform | `deploy/terraform` で `terraform fmt -check -recursive`・`terraform validate`・`tflint`・`trivy config .` | 書式・構文・lint・セキュリティ（plan・apply は AWS に接続するので、品質チェックでは実行しない） | `deploy/terraform/.tflint.hcl` |
 
 - 書式で失敗したら `.\mvnw.cmd spring-javaformat:apply` で直す
