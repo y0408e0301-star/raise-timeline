@@ -1,0 +1,16 @@
+# 開発用の PostgreSQL。リポジトリのルートで `docker compose up -d` を実行して起動する
+# 画像の保存先（MinIO、9000）は画像の機能（FN-04）を作るときに足す
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: raise_timeline
+      POSTGRES_USER: raise_timeline
+      POSTGRES_PASSWORD: raise_timeline
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data:
