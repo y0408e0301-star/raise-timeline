@@ -27,14 +27,16 @@ description: Raise timeline の開発サーバー（PostgreSQL・MinIO・API サ
 
 ### Raise timeline のサーバー
 
-正は CLAUDE.md の「サーバーのポート」。食い違ったらそちらに合わせ、この表を直す。`compose.yaml`・`backend/`・`frontend/` はまだない（作成予定）。作ったら、起動コマンドと起動の確認が実際と合っているかを確かめ、この表と README の「起動方法」を直す。
+正は CLAUDE.md の「サーバーのポート」。食い違ったらそちらに合わせ、この表を直す。PostgreSQL と API サーバーの行は、実際に起動して確かめた。MinIO（`compose.yaml` に足す）と `frontend/` はまだない（作成予定。開発計画書 1-3・2-1）。作ったら、起動コマンドと起動の確認が実際と合っているかを確かめ、この表と README の「起動方法」を直す。
+
+API サーバーは開発用の設定（DB の接続先・JWT の秘密の値）を `application.properties` の既定値で持つので、環境変数を渡さずに起動できる。
 
 | サーバー | ポート | 決めている場所 | 起動コマンド | 起動の確認 |
 | --- | --- | --- | --- | --- |
 | データベース（PostgreSQL 17） | 5432 | `compose.yaml` | ルートで `docker compose up -d` | `docker compose ps` で `running` |
-| 画像の保存先（MinIO） | 9000 | `compose.yaml` | 同上（PostgreSQL と一緒に起動する） | `http://localhost:9000/minio/health/live` が 200 |
+| 画像の保存先（MinIO。作成予定） | 9000 | `compose.yaml` | 同上（PostgreSQL と一緒に起動する） | `http://localhost:9000/minio/health/live` が 200 |
 | API サーバー（Spring Boot） | 8080 | Spring Boot の既定値（`server.port` は指定しない） | `cd backend` → `.\mvnw.cmd spring-boot:run` | `http://localhost:8080/actuator/health` が `{"status":"UP"}` |
-| 画面（Vite） | 5173 | Vite の既定値（`--port` は指定しない） | `cd frontend` → `npm run dev`（初回は `npm install`） | `http://localhost:5173/` が 200 |
+| 画面（Vite。作成予定） | 5173 | Vite の既定値（`--port` は指定しない） | `cd frontend` → `npm run dev`（初回は `npm install`） | `http://localhost:5173/` が 200 |
 
 - 画面の `/api` へのリクエストは、`frontend/vite.config.ts` の proxy で 8080 へ転送する。API が 8080 で動いていないと、画面からは 502（止まっている）や 404（古いコード）になる
 - 画像は、API が発行した署名付き URL で、ブラウザが MinIO（9000）から直接読む（インフラ設計書 5.1）。画像だけ出ないときは MinIO が 9000 で動いているかを確かめる

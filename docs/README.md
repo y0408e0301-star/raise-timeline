@@ -25,7 +25,8 @@ docs/
 │   ├── screen-design.md               … 画面設計書
 │   ├── data-design.md                 … データ設計書（ER 図）
 │   └── infra-design.md                … インフラ設計書（AWS の構成図）
-└── tech-stack.md                      … 技術スタック定義書
+├── tech-stack.md                      … 技術スタック定義書
+└── development-plan.md                … 開発計画書（作る順番と進み具合）
 ```
 
 | 文書 | 文書番号 | 内容 | 承認 |
@@ -40,8 +41,9 @@ docs/
 | [データ設計書](design/data-design.md) | RT-BD-DATA | ER 図、テーブル定義、データのルール、CRUD 表 | 〃 |
 | [インフラ設計書](design/infra-design.md) | RT-BD-INFRA | AWS の構成図、ネットワーク、通信の許可、費用の目安 | 〃 |
 | [技術スタック定義書](tech-stack.md) | RT-TECH | 使う言語・フレームワーク・サービス・開発ツールと選んだ理由 | 本書で行う |
+| [開発計画書](development-plan.md) | RT-PLAN | 作る順番（段階と Pull Request の単位）、段階ごとの完了条件、どこまでできたか | 本書で行う |
 
-開発計画書・テスト仕様書・操作マニュアルは、作成した時点でここに追加する。
+テスト仕様書・操作マニュアルは、作成した時点でここに追加する。
 
 ## 読む順番
 
@@ -49,7 +51,7 @@ docs/
 2. 必要に応じて、要件定義書の詳細文書（画面・データ）
 3. [機能定義書](functions/function-definition.md)：共通の決まりを読み、作る機能の文書（FN-01〜FN-09）を読む
 4. [基本設計書](design/basic-design.md) → [画面設計書](design/screen-design.md)・[データ設計書](design/data-design.md)・[インフラ設計書](design/infra-design.md)
-5. [技術スタック定義書](tech-stack.md)
+. [開発計画書](development-plan.md)：作る順番と、いまどこまでできたか
 
 1 つの機能を作るときは、その機能の機能定義書と、そこから参照している画面設計書・データ設計書の章を読めばよい。
 

@@ -7,7 +7,7 @@
   const M = {
     1: 'このユーザー ID は使われています。',
     2: 'ユーザー ID は 3〜15 文字の半角英数字と「_」で入力してください。',
-    3: 'パスワードは英字と数字を含む 8〜64 文字で入力してください。',
+    3: 'パスワードは英字と数字を含む 8〜64 文字の半角文字で入力してください。',
     4: 'パスワード（確認）が一致しません。',
     5: '表示名を入力してください。',
     6: 'ユーザー ID かパスワードが違います。',
@@ -644,7 +644,7 @@
       '<main class="auth"><h1 class="small">アカウントを作る</h1><form id="signup-form" novalidate>' +
       field('uid', 'ユーザー ID', 'text', '3〜15 文字の半角英数字と「_」', 'username') +
       field('name', '表示名', 'text', '', 'nickname') +
-      field('pw', 'パスワード', 'password', '英字と数字を含む 8〜64 文字', 'new-password') +
+      field('pw', 'パスワード', 'password', '英字と数字を含む 8〜64 文字の半角文字', 'new-password') +
       field('pw2', 'パスワード（確認）', 'password', '', 'new-password') +
       '<button type="submit" class="btn btn-primary btn-block" id="s-submit">登録する</button>' +
       '</form><p class="auth-link"><a href="#/login">ログインはこちら</a></p></main>';
@@ -680,7 +680,7 @@
       const errors = {
         uid: !uidOk(uid) ? M[2] : userByUid(uid) ? M[1] : null,
         name: !name ? M[5] : null,
-        pw: !(len(pw) >= 8 && len(pw) <= 64 && /[A-Za-z]/.test(pw) && /\d/.test(pw)) ? M[3] : null,
+        pw: !(/^[\x20-\x7E]{8,64}$/.test(pw) && /[A-Za-z]/.test(pw) && /\d/.test(pw)) ? M[3] : null,
         pw2: inputs.pw2.value !== pw ? M[4] : null,
       };
       Object.keys(errors).forEach((k) => setError(k, errors[k]));

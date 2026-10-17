@@ -4,7 +4,7 @@ X（Twitter）のようなタイムライン形式のテキスト SNS です。�
 
 学習用に、要件定義から設計・実装・テスト・AWS への公開までを一通り行います。画面は React、API は Spring Boot、データは PostgreSQL、画像は AWS S3（開発中は MinIO）に保存し、AWS（ALB・EC2・RDS・S3）で公開します。
 
-> **いまの状況（2026-10-17）**：要件定義書・機能定義書・基本設計書・技術スタック定義書を書き終え、承認待ちです。画面の動きを確かめる[モック](#画面のモックmock)（`mock/`）を作りました。コード（`backend/`・`frontend/`・`compose.yaml`・`deploy/`）はまだありません。この README で「予定」と書いているものは、文書で決めた内容で、まだ作っていません。
+> **いまの状況（2026-10-17）**：要件定義書・機能定義書・基本設計書・技術スタック定義書を書き終え、承認待ちです。画面の動きを確かめる[モック](#画面のモックmock)（`mock/`）を作りました。実装は **API を全部作ってから画面を作る**順番で進めています（[開発計画書](docs/development-plan.md)）。いまは段階 1（API）で、ユーザー登録・ログインの API（`backend/`、FN-01）と開発用のデータベース（`compose.yaml`）ができました。画面（`frontend/`）と公開環境（`deploy/`）はまだありません。この README で「予定」と書いているものは、文書で決めた内容で、まだ作っていません。
 
 ## 目次
 
@@ -27,7 +27,7 @@ X（Twitter）のようなタイムライン形式のテキスト SNS です。�
 
 ## 主な機能
 
-すべて予定です。詳しくは[要件定義書の 8 章（機能一覧）](docs/requirements/requirements.md#8-機能一覧)と、機能ごとの機能定義書を見てください。
+ユーザー登録・ログインの API 以外は予定です。詳しくは[要件定義書の 8 章（機能一覧）](docs/requirements/requirements.md#8-機能一覧)と、機能ごとの機能定義書を見てください。
 
 - **ユーザー登録・ログイン（JWT 認証）**：ユーザー ID とパスワードで登録・ログインする。ログインの状態は JWT で持ち、HttpOnly の Cookie に入れる。5 回続けて失敗したら 15 分間ログインできない。ログインしていないと何も使えない
 - **タイムライン**：「フォロー中」（自分とフォローした人）と「すべて」（全員）のタブで、投稿を新しい順に 20 件ずつ出す
@@ -141,11 +141,11 @@ flowchart LR
 
 ## 機能の一覧
 
-機能の番号（FN-01 など）は[要件定義書の 8 章](docs/requirements/requirements.md#8-機能一覧)に対応しています。作ったら「予定」を ✅ に変えます。
+機能の番号（FN-01 など）は[要件定義書の 8 章](docs/requirements/requirements.md#8-機能一覧)に対応しています。作ったら「予定」を ✅ に変えます。作る順番は[開発計画書](docs/development-plan.md)にあります。
 
 | 機能 | 版 | 機能定義書 | API | 画面 |
 | --- | --- | --- | --- | --- |
-| FN-01 ユーザー登録・ログイン | 第 1 版 | [fn01-auth.md](docs/functions/fn01-auth.md) | 予定 | 予定 |
+| FN-01 ユーザー登録・ログイン | 第 1 版 | [fn01-auth.md](docs/functions/fn01-auth.md) | ✅ | 予定 |
 | FN-02 タイムライン | 第 1 版 | [fn02-timeline.md](docs/functions/fn02-timeline.md) | 予定 | 予定 |
 | FN-03 投稿 | 第 1 版 | [fn03-post.md](docs/functions/fn03-post.md) | 予定 | 予定 |
 | FN-04 画像 | 第 1 版 | [fn04-image.md](docs/functions/fn04-image.md) | 予定 | 予定 |
@@ -172,16 +172,19 @@ flowchart LR
 
 ```
 raise-timeline/
+├── backend/                    API サーバー（Spring Boot）
 ├── docs/                       文書（最初に docs/README.md を読む）
 │   ├── README.md               文書一覧・読む順番・ID の一覧
 │   ├── requirements/           要件定義書（本体・画面一覧・データ要件）
 │   ├── functions/              機能定義書（本体・FN-01〜FN-09）
 │   ├── design/                 基本設計書（本体・画面・データ・インフラ）
-│   └── tech-stack.md           技術スタック定義書
+│   ├── tech-stack.md           技術スタック定義書
+│   └── development-plan.md     開発計画書（作る順番と進み具合）
 ├── mock/                       画面のモック（HTML・CSS・JavaScript だけ。index.html を開く）
 ├── .claude/skills/             Claude Code のスキル（サーバーの起動・品質チェック）
 ├── .githooks/                  main へのコミットなどを止める git フック
-├── .github/                    Issue・Pull Request のテンプレート
+├── .github/                    Issue・Pull Request のテンプレート、GitHub Actions（workflows/）
+├── compose.yaml                開発用の PostgreSQL
 ├── CONTRIBUTING.md             開発ルール
 └── CLAUDE.md                   Claude Code への指示
 ```
@@ -189,16 +192,14 @@ raise-timeline/
 作る予定のもの：
 
 ```
-├── backend/                    API サーバー（Spring Boot）
 ├── frontend/                   画面（React + Vite）。e2e/ に E2E テスト
-├── compose.yaml                開発用の PostgreSQL・MinIO
-├── deploy/terraform/           AWS の環境（Terraform）
-└── .github/workflows/          GitHub Actions（コードチェックとテストの自動実行）
+├── compose.yaml                画像の保存先（MinIO）を足す
+└── deploy/terraform/           AWS の環境（Terraform）
 ```
 
 ## 起動方法
 
-コードを作ったら、この手順が実際に動くかを確かめて直します（予定）。
+データベースと API サーバーは、この手順で動くことを確かめています。画像の保存先（MinIO）と画面は、作ったときに確かめて直します。
 
 ### 必要なもの
 
@@ -216,20 +217,21 @@ git config core.hooksPath .githooks
 
 `git config core.hooksPath .githooks` は開発ルールを守らせる git フックを有効にする設定です（[CONTRIBUTING.md](CONTRIBUTING.md)）。
 
-### 起動する（予定）
+### 起動する
 
 ターミナルを 3 つ使い、それぞれリポジトリのフォルダから次を実行します。
 
 | 順番 | 起動するもの | コマンド | ポート |
 | --- | --- | --- | --- |
-| 1 | データベース・画像の保存先 | `docker compose up -d` | 5432（PostgreSQL）、9000（MinIO） |
+| 1 | データベース・画像の保存先 | `docker compose up -d` | 5432（PostgreSQL）、9000（MinIO。予定） |
 | 2 | API サーバー | `cd backend` → `.\mvnw.cmd spring-boot:run` | 8080 |
-| 3 | 画面 | `cd frontend` → `npm install`（初回のみ）→ `npm run dev` | 5173 |
+| 3 | 画面（予定） | `cd frontend` → `npm install`（初回のみ）→ `npm run dev` | 5173 |
 
 - API サーバーは http://localhost:8080/actuator/health で `{"status":"UP"}` が返れば起動済みです
 - ブラウザで http://localhost:5173 を開きます。画面から `/api` へのリクエストは、Vite の proxy で API サーバー（8080）へ転送します
 - 画像は、ブラウザが MinIO（9000）から署名付き URL で直接読みます
 - ポートは上の表のものだけを使います（[CLAUDE.md](CLAUDE.md) の「サーバーのポート」）。使われていたら、そのポートを使っているプロセスを止めてから起動し直します（別のポートでは起動しません）
+- 開発では、データベースの接続先と JWT の秘密の値は `backend/src/main/resources/application.properties` の既定値（開発用）を使うので、設定は要りません。公開環境では環境変数（`DB_URL`・`DB_USERNAME`・`DB_PASSWORD`・`JWT_SECRET`・`COOKIE_SECURE=true`）で渡します
 - 接続先（データベースの URL、S3 のエンドポイントとバケット名）は環境変数で渡します。パスワードなどは `.env` に書き、リポジトリには入れません
 
 ### 止める
@@ -239,7 +241,7 @@ git config core.hooksPath .githooks
 
 ## テストとコードチェック
 
-予定です。ツールとバージョンは[技術スタック定義書 3.5](docs/tech-stack.md#35-開発ツール)、テストの観点は各機能定義書の 10 章にあります。
+API サーバーの行は使えます。画面と公開環境の行は予定です。ツールとバージョンは[技術スタック定義書 3.5](docs/tech-stack.md#35-開発ツール)、テストの観点は各機能定義書の 10 章にあります。
 
 | 対象 | コマンド（それぞれのフォルダで実行） | 内容 |
 | --- | --- | --- |
@@ -250,11 +252,11 @@ git config core.hooksPath .githooks
 | 画面 | `npm run test:e2e` | Playwright で、登録 → 投稿 → いいね → フォロー → 検索の流れを画面から確かめる（サーバーを全部起動しておく） |
 | 公開環境 | `deploy/terraform` で `terraform fmt -check -recursive`・`terraform validate`・`tflint` | Terraform の書式・構文・書き方。AWS には接続しない |
 
-Pull Request を作ったときは、GitHub Actions が E2E テスト以外を自動で実行します。
+Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）が自動で実行します。いまは API サーバーの `mvnw verify` だけで、画面と公開環境のチェックは作ったときに足します（E2E テストは自動では実行しません）。
 
 ## API
 
-予定です。API は機能定義書の「6. API（案）」で決めています。共通の決まり（ログイン・CSRF・エラーの形・ページング）は[機能定義書 3 章](docs/functions/function-definition.md#3-共通の決まりapi)にあります。
+`/api/auth/*`（FN-01）は作りました。それ以外は予定です。API は機能定義書の「6. API（案）」で決めています。共通の決まり（ログイン・CSRF・エラーの形・ページング）は[機能定義書 3 章](docs/functions/function-definition.md#3-共通の決まりapi)にあります。
 
 | メソッド | パス | 内容 | 機能 |
 | --- | --- | --- | --- |
@@ -296,7 +298,7 @@ Pull Request を作ったときは、GitHub Actions が E2E テスト以外を�
 
 ## データベース
 
-予定です。テーブル定義・索引・データのルールは[データ設計書](docs/design/data-design.md)にあります。テーブルは Flyway で作ります（`V1__....sql` から順に。既存の SQL は書き換えず、新しいファイルを足します）。
+`users`・`refresh_tokens` は作りました（`backend/src/main/resources/db/migration/`）。それ以外は予定です。テーブル定義・索引・データのルールは[データ設計書](docs/design/data-design.md)にあります。テーブルは Flyway で作ります（`V1__....sql` から順に。既存の SQL は書き換えず、新しいファイルを足します）。
 
 | テーブル | 内容 | 主な列 |
 | --- | --- | --- |
