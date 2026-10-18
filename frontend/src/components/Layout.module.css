@@ -1,0 +1,19 @@
+/* 画面設計書 3.6 ヘッダー */
+.header { position: sticky; top: 0; z-index: 10; background: rgba(255, 255, 255, 0.96); border-bottom: 1px solid var(--line); }
+.inner { max-width: 900px; margin: 0 auto; height: 56px; padding: 0 16px; display: flex; align-items: center; gap: 16px; }
+.appName { font-size: 20px; font-weight: bold; color: var(--text); white-space: nowrap; }
+.appName:hover { text-decoration: none; }
+.short { display: none; }
+.right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+
+/* 3.10 画面の幅：中身は横幅 600px の 1 列。600px 未満では横幅いっぱい */
+.container {
+  max-width: 600px; margin: 0 auto; min-height: calc(100vh - 57px);
+  border-left: 1px solid var(--line); border-right: 1px solid var(--line);
+}
+
+@media (max-width: 599px) {
+  .full { display: none; }
+  .short { display: inline; }
+  .container { border: none; }
+}

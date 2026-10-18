@@ -80,14 +80,17 @@ function csrfHeader(): Record<string, string> {
   return token ? { 'X-XSRF-TOKEN': decodeURIComponent(token) } : {}
 }
 
+// body が FormData なら multipart/form-data（画像と一緒に送る投稿）、それ以外は JSON で送る
 async function call(method: string, url: string, body?: unknown): Promise<Response> {
   const headers: Record<string, string> = method === 'GET' ? {} : csrfHeader()
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  const isForm = body instanceof FormData
+  // multipart の境界の文字列はブラウザが付けるので、FormData のときは Content-Type を決めない
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
   try {
     return await fetch(url, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
     })
   } catch {
     // つながらない
@@ -147,4 +150,39 @@ export function login(username: string, password: string): Promise<Me> {
 // ログアウトする。ログインが切れていても G-1 に戻るだけなので M-19 は出さない
 export async function logout(): Promise<void> {
   await request('POST', '/api/auth/logout', undefined, false)
+}
+
+// ---------------------------------------------------------------- FN-03 投稿
+
+// 投稿（機能定義書 3.5 PostView）。日時は ISO 8601 の UTC
+export type PostView = {
+  id: number
+  author: { username: string, displayName: string, iconUrl: string | null }
+  body: string
+  images: { id: number, url: string, expiresAt: string }[]
+  likeCount: number
+  commentCount: number
+  likedByMe: boolean
+  mine: boolean
+  createdAt: string
+  editedAt: string | null
+}
+
+// 画像（FN-04）は開発計画書 1-3 で一緒に送る
+export function createPost(body: string): Promise<PostView> {
+  const form = new FormData()
+  form.append('body', body)
+  return requestJson<PostView>('POST', '/api/posts', form)
+}
+
+export function fetchPost(id: number): Promise<PostView> {
+  return requestJson<PostView>('GET', `/api/posts/${id}`)
+}
+
+export function editPost(id: number, body: string): Promise<PostView> {
+  return requestJson<PostView>('PATCH', `/api/posts/${id}`, { body })
+}
+
+export async function deletePost(id: number): Promise<void> {
+  await request('DELETE', `/api/posts/${id}`)
 }

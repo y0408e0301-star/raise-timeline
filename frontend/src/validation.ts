@@ -1,8 +1,14 @@
-// 入力の確認（機能定義書 FN-01 4 章）。API でも同じことを確かめる
+// 入力の確認（機能定義書 FN-01・FN-03 4 章）。API でも同じことを確かめる
 
 export const USERNAME_MAX = 15
 export const DISPLAY_NAME_MAX = 30
 export const PASSWORD_MAX = 64
+export const POST_BODY_MAX = 280
+
+// 文字数は Unicode の文字（コードポイント）で数える（画面設計書 3.8）。API の数え方と同じ
+export function countChars(text: string): number {
+  return Array.from(text).length
+}
 
 // トリムした後の値を渡す。3〜15 文字の半角英数字と「_」
 export function isValidUsername(username: string): boolean {
@@ -17,4 +23,9 @@ export function isValidPassword(password: string): boolean {
 // トリムした後の値を渡す。1〜30 文字
 export function isValidDisplayName(displayName: string): boolean {
   return displayName.length >= 1 && displayName.length <= DISPLAY_NAME_MAX
+}
+
+// 投稿の本文の残りの文字数（W-2）。トリムした後で数える。負の数なら送れない
+export function remainingChars(body: string): number {
+  return POST_BODY_MAX - countChars(body.trim())
 }

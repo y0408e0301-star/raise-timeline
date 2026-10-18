@@ -1,0 +1,9 @@
+/* 画面の見出し（← 投稿） */
+.head { display: flex; align-items: center; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--line); min-height: 53px; }
+.head h1 { font-size: 18px; margin: 0; }
+.back { width: 36px; height: 36px; border-radius: 50%; border: none; background: none; cursor: pointer; font-size: 20px; color: var(--text); }
+.back:hover { background: var(--hover); }
+
+/* 読み込み中・読み込みに失敗（M-9 と「再読み込み」） */
+.state { padding: 24px 16px; text-align: center; color: var(--sub); }
+.state p { margin: 0 0 12px; }

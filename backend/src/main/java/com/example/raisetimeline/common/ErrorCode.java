@@ -24,10 +24,18 @@ public enum ErrorCode {
 
 	REFRESH_FAILED(HttpStatus.UNAUTHORIZED, "ログインの有効期限が切れました。もう一度ログインしてください。"),
 
+	// 投稿（FN-03 9 章）。画面では押せないようにしているので、ふつうは出ない
+	BODY_TOO_LONG(HttpStatus.BAD_REQUEST, "投稿に失敗しました。時間をおいてもう一度お試しください。"),
+
+	POST_EMPTY(HttpStatus.BAD_REQUEST, "投稿に失敗しました。時間をおいてもう一度お試しください。"),
+
+	POST_NOT_FOUND(HttpStatus.NOT_FOUND, "この投稿は削除されました。"),
+
 	// 画面を通さずに送られた、条件に合わない入力（JSON が読めない、上限を超えた文字数など）
 	BAD_REQUEST(HttpStatus.BAD_REQUEST, "入力が正しくありません。"),
 
-	FORBIDDEN(HttpStatus.FORBIDDEN, "この操作はできません。"),
+	// 他人の投稿の編集・削除（FN-03 9 章）、CSRF トークンが合わないとき。画面には M-18 を出す
+	FORBIDDEN(HttpStatus.FORBIDDEN, "操作に失敗しました。時間をおいてもう一度お試しください。"),
 
 	NOT_FOUND(HttpStatus.NOT_FOUND, "見つかりません。"),
 
