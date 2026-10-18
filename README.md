@@ -4,7 +4,7 @@ X（Twitter）のようなタイムライン形式のテキスト SNS です。�
 
 学習用に、要件定義から設計・実装・テスト・AWS への公開までを一通り行います。画面は React、API は Spring Boot、データは PostgreSQL、画像は AWS S3（開発中は MinIO）に保存し、AWS（ALB・EC2・RDS・S3）で公開します。
 
-> **いまの状況（2026-10-17）**：要件定義書・機能定義書・基本設計書・技術スタック定義書を書き終え、承認待ちです。画面の動きを確かめる[モック](#画面のモックmock)（`mock/`）を作りました。実装は **API を全部作ってから画面を作る**順番で進めています（[開発計画書](docs/development-plan.md)）。いまは段階 1（API）で、ユーザー登録・ログインの API（`backend/`、FN-01）と開発用のデータベース（`compose.yaml`）ができました。画面（`frontend/`）と公開環境（`deploy/`）はまだありません。この README で「予定」と書いているものは、文書で決めた内容で、まだ作っていません。
+> **いまの状況（2026-10-18）**：要件定義書・機能定義書・基本設計書・技術スタック定義書を書き終え、承認待ちです。画面の動きを確かめる[モック](#画面のモックmock)（`mock/`）を作りました。実装は **API を全部作ってから画面を作る**順番で進めています（[開発計画書](docs/development-plan.md)）。いまは段階 1（API）で、ユーザー登録・ログインの API（`backend/`、FN-01）と開発用のデータベース（`compose.yaml`）ができました。ログインを画面から確かめるため、画面（`frontend/`）の土台とログイン・ユーザー登録の画面（G-1・G-2）を先に作りました。ログインした後は、タイムラインを作るまで「ログイン成功」と出すだけの仮の画面です。公開環境（`deploy/`）はまだありません。この README で「予定」と書いているものは、文書で決めた内容で、まだ作っていません。
 
 ## 目次
 
@@ -27,7 +27,7 @@ X（Twitter）のようなタイムライン形式のテキスト SNS です。�
 
 ## 主な機能
 
-ユーザー登録・ログインの API 以外は予定です。詳しくは[要件定義書の 8 章（機能一覧）](docs/requirements/requirements.md#8-機能一覧)と、機能ごとの機能定義書を見てください。
+ユーザー登録・ログイン（API と G-1・G-2 の画面）以外は予定です。詳しくは[要件定義書の 8 章（機能一覧）](docs/requirements/requirements.md#8-機能一覧)と、機能ごとの機能定義書を見てください。
 
 - **ユーザー登録・ログイン（JWT 認証）**：ユーザー ID とパスワードで登録・ログインする。ログインの状態は JWT で持ち、HttpOnly の Cookie に入れる。5 回続けて失敗したら 15 分間ログインできない。ログインしていないと何も使えない
 - **タイムライン**：「フォロー中」（自分とフォローした人）と「すべて」（全員）のタブで、投稿を新しい順に 20 件ずつ出す
@@ -145,7 +145,7 @@ flowchart LR
 
 | 機能 | 版 | 機能定義書 | API | 画面 |
 | --- | --- | --- | --- | --- |
-| FN-01 ユーザー登録・ログイン | 第 1 版 | [fn01-auth.md](docs/functions/fn01-auth.md) | ✅ | 予定 |
+| FN-01 ユーザー登録・ログイン | 第 1 版 | [fn01-auth.md](docs/functions/fn01-auth.md) | ✅ | ✅（ログインした後は仮の画面） |
 | FN-02 タイムライン | 第 1 版 | [fn02-timeline.md](docs/functions/fn02-timeline.md) | 予定 | 予定 |
 | FN-03 投稿 | 第 1 版 | [fn03-post.md](docs/functions/fn03-post.md) | 予定 | 予定 |
 | FN-04 画像 | 第 1 版 | [fn04-image.md](docs/functions/fn04-image.md) | 予定 | 予定 |
@@ -173,6 +173,7 @@ flowchart LR
 ```
 raise-timeline/
 ├── backend/                    API サーバー（Spring Boot）
+├── frontend/                   画面（React + Vite）
 ├── docs/                       文書（最初に docs/README.md を読む）
 │   ├── README.md               文書一覧・読む順番・ID の一覧
 │   ├── requirements/           要件定義書（本体・画面一覧・データ要件）
@@ -192,14 +193,14 @@ raise-timeline/
 作る予定のもの：
 
 ```
-├── frontend/                   画面（React + Vite）。e2e/ に E2E テスト
+├── frontend/e2e/               E2E テスト（Playwright）
 ├── compose.yaml                画像の保存先（MinIO）を足す
 └── deploy/terraform/           AWS の環境（Terraform）
 ```
 
 ## 起動方法
 
-データベースと API サーバーは、この手順で動くことを確かめています。画像の保存先（MinIO）と画面は、作ったときに確かめて直します。
+データベース・API サーバー・画面は、この手順で動くことを確かめています。画像の保存先（MinIO）は、作ったときに確かめて直します。
 
 ### 必要なもの
 
@@ -225,10 +226,10 @@ git config core.hooksPath .githooks
 | --- | --- | --- | --- |
 | 1 | データベース・画像の保存先 | `docker compose up -d` | 5432（PostgreSQL）、9000（MinIO。予定） |
 | 2 | API サーバー | `cd backend` → `.\mvnw.cmd spring-boot:run` | 8080 |
-| 3 | 画面（予定） | `cd frontend` → `npm install`（初回のみ）→ `npm run dev` | 5173 |
+| 3 | 画面 | `cd frontend` → `npm install`（初回のみ）→ `npm run dev` | 5173 |
 
 - API サーバーは http://localhost:8080/actuator/health で `{"status":"UP"}` が返れば起動済みです
-- ブラウザで http://localhost:5173 を開きます。画面から `/api` へのリクエストは、Vite の proxy で API サーバー（8080）へ転送します
+- ブラウザで http://localhost:5173 を開き、「アカウントを作る」から登録します。画面から `/api` へのリクエストは、Vite の proxy で API サーバー（8080）へ転送します
 - 画像は、ブラウザが MinIO（9000）から署名付き URL で直接読みます
 - ポートは上の表のものだけを使います（[CLAUDE.md](CLAUDE.md) の「サーバーのポート」）。使われていたら、そのポートを使っているプロセスを止めてから起動し直します（別のポートでは起動しません）
 - 開発では、データベースの接続先と JWT の秘密の値は `backend/src/main/resources/application.properties` の既定値（開発用）を使うので、設定は要りません。公開環境では環境変数（`DB_URL`・`DB_USERNAME`・`DB_PASSWORD`・`JWT_SECRET`・`COOKIE_SECURE=true`）で渡します
@@ -241,7 +242,7 @@ git config core.hooksPath .githooks
 
 ## テストとコードチェック
 
-API サーバーの行は使えます。画面と公開環境の行は予定です。ツールとバージョンは[技術スタック定義書 3.5](docs/tech-stack.md#35-開発ツール)、テストの観点は各機能定義書の 10 章にあります。
+API サーバーと画面の行は使えます（画面の `npm run test:e2e` と公開環境の行は予定です）。ツールとバージョンは[技術スタック定義書 3.5](docs/tech-stack.md#35-開発ツール)、テストの観点は各機能定義書の 10 章にあります。
 
 | 対象 | コマンド（それぞれのフォルダで実行） | 内容 |
 | --- | --- | --- |
@@ -249,10 +250,10 @@ API サーバーの行は使えます。画面と公開環境の行は予定で�
 | 画面 | `npm run lint` | oxlint でコードをチェック。警告が 1 つでもあれば失敗する |
 | 画面 | `npm test` | Vitest・Testing Library のテスト。サーバーは要らない |
 | 画面 | `npm run build` | 型チェックと本番用のビルド |
-| 画面 | `npm run test:e2e` | Playwright で、登録 → 投稿 → いいね → フォロー → 検索の流れを画面から確かめる（サーバーを全部起動しておく） |
+| 画面（予定） | `npm run test:e2e` | Playwright で、登録 → 投稿 → いいね → フォロー → 検索の流れを画面から確かめる（サーバーを全部起動しておく） |
 | 公開環境 | `deploy/terraform` で `terraform fmt -check -recursive`・`terraform validate`・`tflint` | Terraform の書式・構文・書き方。AWS には接続しない |
 
-Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）が自動で実行します。いまは API サーバーの `mvnw verify` だけで、画面と公開環境のチェックは作ったときに足します（E2E テストは自動では実行しません）。
+Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）が自動で実行します。いまは API サーバーの `mvnw verify` と、画面の `npm run lint`・`npm test`・`npm run build` です。公開環境のチェックは作ったときに足します（E2E テストは自動では実行しません）。
 
 ## API
 
