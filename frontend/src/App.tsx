@@ -1,24 +1,33 @@
 import { Navigate, Route, Routes } from 'react-router'
 import { AuthProvider } from './auth/AuthProvider'
 import { GuestOnly, RequireAuth } from './auth/guards'
+import Layout from './components/Layout'
+import { ToastProvider } from './components/ToastProvider'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
+import PostPage from './pages/PostPage'
 import SignupPage from './pages/SignupPage'
 
 // 画面と URL（画面一覧 2 章）。BrowserRouter（テストでは MemoryRouter）の中で使う
 export default function App() {
   return (
     <AuthProvider>
-      <Routes>
-        <Route element={<GuestOnly />}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-        </Route>
-        <Route element={<RequireAuth />}>
-          <Route path="/" element={<HomePage />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <ToastProvider>
+        <Routes>
+          <Route element={<GuestOnly />}>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+          </Route>
+          <Route element={<RequireAuth />}>
+            {/* G-3〜G-9 はヘッダーつき */}
+            <Route element={<Layout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/posts/:id" element={<PostPage />} />
+            </Route>
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </ToastProvider>
     </AuthProvider>
   )
 }

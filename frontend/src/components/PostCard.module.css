@@ -1,0 +1,39 @@
+/* 画面設計書 3.7 投稿カード（モックの .post と同じ見た目） */
+.post { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.main { flex: 1; min-width: 0; }
+.head { display: flex; align-items: center; gap: 4px; min-width: 0; }
+/* 表示名・@ユーザー ID が長いときは末尾を「…」で省く */
+.names { display: flex; gap: 4px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.name { font-weight: bold; font-size: 15px; overflow: hidden; text-overflow: ellipsis; }
+.username { color: var(--sub); overflow: hidden; text-overflow: ellipsis; }
+.time, .edited { color: var(--sub); white-space: nowrap; }
+.edited { cursor: help; }
+
+/* 本文の改行はそのまま出す（W-5） */
+.body { display: block; font-size: 15px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 2px 0 0; color: var(--text); }
+.bodyLink:hover { text-decoration: none; }
+
+.actions { display: flex; align-items: center; gap: 48px; margin-top: 8px; color: var(--sub); }
+.action { display: inline-flex; align-items: center; gap: 4px; color: var(--sub); }
+.heart { font-size: 16px; }
+.countLink:hover { color: var(--primary); }
+
+/* 「…」メニュー */
+.menuWrap { margin-left: auto; position: relative; }
+.menuButton { width: 32px; height: 32px; border-radius: 50%; border: none; background: none; cursor: pointer; color: var(--sub); font-size: 16px; }
+.menuButton:hover { background: rgba(26, 95, 180, 0.1); color: var(--primary); }
+.menu {
+  position: absolute; right: 0; top: 32px; z-index: 5; min-width: 140px; overflow: hidden;
+  background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+.menu button { display: block; width: 100%; text-align: left; padding: 10px 16px; background: none; border: none; cursor: pointer; font-size: 15px; color: var(--text); }
+.menu button:hover { background: var(--hover); }
+.menu .danger { color: var(--danger); }
+
+/* 編集中の表示 */
+.editArea {
+  display: block; width: 100%; margin-top: 4px; resize: none; font-size: 15px; color: var(--text);
+  border: 1px solid #cfd9de; border-radius: 8px; padding: 8px 10px; min-height: 44px; overflow-y: auto;
+}
+.editArea:focus { outline: 2px solid var(--primary); }
+.editFoot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 8px; flex-wrap: wrap; }

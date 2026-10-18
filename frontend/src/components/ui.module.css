@@ -1,0 +1,27 @@
+/* 画面設計書 3.3 ボタン。G-3 以降の画面で共通に使う */
+.primary, .secondary, .danger {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 36px; padding: 0 16px; border-radius: 18px;
+  border: 1px solid transparent; cursor: pointer; white-space: nowrap;
+  font-size: 14px; font-weight: bold;
+}
+.primary { background: var(--primary); color: #fff; }
+.secondary { background: #fff; color: var(--text); border-color: #cfd9de; }
+.danger { background: var(--danger); color: #fff; }
+.primary:hover:not(:disabled), .secondary:hover:not(:disabled), .danger:hover:not(:disabled) { filter: brightness(0.9); }
+.primary:disabled, .secondary:disabled, .danger:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 残りの文字数（W-2）。280 文字を超えたら危険色 */
+.count { color: var(--sub); font-size: 14px; }
+.over { color: var(--danger); font-weight: bold; }
+
+/* 3.11 アイコン（アイコン画像は第 2 版。それまでは頭文字の丸） */
+.avatar {
+  flex: none; border-radius: 50%; overflow: hidden;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--initial); color: var(--primary); font-weight: bold;
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* 一覧の代わりに出すメッセージ（3.4。M-11 など） */
+.empty { padding: 48px 24px; text-align: center; color: var(--sub); }

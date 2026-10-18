@@ -17,7 +17,7 @@ function renderAt(path: string) {
 }
 
 describe('ログイン（G-1）', () => {
-  it('ログインしていなければ G-1 を出し、ログインすると「ログイン成功」の画面に移る', async () => {
+  it('ログインしていなければ G-1 を出し、ログインすると G-3 に移る', async () => {
     mockFetch({ ...notLoggedIn, 'POST /api/auth/login': () => json(200, me) })
     renderAt('/')
     const button = await screen.findByRole('button', { name: 'ログイン' })
@@ -27,8 +27,8 @@ describe('ログイン（G-1）', () => {
     expect(button).toBeDisabled()
     await userEvent.type(screen.getByLabelText('パスワード'), 'password1')
     await userEvent.click(button)
-    expect(await screen.findByRole('heading', { name: 'ログイン成功' })).toBeInTheDocument()
-    expect(screen.getByText('たろう（@taro_y）でログインしています。')).toBeInTheDocument()
+    expect(await screen.findByRole('textbox', { name: '投稿の本文' })).toBeInTheDocument()
+    expect(screen.getByTitle('たろう（@taro_y）')).toBeInTheDocument()
   })
 
   it('失敗したら API のメッセージをフォームの上に出す', async () => {
@@ -43,10 +43,10 @@ describe('ログイン（G-1）', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('ユーザー ID かパスワードが違います。')
   })
 
-  it('ログインしていれば G-1 を開いても「ログイン成功」の画面に移る', async () => {
+  it('ログインしていれば G-1 を開いても G-3 に移る', async () => {
     mockFetch({ 'GET /api/auth/me': () => json(200, me) })
     renderAt('/login')
-    expect(await screen.findByRole('heading', { name: 'ログイン成功' })).toBeInTheDocument()
+    expect(await screen.findByRole('textbox', { name: '投稿の本文' })).toBeInTheDocument()
   })
 
   it('ログアウトすると G-1 に戻る', async () => {
@@ -85,7 +85,7 @@ describe('ユーザー登録（G-2）', () => {
     expect(await screen.findByText('このユーザー ID は使われています。')).toBeInTheDocument()
   })
 
-  it('登録すると「ログイン成功」の画面に移る', async () => {
+  it('登録すると G-3 に移る', async () => {
     const fetch = mockFetch({
       ...notLoggedIn,
       'GET /api/auth/username-availability?username=hanako': () => json(200, { available: true }),
@@ -97,7 +97,7 @@ describe('ユーザー登録（G-2）', () => {
     await userEvent.type(screen.getByLabelText('パスワード'), 'password1')
     await userEvent.type(screen.getByLabelText('パスワード（確認）'), 'password1')
     await userEvent.click(screen.getByRole('button', { name: '登録する' }))
-    expect(await screen.findByRole('heading', { name: 'ログイン成功' })).toBeInTheDocument()
+    expect(await screen.findByRole('textbox', { name: '投稿の本文' })).toBeInTheDocument()
     const sent = fetch.calls.find((c) => c.key === 'POST /api/auth/signup')
     expect(JSON.parse(sent?.init?.body as string)).toEqual({ username: 'hanako', displayName: 'はなこ', password: 'password1' })
   })

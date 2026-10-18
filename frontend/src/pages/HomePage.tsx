@@ -1,27 +1,27 @@
 import { useState } from 'react'
-import { useAuth } from '../auth/AuthContext'
-import styles from './AuthPage.module.css'
+import type { PostView } from '../api'
+import PostCard from '../components/PostCard'
+import PostForm from '../components/PostForm'
+import ui from '../components/ui.module.css'
 
-// ログインした後の仮の画面。タイムライン画面（G-3。開発計画書 2-2）を作るまで、
-// ログインできたことと、ログアウトできることだけを確かめる
+// G-3 タイムライン画面のうち、投稿フォームと投稿カード（W-1〜W-7・W-9〜W-11）。
+// タブとタイムラインの一覧（FN-02）は開発計画書 1-4 で作る。それまでは、この画面で投稿したものを新しい順に出す
 export default function HomePage() {
-  const { me, signOut } = useAuth()
-  const [sending, setSending] = useState(false)
-
-  async function handleLogout() {
-    setSending(true)
-    await signOut()
-  }
+  const [posts, setPosts] = useState<PostView[]>([])
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   return (
-    <main className={styles.page}>
-      <h1 className={styles.title}>ログイン成功</h1>
-      <p className={styles.center}>{me?.displayName}（@{me?.username}）でログインしています。</p>
-      <p className={styles.center}>
-        <button type="button" className={styles.secondary} onClick={handleLogout} disabled={sending}>
-          ログアウト
-        </button>
-      </p>
-    </main>
+    <>
+      {/* 投稿したら一覧の先頭に足す（T-5） */}
+      <PostForm onPosted={(post) => setPosts((prev) => [post, ...prev])} />
+      {posts.length === 0
+        ? <p className={ui.empty}>まだ投稿がありません。</p>
+        : posts.map((post) => (
+          <PostCard key={post.id} post={post} editing={editingId === post.id}
+            onEditingChange={(editing) => setEditingId(editing ? post.id : null)}
+            onChange={(changed) => setPosts((prev) => prev.map((p) => (p.id === changed.id ? changed : p)))}
+            onDelete={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))} />
+        ))}
+    </>
   )
 }

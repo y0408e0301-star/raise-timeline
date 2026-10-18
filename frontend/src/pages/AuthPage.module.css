@@ -1,4 +1,4 @@
-/* G-1・G-2 と、ログインした後の仮の画面で使う（モックの .auth と同じ見た目） */
+/* G-1・G-2 で使う（モックの .auth と同じ見た目） */
 .page { max-width: 400px; margin: 48px auto; padding: 0 16px; }
 .title { text-align: center; font-size: 26px; margin: 0 0 24px; }
 .subtitle { text-align: center; font-size: 20px; margin: 0 0 24px; }
@@ -17,17 +17,15 @@
 /* 3.4 フォームの上に出すメッセージ（M-6・M-7・M-19） */
 .message { color: var(--danger); background: #fff4f2; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; }
 
-/* 3.3 主ボタン・通常ボタン */
-.primary, .secondary {
+/* 3.3 主ボタン */
+.primary {
   display: inline-flex; align-items: center; justify-content: center;
   height: 36px; padding: 0 16px; border-radius: 18px;
   border: 1px solid transparent; cursor: pointer; white-space: nowrap;
   font-size: 14px; font-weight: bold;
 }
 .primary { width: 100%; background: var(--primary); color: #fff; }
-.secondary { background: #fff; color: var(--text); border-color: #cfd9de; }
-.primary:hover:not(:disabled), .secondary:hover:not(:disabled) { filter: brightness(0.9); }
-.primary:disabled, .secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+.primary:hover:not(:disabled) { filter: brightness(0.9); }
+.primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .link { text-align: center; margin-top: 20px; }
-.center { text-align: center; }
