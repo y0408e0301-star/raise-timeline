@@ -3,9 +3,9 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-TECH |
-| 版数 | 0.3 |
+| 版数 | 0.4 |
 | 作成日 | 2026-10-16 |
-| 最終更新日 | 2026-10-17 |
+| 最終更新日 | 2026-10-18 |
 | 作成者 | （氏名） |
 | 元にした文書 | [要件定義書](requirements/requirements.md) 版数 0.6、[基本設計書](design/basic-design.md) 版数 0.4 |
 | 状態 | 承認待ち |
@@ -17,6 +17,7 @@
 | 0.1 | 2026-10-16 | 初版。kadai と同じ構成（Spring Boot・React・PostgreSQL）に、S3（開発では MinIO）を足して選定 | （氏名） |
 | 0.2 | 2026-10-16 | 技術スタックをタスク管理アプリ（kadai）とほぼ同じにし、バージョンも kadai と同じものに指定（3 章）。EC2 を t4g.micro（ARM）に、AWS の構築を Terraform に決定。kadai との違いを 4 章にまとめ、候補の比較を 5 章に移した | （氏名） |
 | 0.3 | 2026-10-17 | ログインをセッション認証から JWT 認証に変更。Spring Security の OAuth2 Resource Server（JWT の作成・確認）を追加し、4 章を直し、5.3（ログインの方式の比較）を追加した | （氏名） |
+| 0.4 | 2026-10-18 | 画面を作り、React Router（7.18.4）と Testing Library のバージョンを決めた。画面の部品のテストに使う jsdom・user-event・jest-dom を 3.5 に追加した | （氏名） |
 
 ## 承認
 
@@ -106,7 +107,7 @@
 | 開発サーバー・ビルド | Vite | 8.3.2（package.json は ^8.3.0） | ○ | ポート 5173 |
 | Vite の React 対応 | @vitejs/plugin-react | 6.1.1 | ○ | |
 | 型定義 | @types/react・@types/react-dom・@types/node | 19.3.0・19.3.0・24.19.1 | ○ | |
-| 画面の切り替え | React Router | 7 系の最新に固定し、package.json に書く | 新 | 11 個の画面（G-1〜G-11）を URL で切り替える。kadai は 1 画面のため新しく使う |
+| 画面の切り替え | React Router（react-router） | 7.18.4 | 新 | 11 個の画面（G-1〜G-11）を URL で切り替える。kadai は 1 画面のため新しく使う |
 | 見た目 | CSS Modules | （Vite に含まれる） | 新 | 部品ごとに CSS を分けられ、追加のライブラリが要らない |
 
 kadai で使っている dnd-kit（ドラッグ＆ドロップ）は、本アプリでは使わない。
@@ -149,7 +150,8 @@ kadai で使っている dnd-kit（ドラッグ＆ドロップ）は、本アプ
 | 開発用のコンテナ | Docker Compose | | ○ | PostgreSQL と MinIO を 1 つのコマンドで起動する |
 | API のテスト | JUnit 5、MockMvc、Testcontainers（testcontainers-junit-jupiter・testcontainers-postgresql） | Spring Boot 4.1.1 に合わせる | ○ | 本物の PostgreSQL でテストする |
 | 画面のテスト | Vitest | 5.0.3 | ○ | |
-| 画面の部品のテスト | Testing Library（@testing-library/react） | 最新に固定し、package.json に書く | 新 | 画面が増えるため、部品を表示して確かめる |
+| 画面の部品のテスト | Testing Library（@testing-library/react・@testing-library/user-event・@testing-library/jest-dom） | 16.3.3・14.6.8・7.0.1 | 新 | 画面が増えるため、部品を表示して確かめる。user-event で入力・クリックをまね、jest-dom で「押せない」「フォーカスがある」などを確かめる |
+| テストの中のブラウザ | jsdom | 30.1.3 | 新 | Vitest の中で画面の部品を表示するため（Node.js にはブラウザの DOM がない） |
 | 画面を通したテスト | Playwright（@playwright/test） | 1.63.0 | ○ | 主な流れ（登録 → 投稿 → いいね → フォロー → 検索）を確かめる |
 | Java の書式 | spring-javaformat | 0.0.48 | ○ | |
 | Java の静的解析 | SpotBugs（spotbugs-maven-plugin） | 4.10.4.1 | ○ | |
