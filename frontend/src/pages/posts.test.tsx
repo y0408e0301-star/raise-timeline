@@ -26,7 +26,11 @@ function post(overrides: Partial<PostView> = {}): PostView {
   }
 }
 
-const loggedIn = { 'GET /api/auth/me': () => json(200, me) }
+// G-3 を開くとタイムラインを読む（FN-02）。ここでは「まだ投稿がありません。」になるように空にしておく（タイムラインの画面は timeline.test.tsx）
+const loggedIn = {
+  'GET /api/auth/me': () => json(200, me),
+  'GET /api/timeline?tab=following': () => json(200, { items: [], nextCursor: null, followingCount: 1 }),
+}
 
 function renderAt(path: string, routes: Record<string, Handler | Handler[]> = {}) {
   const fetch = mockFetch({ ...loggedIn, ...routes })

@@ -186,3 +186,21 @@ export function editPost(id: number, body: string): Promise<PostView> {
 export async function deletePost(id: number): Promise<void> {
   await request('DELETE', `/api/posts/${id}`)
 }
+
+// ---------------------------------------------------------------- FN-02 タイムライン
+
+export type Tab = 'following' | 'all'
+
+// 20 件ずつ（機能定義書 FN-02 6 章）。nextCursor が null なら続きはない。
+// followingCount は「フォロー中」の最初の 20 件のときだけ返る（M-8 を出すかどうかを決める）
+export type TimelinePage = {
+  items: PostView[]
+  nextCursor: string | null
+  followingCount?: number
+}
+
+export function fetchTimeline(tab: Tab, cursor: string | null = null): Promise<TimelinePage> {
+  const query = new URLSearchParams({ tab })
+  if (cursor !== null) query.set('cursor', cursor)
+  return requestJson<TimelinePage>('GET', `/api/timeline?${query}`)
+}
