@@ -2,7 +2,7 @@
 
 X（Twitter）のようなタイムライン形式のテキスト SNS です。ユーザー登録した人どうしでフォローし合い、文章と画像を投稿し、いいね・コメントで反応できます。**インプレッション数を出さないこと、リツイートがないこと**が特徴で、数字や拡散を気にせず投稿できるようにします。
 
-学習用に、要件定義から設計・実装・テスト・AWS への公開までを一通り行います。画面は React、API は Spring Boot、データは PostgreSQL、画像は AWS S3（開発中は MinIO）に保存し、AWS（ALB・EC2・RDS・S3）で公開します。
+学習用に、要件定義から設計・実装・テスト・AWS への公開までを一通り行います。画面は React、API は Spring Boot、データは PostgreSQL、画像は AWS S3 に保存し、AWS（ALB・EC2・RDS・S3）で公開します。
 
 > **いまの状況（2026-10-19）**：要件定義書・機能定義書・基本設計書・技術スタック定義書を書き終え、承認待ちです。画面の動きを確かめる[モック](#画面のモックmock)（`mock/`）を作りました。実装は、**機能ごとに API とそれを使う画面を作る**順番で進めています（[開発計画書](docs/development-plan.md)）。ユーザー登録・ログイン（FN-01）と投稿（FN-03。本文の投稿・詳細・編集・削除）の API（`backend/`）と画面（`frontend/`）ができました。タイムラインの一覧（FN-02）を作るまでは、G-3 にはその画面で投稿したものだけを出します。公開環境（`deploy/`）はまだありません。この README で「予定」と書いているものは、文書で決めた内容で、まだ作っていません。
 
@@ -114,7 +114,7 @@ flowchart LR
 | 画面 | React 19・TypeScript・Vite、画面の切り替えは React Router |
 | API サーバー | Java 21・Spring Boot 4（Web MVC・Data JPA・Validation・Security・Actuator）、テーブルは Flyway で作成 |
 | データベース | PostgreSQL 17（開発は Docker、公開環境は RDS）。ユーザー検索は pg_trgm の索引で速くする |
-| 画像 | S3（開発は MinIO）、AWS SDK for Java 2.x |
+| 画像 | S3（自動テストは MinIO）、AWS SDK for Java 2.x |
 | 公開環境 | AWS（ALB・EC2・RDS・S3・Parameter Store・CloudWatch）を Terraform で作成 |
 | CI | GitHub Actions（PR ごとに画面・API・Terraform のチェックとテスト） |
 
@@ -128,7 +128,7 @@ flowchart LR
 - **画像を EC2 を通さずに配る**：S3 のバケットは非公開にし、API が発行した署名付き URL（15 分）で、ブラウザが S3 から直接読みます。EC2 の負荷と通信量を抑えられます（[インフラ設計書 5.1](docs/design/infra-design.md#51-画像つきの投稿と表示)）
 - **投稿と画像の保存を食い違わせない**：S3 への保存に失敗したら投稿を作らず、データベースへの保存に失敗したら S3 に置いた画像を消します。削除は データベース → S3 の順にし、S3 で消せなかったものは記録してあとで消します（[データ設計書 7 章](docs/design/data-design.md#7-データのルール) BR-4・BR-5）
 - **部分一致の検索を索引で速くする**：ユーザー ID・表示名に pg_trgm の GIN 索引を張り、`LIKE '%…%'` でも全件を調べずに済むようにします。並びは「ID の完全一致 → 前方一致 → 表示名の前方一致 → それ以外」、同じならフォロワーの多い順です（[データ設計書 8 章](docs/design/data-design.md#8-ユーザー検索の実装)）
-- **開発中は AWS を使わない**：S3 と同じ API の MinIO を Docker で動かし、接続先は環境変数で切り替えます。開発環境と AWS でコードを変えません（[インフラ設計書 6 章](docs/design/infra-design.md#6-開発環境との対応)）
+- **接続先だけを切り替える**：開発中はデータベースを Docker で動かし、画像は S3 の開発用のバケットに置きます。自動テストは Testcontainers で PostgreSQL と MinIO（S3 の代わり）を起動するので、AWS の鍵は要りません。接続先は環境変数で切り替え、開発環境と AWS でコードを変えません（[インフラ設計書 6 章](docs/design/infra-design.md#6-開発環境との対応)）
 - **費用を抑える**：EC2 は 1 台でパブリックサブネットに置き、ALB からの通信しか受け付けないようにして、NAT ゲートウェイ（月 7,000 円ほど）を使わずに済ませます。使わない間は EC2・RDS を止め、ALB を消します
 - **文書を GitHub で読めるようにする**：文書はすべて Markdown で、図は Mermaid で書いています。差分を PR で確かめられます
 
@@ -164,7 +164,7 @@ flowchart LR
 | --- | --- |
 | 画面 | Node.js 24、React 19 + TypeScript 6 + Vite 8、React Router 7、CSS Modules、コードチェックは oxlint、テストは Vitest・Testing Library、E2E テストは Playwright |
 | API サーバー | Java 21 + Spring Boot 4.1（Web MVC・Data JPA・Validation・Security・OAuth2 Resource Server（JWT）・Actuator）、AWS SDK for Java 2.x（S3）、ビルドは Maven（`mvnw` 同梱）、コードチェックは spring-javaformat・SpotBugs、テストは JUnit 5・Testcontainers |
-| データベース・画像 | PostgreSQL 17・MinIO（開発は Docker Compose）、テーブルは Flyway で作成 |
+| データベース・画像 | PostgreSQL 17（開発は Docker Compose）、テーブルは Flyway で作成。画像は S3（開発用のバケット） |
 | 公開環境 | AWS（ALB・EC2 t4g.micro・RDS db.t4g.micro・S3・ACM・Route 53・Parameter Store・Session Manager・CloudWatch・Budgets）、環境は Terraform 1.16 で作成 |
 | CI | GitHub Actions |
 
@@ -194,19 +194,19 @@ raise-timeline/
 
 ```
 ├── frontend/e2e/               E2E テスト（Playwright）
-├── compose.yaml                画像の保存先（MinIO）を足す
 └── deploy/terraform/           AWS の環境（Terraform）
 ```
 
 ## 起動方法
 
-データベース・API サーバー・画面は、この手順で動くことを確かめています。画像の保存先（MinIO）は、作ったときに確かめて直します。
+データベース・API サーバー・画面・画像（S3 の開発用のバケット）は、この手順で動くことを確かめています。
 
 ### 必要なもの
 
 - JDK 21
 - Node.js 24
 - Docker Desktop
+- AWS CLI と、S3 の開発用のバケット（`rt-images-dev-{アカウント ID}`）を読み書きできる鍵（`aws configure` で `~/.aws/credentials` に入れる）。画像を扱わないなら無くても起動できます
 
 ### 初回だけ
 
@@ -224,21 +224,21 @@ git config core.hooksPath .githooks
 
 | 順番 | 起動するもの | コマンド | ポート |
 | --- | --- | --- | --- |
-| 1 | データベース・画像の保存先 | `docker compose up -d` | 5432（PostgreSQL）、9000（MinIO。予定） |
+| 1 | データベース | `docker compose up -d` | 5432（PostgreSQL） |
 | 2 | API サーバー | `cd backend` → `.\mvnw.cmd spring-boot:run` | 8080 |
 | 3 | 画面 | `cd frontend` → `npm install`（初回のみ）→ `npm run dev` | 5173 |
 
 - API サーバーは http://localhost:8080/actuator/health で `{"status":"UP"}` が返れば起動済みです
 - ブラウザで http://localhost:5173 を開き、「アカウントを作る」から登録します。画面から `/api` へのリクエストは、Vite の proxy で API サーバー（8080）へ転送します
-- 画像は、ブラウザが MinIO（9000）から署名付き URL で直接読みます
+- 画像は S3 の開発用のバケットに置き、ブラウザが署名付き URL（15 分）で S3 から直接読みます。バケットは `application.properties` の既定値（`S3_BUCKET` で変えられる）、鍵は `~/.aws/credentials` を使います
 - ポートは上の表のものだけを使います（[CLAUDE.md](CLAUDE.md) の「サーバーのポート」）。使われていたら、そのポートを使っているプロセスを止めてから起動し直します（別のポートでは起動しません）
 - 開発では、データベースの接続先と JWT の秘密の値は `backend/src/main/resources/application.properties` の既定値（開発用）を使うので、設定は要りません。公開環境では環境変数（`DB_URL`・`DB_USERNAME`・`DB_PASSWORD`・`JWT_SECRET`・`COOKIE_SECURE=true`）で渡します
-- 接続先（データベースの URL、S3 のエンドポイントとバケット名）は環境変数で渡します。パスワードなどは `.env` に書き、リポジトリには入れません
+- 接続先（データベースの URL、S3 のバケット名）は環境変数で渡します。パスワードなどは `.env` に書き、リポジトリには入れません
 
 ### 止める
 
 - 画面・API サーバー：それぞれのターミナルで `Ctrl + C`
-- データベース・MinIO：`docker compose down`（データは残ります）
+- データベース：`docker compose down`（データは残ります）
 
 ## テストとコードチェック
 
@@ -326,8 +326,8 @@ Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml]
 | API サーバーが DB につながらずに止まる | データベースが起動していない。`docker compose up -d` を実行する（Docker Desktop が起動しているかも確認） |
 | 「ポートが使われている」（`Port 8080 was already in use`、`EADDRINUSE` など） | 前に起動したサーバーが残っている。そのポートを使っているプロセスを止めてから起動し直す（PowerShell なら `Get-NetTCPConnection -LocalPort 8080` で PID を調べて `Stop-Process -Id <PID>`）。別のポートでは起動しない |
 | 新しく追加した API が 404 になる | 古い API サーバーが動き続けている。止めてから起動し直す |
-| 画像だけ表示されない | MinIO（9000）が動いていないか、署名付き URL の期限（15 分）が切れた。`docker compose ps` を確認し、画面を読み直す |
-| `mvnw verify` が「Could not find a valid Docker environment」で失敗する | Docker Desktop が起動していない。起動してからもう一度実行する（テスト用の DB を Docker で起動するため） |
+| 画像だけ表示されない・画像つきの投稿が M-14 になる | AWS の鍵がない・期限切れか、バケットの名前が違う。`aws sts get-caller-identity` と `aws s3 ls s3://rt-images-dev-{アカウント ID}` で確かめる。署名付き URL の期限（15 分）が切れたときは画面が自動で取り直す |
+| `mvnw verify` が「Could not find a valid Docker environment」で失敗する | Docker Desktop が起動していない。起動してからもう一度実行する（テスト用の DB と MinIO を Docker で起動するため） |
 | PowerShell で日本語が文字化けする | `[Console]::OutputEncoding = [Text.Encoding]::UTF8` を実行し、`Invoke-RestMethod` ではなく `curl.exe` を使う |
 | コミットが「main への直接コミットは禁止」で止まる | 正常な動き。Issue を立ててブランチを切る（下の開発ルール） |
 

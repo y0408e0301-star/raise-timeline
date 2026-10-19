@@ -168,10 +168,11 @@ export type PostView = {
   editedAt: string | null
 }
 
-// 画像（FN-04）は開発計画書 1-3 で一緒に送る
-export function createPost(body: string): Promise<PostView> {
+// 画像（FN-04）は選んだ順に images として送る
+export function createPost(body: string, images: File[] = []): Promise<PostView> {
   const form = new FormData()
   form.append('body', body)
+  for (const image of images) form.append('images', image)
   return requestJson<PostView>('POST', '/api/posts', form)
 }
 
@@ -185,6 +186,16 @@ export function editPost(id: number, body: string): Promise<PostView> {
 
 export async function deletePost(id: number): Promise<void> {
   await request('DELETE', `/api/posts/${id}`)
+}
+
+// ---------------------------------------------------------------- FN-04 画像
+
+export type PostImage = PostView['images'][number]
+
+// 署名付き URL を取り直す（I-8）。削除された画像は結果に入らない。1 回に 50 個まで
+export async function refreshImageUrls(imageIds: number[]): Promise<PostImage[]> {
+  const res = await requestJson<{ items: PostImage[] }>('POST', '/api/images/urls', { imageIds })
+  return res.items
 }
 
 // ---------------------------------------------------------------- FN-02 タイムライン

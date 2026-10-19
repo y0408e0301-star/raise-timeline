@@ -3,9 +3,9 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-TECH |
-| 版数 | 0.4 |
+| 版数 | 0.5 |
 | 作成日 | 2026-10-16 |
-| 最終更新日 | 2026-10-18 |
+| 最終更新日 | 2026-10-19 |
 | 作成者 | （氏名） |
 | 元にした文書 | [要件定義書](requirements/requirements.md) 版数 0.6、[基本設計書](design/basic-design.md) 版数 0.4 |
 | 状態 | 承認待ち |
@@ -18,6 +18,7 @@
 | 0.2 | 2026-10-16 | 技術スタックをタスク管理アプリ（kadai）とほぼ同じにし、バージョンも kadai と同じものに指定（3 章）。EC2 を t4g.micro（ARM）に、AWS の構築を Terraform に決定。kadai との違いを 4 章にまとめ、候補の比較を 5 章に移した | （氏名） |
 | 0.3 | 2026-10-17 | ログインをセッション認証から JWT 認証に変更。Spring Security の OAuth2 Resource Server（JWT の作成・確認）を追加し、4 章を直し、5.3（ログインの方式の比較）を追加した | （氏名） |
 | 0.4 | 2026-10-18 | 画面を作り、React Router（7.18.4）と Testing Library のバージョンを決めた。画面の部品のテストに使う jsdom・user-event・jest-dom を 3.5 に追加した | （氏名） |
+| 0.5 | 2026-10-19 | 開発中の画像の保存先を、MinIO から S3 の開発用のバケットに変更した。MinIO の公式のイメージが配られなくなったため、自動のテストでは chainguard/minio を使う（3.3・3.5）。AWS SDK のバージョン（2.56.0）を決めた（3.1） | （氏名） |
 
 ## 承認
 
@@ -35,7 +36,7 @@
 | 要件定義書 | 内容 |
 | --- | --- |
 | P-1 | データを保存する RDB（PostgreSQL）のバージョンと動かす場所を決める |
-| P-2 | 画像を保存するクラウドストレージ（S3）と、開発中の代わり（MinIO）を決める |
+| P-2 | 画像を保存するクラウドストレージ（S3）と、自動のテストで使う代わり（MinIO）を決める |
 | P-3 | 公開する場合の AWS のサービスを決める。構成は[インフラ設計書](design/infra-design.md)に書く |
 
 ### 1.1 基本の方針
@@ -92,7 +93,7 @@
 | ログイン・権限 | Spring Boot Starter Security | 同上 | 新 | BCrypt・CSRF 対策・権限の確認（条件 2）。セッションは使わない（STATELESS）。kadai はログインがないため新しく使う |
 | JWT の作成・確認 | Spring Boot Starter Security OAuth2 Resource Server（spring-boot-starter-security-oauth2-resource-server。中で Nimbus JOSE + JWT を使う） | 同上 | 新 | JWT（HS256）の署名・期限の確認と、ログインのときの JWT の作成（JwtEncoder）。Cookie から JWT を読むところだけを自分で書く（機能定義書 3.2）。JWT を作るライブラリ（jjwt など）を別に足さなくてよい |
 | 稼働の確認 | Spring Boot Starter Actuator | 同上 | 新 | ALB のヘルスチェック（/actuator/health） |
-| S3 の操作 | AWS SDK for Java 2.x（s3） | BOM（software.amazon.awssdk:bom）で 2.x の最新に固定し、pom.xml に書く | 新 | 画像の保存・削除と署名付き URL（条件 3）。接続先を変えれば MinIO にも使える |
+| S3 の操作 | AWS SDK for Java 2.x（s3） | 2.56.0（BOM の software.amazon.awssdk:bom で固定し、pom.xml の aws-sdk.version に書く） | 新 | 画像の保存・削除と署名付き URL（条件 3）。接続先を変えれば MinIO にも使える |
 | ビルド | Maven | 3.9.16（Maven Wrapper 3.3.4） | ○ | mvnw をリポジトリに入れる |
 
 「同上」は、バージョンを自分で書かず、Spring Boot 4.1.1 が決めるバージョンを使うという意味である（kadai と同じ書き方）。
@@ -119,7 +120,7 @@ kadai で使っている dnd-kit（ドラッグ＆ドロップ）は、本アプ
 | 区分 | 開発環境 | AWS | kadai | 用途・理由 |
 | --- | --- | --- | --- | --- |
 | データベース | PostgreSQL 17（Docker のイメージ postgres:17） | Amazon RDS for PostgreSQL 17（engine_version = "17"） | ○ | pg_trgm で部分一致の検索を速くできる（条件 1） |
-| 画像の保存先 | MinIO（Docker のイメージ minio/minio。タグは compose.yaml を作るときに日付つきのものに固定する） | Amazon S3 | 新 | S3 と同じ API で使えるため、開発中に費用をかけずに試せる（条件 4） |
+| 画像の保存先 | Amazon S3 の開発用のバケット。自動のテストでは MinIO（Docker のイメージ chainguard/minio。ダイジェストで固定。中身は MinIO RELEASE.2026-09-22T19-25-18Z） | Amazon S3 | 新 | 開発中は本番と同じ S3 で確かめる（費用は月 1 円未満）。テストは S3 と同じ API の MinIO を使い、AWS の鍵を GitHub に渡さない（条件 4）。MinIO の公式のイメージ（minio/minio）は配られなくなったため、Chainguard が作り直したものを使う |
 
 ### 3.4 公開（AWS）
 
@@ -147,8 +148,8 @@ kadai で使っている dnd-kit（ドラッグ＆ドロップ）は、本アプ
 | --- | --- | --- | --- | --- |
 | ソース管理 | Git・GitHub | | ○ | N-21 |
 | 自動のチェック | GitHub Actions | actions/checkout@v7、actions/setup-node@v7、actions/setup-java@v6（temurin 21）、hashicorp/setup-terraform@v4、terraform-linters/setup-tflint@v6 | ○ | N-24。Pull Request ごとに書式・lint・テスト・ビルドを動かす |
-| 開発用のコンテナ | Docker Compose | | ○ | PostgreSQL と MinIO を 1 つのコマンドで起動する |
-| API のテスト | JUnit 5、MockMvc、Testcontainers（testcontainers-junit-jupiter・testcontainers-postgresql） | Spring Boot 4.1.1 に合わせる | ○ | 本物の PostgreSQL でテストする |
+| 開発用のコンテナ | Docker Compose | | ○ | PostgreSQL を起動する |
+| API のテスト | JUnit 5、MockMvc、Testcontainers（testcontainers-junit-jupiter・testcontainers-postgresql・testcontainers-minio） | Spring Boot 4.1.1 に合わせる | ○ | 本物の PostgreSQL と MinIO（S3 の代わり）でテストする |
 | 画面のテスト | Vitest | 5.0.3 | ○ | |
 | 画面の部品のテスト | Testing Library（@testing-library/react・@testing-library/user-event・@testing-library/jest-dom） | 16.3.3・14.6.8・7.0.1 | 新 | 画面が増えるため、部品を表示して確かめる。user-event で入力・クリックをまね、jest-dom で「押せない」「フォーカスがある」などを確かめる |
 | テストの中のブラウザ | jsdom | 30.1.3 | 新 | Vitest の中で画面の部品を表示するため（Node.js にはブラウザの DOM がない） |
@@ -167,7 +168,7 @@ kadai で使っている dnd-kit（ドラッグ＆ドロップ）は、本アプ
 | ログイン | なし | Spring Security（JWT 認証・BCrypt） | 複数のユーザーが使うため（FN-01） |
 | 画面の数 | 1 画面 | 11 画面（React Router） | G-1〜G-11 |
 | 公開の入口 | CloudFront → EC2 の nginx | ALB → EC2 の Spring Boot | ALB を使う構成にするため（要件定義書 P-3）。画面も Spring Boot から配るので nginx は使わない |
-| 画像 | なし | S3（開発では MinIO）、AWS SDK for Java | FN-04 |
+| 画像 | なし | S3（テストでは MinIO）、AWS SDK for Java | FN-04 |
 | ヘルスチェック | なし | Spring Boot Actuator | ALB が EC2 の状態を確かめるため |
 | ドラッグ＆ドロップ | dnd-kit | 使わない | 本アプリに並べ替えの機能がないため |
 
@@ -181,7 +182,7 @@ kadai と同じものを使うことを前提にしたため、比較したの�
 
 | 候補 | 1 | 2 | 3 | 4 | 5 | 6 | 備考 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| **S3（開発では MinIO）** | — | — | ○ | ○ | ○ | — | 採用。P-2 |
+| **S3（テストでは MinIO）** | — | — | ○ | ○ | ○ | — | 採用。P-2 |
 | データベースに保存 | — | — | × | ○ | ○ | — | 署名付き URL が使えず、データベースが大きくなる |
 | EC2 のディスクに保存 | — | — | × | ○ | ○ | — | EC2 を作り直すと消える。2 台以上にできない |
 

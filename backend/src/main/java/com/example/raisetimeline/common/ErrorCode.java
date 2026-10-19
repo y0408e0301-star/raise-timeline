@@ -31,6 +31,16 @@ public enum ErrorCode {
 
 	POST_NOT_FOUND(HttpStatus.NOT_FOUND, "この投稿は削除されました。"),
 
+	// 画像（FN-04 9 章）。画面でも確かめるので、ふつうは画面の確認で止まる
+	TOO_MANY_IMAGES(HttpStatus.BAD_REQUEST, "画像は 1 つの投稿に 4 枚までです。"),
+
+	IMAGE_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE, "添えられるのは 5MB までの JPEG・PNG・GIF・WebP の画像です。"),
+
+	IMAGE_TYPE_INVALID(HttpStatus.BAD_REQUEST, "添えられるのは 5MB までの JPEG・PNG・GIF・WebP の画像です。"),
+
+	// S3 への保存に失敗した。投稿も画像の行も作っていない（BR-4）
+	IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "投稿に失敗しました。時間をおいてもう一度お試しください。"),
+
 	// タイムライン（FN-02 9 章）。画面で直せることはないので M-9 を出す
 	TAB_INVALID(HttpStatus.BAD_REQUEST, "読み込みに失敗しました。時間をおいてもう一度お試しください。"),
 

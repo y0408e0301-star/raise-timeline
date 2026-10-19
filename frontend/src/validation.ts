@@ -1,4 +1,4 @@
-// 入力の確認（機能定義書 FN-01・FN-03 4 章）。API でも同じことを確かめる
+// 入力の確認（機能定義書 FN-01・FN-03・FN-04 4 章）。API でも同じことを確かめる
 
 export const USERNAME_MAX = 15
 export const DISPLAY_NAME_MAX = 30
@@ -28,4 +28,24 @@ export function isValidDisplayName(displayName: string): boolean {
 // 投稿の本文の残りの文字数（W-2）。トリムした後で数える。負の数なら送れない
 export function remainingChars(body: string): number {
   return POST_BODY_MAX - countChars(body.trim())
+}
+
+// ---- 画像（FN-04 I-1〜I-3）
+
+export const IMAGES_MAX = 4
+export const IMAGE_BYTES_MAX = 5 * 1024 * 1024
+export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp)$/i
+
+// 画面では拡張子と File.type で確かめる。ファイルの中身（先頭のバイト）は API が確かめる
+export function isAcceptableImage(file: File): boolean {
+  return file.size <= IMAGE_BYTES_MAX && IMAGE_TYPES.includes(file.type) && IMAGE_EXTENSIONS.test(file.name)
+}
+
+// 選んだ画像を今の画像の後ろに足す。添えられない画像は外し（M-13）、合わせて 5 枚以上なら先の 4 枚だけにする（M-12）
+export function addImages(current: File[], picked: File[]): { images: File[], error: 'M12' | 'M13' | null } {
+  const acceptable = picked.filter(isAcceptableImage)
+  const all = [...current, ...acceptable]
+  if (all.length > IMAGES_MAX) return { images: all.slice(0, IMAGES_MAX), error: 'M12' }
+  return { images: all, error: acceptable.length < picked.length ? 'M13' : null }
 }

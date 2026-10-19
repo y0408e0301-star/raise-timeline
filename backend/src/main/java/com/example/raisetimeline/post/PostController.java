@@ -1,5 +1,7 @@
 package com.example.raisetimeline.post;
 
+import java.util.List;
+
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 // 投稿の API（機能定義書 FN-03 6 章）
 @RestController
@@ -27,11 +30,12 @@ class PostController {
 		this.postService = postService;
 	}
 
-	// 画像と一緒に送れるよう multipart で受け取る。画像（images）は 1-3 で受け取る
+	// 画像と一緒に送れるよう multipart で受け取る。画像（images）は 0〜4 個で、選んだ順に送る（FN-04 6 章）
 	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@ResponseStatus(HttpStatus.CREATED)
-	PostView create(@AuthenticationPrincipal Jwt jwt, @RequestParam(required = false) @Nullable String body) {
-		return this.postService.create(userId(jwt), body);
+	PostView create(@AuthenticationPrincipal Jwt jwt, @RequestParam(required = false) @Nullable String body,
+			@RequestParam(required = false) @Nullable List<MultipartFile> images) {
+		return this.postService.create(userId(jwt), body, (images == null) ? List.of() : images);
 	}
 
 	@GetMapping("/{id}")

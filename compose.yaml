@@ -1,5 +1,5 @@
 # 開発用の PostgreSQL。リポジトリのルートで `docker compose up -d` を実行して起動する
-# 画像の保存先（MinIO、9000）は画像の機能（FN-04）を作るときに足す
+# 画像は S3 の開発用のバケットに置くので、ここでは起動しない（インフラ設計書 6 章）
 services:
   db:
     image: postgres:17
