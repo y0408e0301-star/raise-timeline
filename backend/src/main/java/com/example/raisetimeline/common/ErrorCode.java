@@ -31,6 +31,11 @@ public enum ErrorCode {
 
 	POST_NOT_FOUND(HttpStatus.NOT_FOUND, "この投稿は削除されました。"),
 
+	// タイムライン（FN-02 9 章）。画面で直せることはないので M-9 を出す
+	TAB_INVALID(HttpStatus.BAD_REQUEST, "読み込みに失敗しました。時間をおいてもう一度お試しください。"),
+
+	CURSOR_INVALID(HttpStatus.BAD_REQUEST, "読み込みに失敗しました。時間をおいてもう一度お試しください。"),
+
 	// 画面を通さずに送られた、条件に合わない入力（JSON が読めない、上限を超えた文字数など）
 	BAD_REQUEST(HttpStatus.BAD_REQUEST, "入力が正しくありません。"),
 
