@@ -32,7 +32,6 @@
 | サーバー | ポート | 決めている場所 |
 | --- | --- | --- |
 | データベース（PostgreSQL） | 5432 | compose.yaml |
-| S3 互換ストレージ（MinIO） | 9000 | compose.yaml（作成予定） |
 | API（Spring Boot） | 8080 | Spring Boot の既定値（`server.port` は指定しない） |
 | 画面（Vite） | 5173 | Vite の既定値（`--port` は指定しない） |
 

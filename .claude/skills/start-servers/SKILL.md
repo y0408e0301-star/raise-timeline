@@ -1,6 +1,6 @@
 ---
 name: start-servers
-description: Raise timeline の開発サーバー（PostgreSQL・MinIO・API サーバー・画面の dev サーバー）を起動・再起動するときの手順とポートのルール。決められたポート（PostgreSQL 5432・MinIO 9000・Spring Boot 8080・Vite 5173）でだけ起動し、ポートが使われていたらそのプロセスを止めてから起動し直す。サーバーを起動するとき、動作確認・画面確認・API の確認をするとき、「ポートが使われている」「EADDRINUSE」「Port 8080 was already in use」が出たとき、新しく追加した API が 404 になるとき、画像が表示されないとき、port-guard フックに止められたときは、明示的に頼まれていなくても必ずこのスキルを使う。
+description: Raise timeline の開発サーバー（PostgreSQL・API サーバー・画面の dev サーバー）を起動・再起動するときの手順とポートのルール。決められたポート（PostgreSQL 5432・Spring Boot 8080・Vite 5173）でだけ起動し、ポートが使われていたらそのプロセスを止めてから起動し直す。サーバーを起動するとき、動作確認・画面確認・API の確認をするとき、「ポートが使われている」「EADDRINUSE」「Port 8080 was already in use」が出たとき、新しく追加した API が 404 になるとき、画像が表示されないとき、port-guard フックに止められたときは、明示的に頼まれていなくても必ずこのスキルを使う。
 ---
 
 # 開発サーバーの起動
@@ -27,20 +27,20 @@ description: Raise timeline の開発サーバー（PostgreSQL・MinIO・API サ
 
 ### Raise timeline のサーバー
 
-正は CLAUDE.md の「サーバーのポート」。食い違ったらそちらに合わせ、この表を直す。PostgreSQL と API サーバーの行は、実際に起動して確かめた。MinIO（`compose.yaml` に足す）と `frontend/` はまだない（作成予定。開発計画書 1-3・2-1）。作ったら、起動コマンドと起動の確認が実際と合っているかを確かめ、この表と README の「起動方法」を直す。
+正は CLAUDE.md の「サーバーのポート」。食い違ったらそちらに合わせ、この表を直す。どの行も、実際に起動して確かめた。サーバーを足したり起動のしかたを変えたりしたら、この表と README の「起動方法」を直す。
 
-API サーバーは開発用の設定（DB の接続先・JWT の秘密の値）を `application.properties` の既定値で持つので、環境変数を渡さずに起動できる。
+API サーバーは開発用の設定（DB の接続先・JWT の秘密の値・S3 の開発用のバケット）を `application.properties` の既定値で持つので、環境変数を渡さずに起動できる。S3 の鍵は `~/.aws/credentials` を使う。
 
 | サーバー | ポート | 決めている場所 | 起動コマンド | 起動の確認 |
 | --- | --- | --- | --- | --- |
 | データベース（PostgreSQL 17） | 5432 | `compose.yaml` | ルートで `docker compose up -d` | `docker compose ps` で `running` |
-| 画像の保存先（MinIO。作成予定） | 9000 | `compose.yaml` | 同上（PostgreSQL と一緒に起動する） | `http://localhost:9000/minio/health/live` が 200 |
 | API サーバー（Spring Boot） | 8080 | Spring Boot の既定値（`server.port` は指定しない） | `cd backend` → `.\mvnw.cmd spring-boot:run` | `http://localhost:8080/actuator/health` が `{"status":"UP"}` |
-| 画面（Vite。作成予定） | 5173 | Vite の既定値（`--port` は指定しない） | `cd frontend` → `npm run dev`（初回は `npm install`） | `http://localhost:5173/` が 200 |
+| 画面（Vite） | 5173 | Vite の既定値（`--port` は指定しない） | `cd frontend` → `npm run dev`（初回は `npm install`） | `http://localhost:5173/` が 200 |
 
 - 画面の `/api` へのリクエストは、`frontend/vite.config.ts` の proxy で 8080 へ転送する。API が 8080 で動いていないと、画面からは 502（止まっている）や 404（古いコード）になる
-- 画像は、API が発行した署名付き URL で、ブラウザが MinIO（9000）から直接読む（インフラ設計書 5.1）。画像だけ出ないときは MinIO が 9000 で動いているかを確かめる
-- データベースと MinIO を止めるときは `docker compose down`（データは残る）
+- 画像は S3 の開発用のバケット（`rt-images-dev-{アカウント ID}`）に置き、API が発行した署名付き URL で、ブラウザが S3 から直接読む（インフラ設計書 5.1・6 章）。手元では起動するものはない。画像だけ出ない・画像つきの投稿が失敗するときは、`aws sts get-caller-identity` で鍵が使えるかを確かめる
+- 自動テスト（`mvnw verify`）は Testcontainers で PostgreSQL と MinIO を起動するので、上のサーバーは要らない（Docker は動かしておく）
+- データベースを止めるときは `docker compose down`（データは残る）
 
 ## 手順
 
@@ -70,7 +70,7 @@ Stop-Process -Id <PID>
 
 - 起動コマンドは、リポジトリの README に書かれたものをそのまま使う。ポートを指定する引数は付けない
 - 起動は Bash の `run_in_background` で行う。サーバーはこのセッションと一緒に止まる
-- 必要な順に起動する：DB・MinIO → API → 画面
+- 必要な順に起動する：DB → API → 画面
 
 ### 4. 起動を待つ
 

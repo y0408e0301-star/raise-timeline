@@ -24,9 +24,12 @@ class TimelineService {
 
 	private final FollowRepository follows;
 
-	TimelineService(PostRepository posts, FollowRepository follows) {
+	private final PostViews views;
+
+	TimelineService(PostRepository posts, FollowRepository follows, PostViews views) {
 		this.posts = posts;
 		this.follows = follows;
+		this.views = views;
 	}
 
 	// 21 件取って、21 件目があれば続きがある（nextCursor は 20 件目の ID）。
@@ -41,8 +44,7 @@ class TimelineService {
 		List<Post> page = found.subList(0, Math.min(found.size(), PAGE_SIZE));
 		String nextCursor = (found.size() > PAGE_SIZE) ? String.valueOf(page.getLast().getId()) : null;
 		Long followingCount = (following && cursor == null) ? this.follows.countByFollowerId(userId) : null;
-		return new TimelineResponse(page.stream().map((post) -> PostView.of(post, userId)).toList(), nextCursor,
-				followingCount);
+		return new TimelineResponse(this.views.of(page, userId), nextCursor, followingCount);
 	}
 
 	private static boolean isFollowing(@Nullable String tab) {

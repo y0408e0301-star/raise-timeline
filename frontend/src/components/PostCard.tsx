@@ -6,6 +6,7 @@ import { fullTime, relativeTime } from '../time'
 import { remainingChars } from '../validation'
 import Avatar from './Avatar'
 import ConfirmDialog from './ConfirmDialog'
+import PostImages from './PostImages'
 import styles from './PostCard.module.css'
 import { isSubmitKey, remainingText, useAutoGrow } from './textarea'
 import { useToast } from './ToastContext'
@@ -28,7 +29,7 @@ function failureMessage(e: unknown): string {
 }
 
 // 投稿カード（画面設計書 3.7。G-3・G-4・G-6 で共通）。
-// いいね（♡ を押す・いいね数から G-5）は開発計画書 1-6、画像は 1-3、名前からプロフィールへの移動は 1-9 で足す
+// いいね（♡ を押す・いいね数から G-5）は開発計画書 1-6、名前からプロフィールへの移動は 1-9 で足す
 export default function PostCard({ post, detail = false, editing, onEditingChange, onChange, onDelete }: Props) {
   const toast = useToast()
   const [confirming, setConfirming] = useState(false)
@@ -72,6 +73,8 @@ export default function PostCard({ post, detail = false, editing, onEditingChang
           : post.body && (detail
             ? <div className={styles.body}>{post.body}</div>
             : <Link to={postUrl} className={`${styles.body} ${styles.bodyLink}`}>{post.body}</Link>)}
+        {/* 編集中も画像はそのまま出す（変えられない） */}
+        <PostImages images={post.images} />
         <div className={styles.actions}>
           <span className={styles.action} aria-label={`いいね ${post.likeCount} 件`}>
             <span className={styles.heart} aria-hidden="true">♡</span>

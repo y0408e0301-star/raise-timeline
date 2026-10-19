@@ -9,3 +9,15 @@
   display: flex; align-items: center; justify-content: flex-end; gap: 12px;
   padding-top: 8px; border-top: 1px solid var(--line);
 }
+
+/* 選んだ画像のプレビュー（I-4）：80px 四方で横に並べ、右上に「×」 */
+.previews { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 4px 0 8px; padding: 0; }
+.preview { position: relative; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; background: var(--line); }
+.preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.remove {
+  position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%; border: none;
+  background: rgba(0, 0, 0, 0.65); color: #fff; cursor: pointer; font-size: 14px; line-height: 1;
+}
+.remove:hover:not(:disabled) { background: rgba(0, 0, 0, 0.85); }
+/* 「画像を選ぶ」は左端、残りの文字数と「投稿する」は右端 */
+.pick { margin-right: auto; }
