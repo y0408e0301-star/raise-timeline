@@ -18,7 +18,7 @@ type List = {
 const initialList: List = { items: [], nextCursor: null, totalCount: null, status: 'loading' }
 
 // G-5 いいねした人の一覧画面（L-5、画面設計書 8 章）。新しくいいねした順に 20 件ずつ、一番下まで見たら次の 20 件。
-// フォローボタン（F-1・F-2）は開発計画書 1-7 で足す
+// 自分以外の行にはフォローボタン（F-1・F-2）を出す
 export default function LikesPage() {
   const id = Number(useParams().id)
   // 数字でない ID は、ない投稿と同じに扱う
@@ -71,6 +71,11 @@ export default function LikesPage() {
     else navigate(-1)
   }
 
+  // フォロー・解除を送り終わった行を入れ替える
+  function updateUser(user: UserSummary) {
+    setList((prev) => ({ ...prev, items: prev.items.map((u) => (u.username === user.username ? user : u)) }))
+  }
+
   // 「再読み込み」：失敗したのと同じ読み込みをやり直す
   function retry() {
     void load(list.items.length === 0 ? null : list.nextCursor)
@@ -89,7 +94,7 @@ export default function LikesPage() {
         : (
           <>
             <ul className={styles.users} aria-label="いいねした人">
-              {list.items.map((user) => <UserRow key={user.username} user={user} />)}
+              {list.items.map((user) => <UserRow key={user.username} user={user} onChange={updateUser} />)}
             </ul>
             {status === 'loaded' && list.items.length === 0 && <p className={ui.empty}>まだ誰もいいねしていません。</p>}
             {status === 'loading' && <p className={styles.state}>読み込み中…</p>}

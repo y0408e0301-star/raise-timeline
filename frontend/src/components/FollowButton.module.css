@@ -1,0 +1,4 @@
+/* 画面設計書 3.3 のフォローボタン。文字が変わっても幅が変わらないようにする */
+.button { flex: none; min-width: 120px; }
+/* 「フォロー中」にマウスを乗せている間（F-2） */
+.unfollow { color: var(--danger); border-color: var(--danger); }

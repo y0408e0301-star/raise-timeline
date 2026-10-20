@@ -281,3 +281,31 @@ export function fetchLikers(postId: number, cursor: string | null = null): Promi
   const query = cursor === null ? '' : `?${new URLSearchParams({ cursor })}`
   return requestJson<LikersPage>('GET', `/api/posts/${postId}/likes${query}`)
 }
+
+// ---------------------------------------------------------------- FN-07 フォロー
+
+// フォロー・解除の結果。followerCount は相手のフォロワー数（ほかの人の操作も含めた最新の数）
+export type FollowResult = { following: boolean, followerCount: number }
+
+// 何回送っても同じ結果になる（冪等。FN-07 5 章 No.2）
+export function followUser(username: string): Promise<FollowResult> {
+  return requestJson<FollowResult>('PUT', `/api/users/${encodeURIComponent(username)}/follow`)
+}
+
+export function unfollowUser(username: string): Promise<FollowResult> {
+  return requestJson<FollowResult>('DELETE', `/api/users/${encodeURIComponent(username)}/follow`)
+}
+
+// G-8 のタブ：その人がフォローしている人・その人をフォローしている人
+export type FollowKind = 'following' | 'followers'
+
+// 新しくフォローした順に 20 件ずつ。nextCursor が null なら続きはない
+export type UsersPage = {
+  items: UserSummary[]
+  nextCursor: string | null
+}
+
+export function fetchFollows(username: string, kind: FollowKind, cursor: string | null = null): Promise<UsersPage> {
+  const query = cursor === null ? '' : `?${new URLSearchParams({ cursor })}`
+  return requestJson<UsersPage>('GET', `/api/users/${encodeURIComponent(username)}/${kind}${query}`)
+}

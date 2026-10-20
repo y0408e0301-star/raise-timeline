@@ -3,6 +3,7 @@ import { AuthProvider } from './auth/AuthProvider'
 import { GuestOnly, RequireAuth } from './auth/guards'
 import Layout from './components/Layout'
 import { ToastProvider } from './components/ToastProvider'
+import FollowsPage from './pages/FollowsPage'
 import HomePage from './pages/HomePage'
 import LikesPage from './pages/LikesPage'
 import LoginPage from './pages/LoginPage'
@@ -25,6 +26,8 @@ export default function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/posts/:id" element={<PostPage />} />
               <Route path="/posts/:id/likes" element={<LikesPage />} />
+              <Route path="/users/:username/following" element={<FollowsPage kind="following" />} />
+              <Route path="/users/:username/followers" element={<FollowsPage kind="followers" />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

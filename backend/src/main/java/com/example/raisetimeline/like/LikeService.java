@@ -1,13 +1,10 @@
 package com.example.raisetimeline.like;
 
 import java.time.Clock;
-import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.jspecify.annotations.Nullable;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -17,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.raisetimeline.common.ApiException;
 import com.example.raisetimeline.common.ErrorCode;
+import com.example.raisetimeline.common.TimeCursor;
 import com.example.raisetimeline.follow.FollowRepository;
 import com.example.raisetimeline.post.PostRepository;
 import com.example.raisetimeline.user.UserSummary;
@@ -26,12 +24,6 @@ import com.example.raisetimeline.user.UserSummary;
 class LikeService {
 
 	static final int PAGE_SIZE = 20;
-
-	// 最初の 20 件を読むときの cursor の代わり。どのいいねよりも後の日時
-	private static final Instant LATEST = Instant.parse("9999-12-31T00:00:00Z");
-
-	// 「いいねした日時（エポックからのマイクロ秒）_user_id」
-	private static final Pattern CURSOR = Pattern.compile("([0-9]{1,18})_([0-9]{1,18})");
 
 	private final LikeRepository likes;
 
@@ -73,18 +65,10 @@ class LikeService {
 	// 21 件取って、21 件目があれば続きがある（nextCursor は 20 件目の日時と user_id）。totalCount は G-5 の見出しに使う
 	@Transactional(readOnly = true)
 	LikersResponse likers(long userId, long postId, @Nullable String cursor) {
-		Instant likedAt = LATEST;
-		long before = Long.MAX_VALUE;
-		if (cursor != null) {
-			Matcher matcher = CURSOR.matcher(cursor);
-			if (!matcher.matches()) {
-				throw new ApiException(ErrorCode.CURSOR_INVALID, "cursor");
-			}
-			likedAt = Instant.EPOCH.plus(Long.parseLong(matcher.group(1)), ChronoUnit.MICROS);
-			before = Long.parseLong(matcher.group(2));
-		}
+		// cursor は「いいねした日時_user_id」
+		TimeCursor after = TimeCursor.parse(cursor);
 		requirePost(postId);
-		List<Liker> found = this.likes.findLikersBefore(postId, likedAt, before, Limit.of(PAGE_SIZE + 1));
+		List<Liker> found = this.likes.findLikersBefore(postId, after.at(), after.id(), Limit.of(PAGE_SIZE + 1));
 		List<Liker> page = found.subList(0, Math.min(found.size(), PAGE_SIZE));
 		String nextCursor = (found.size() > PAGE_SIZE) ? cursorOf(page.getLast()) : null;
 		Set<Long> followed = new HashSet<>(
@@ -96,7 +80,7 @@ class LikeService {
 	}
 
 	private static String cursorOf(Liker liker) {
-		return ChronoUnit.MICROS.between(Instant.EPOCH, liker.likedAt()) + "_" + liker.user().getId();
+		return TimeCursor.format(liker.likedAt(), liker.user().getId());
 	}
 
 	private void requirePost(long postId) {
