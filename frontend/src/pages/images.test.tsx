@@ -188,6 +188,43 @@ describe('URL の取り直し（I-8）', () => {
     expect(fetch.calls.filter((c) => c.key === 'POST /api/images/urls')).toHaveLength(1)
   })
 
+  it('取り直した URL でも読み込めなければ、もう取り直さずに「画像を読み込めませんでした」を出す', async () => {
+    const fetch = renderHome([post(1, [image(11)])], {
+      'POST /api/images/urls': () => json(200, { items: [image(11, { url: 'https://s3.example/new-11' })] }),
+    })
+    const cell = await screen.findByRole('button', { name: '画像 1 / 1 を拡大' })
+    fireEvent.error(cell.querySelector('img')!)
+    await waitFor(() => expect(cell.querySelector('img')).toHaveAttribute('src', 'https://s3.example/new-11'))
+    fireEvent.error(cell.querySelector('img')!)
+    expect(await screen.findByText('画像を読み込めませんでした')).toBeInTheDocument()
+    expect(fetch.calls.filter((c) => c.key === 'POST /api/images/urls')).toHaveLength(1)
+  })
+
+  it('取り直した URL の期限も切れていれば、また取り直す', async () => {
+    const expired = new Date(Date.now() - 1000).toISOString()
+    const fetch = renderHome([post(1, [image(11)])], {
+      'POST /api/images/urls': [
+        () => json(200, { items: [image(11, { url: 'https://s3.example/new-11', expiresAt: expired })] }),
+        () => json(200, { items: [image(11, { url: 'https://s3.example/newer-11' })] }),
+      ],
+    })
+    const cell = await screen.findByRole('button', { name: '画像 1 / 1 を拡大' })
+    fireEvent.error(cell.querySelector('img')!)
+    await waitFor(() => expect(cell.querySelector('img')).toHaveAttribute('src', 'https://s3.example/new-11'))
+    fireEvent.error(cell.querySelector('img')!)
+    await waitFor(() => expect(cell.querySelector('img')).toHaveAttribute('src', 'https://s3.example/newer-11'))
+    expect(fetch.calls.filter((c) => c.key === 'POST /api/images/urls')).toHaveLength(2)
+  })
+
+  it('取り直しの結果に入っていない（削除された）画像があれば、「画像を読み込めませんでした」を出す', async () => {
+    renderHome([post(1, [image(11), image(12)])], {
+      'POST /api/images/urls': () => json(200, { items: [image(11, { url: 'https://s3.example/new-11' })] }),
+    })
+    const cells = await screen.findAllByRole('button', { name: /を拡大$/ })
+    fireEvent.error(cells[1].querySelector('img')!)
+    expect(await screen.findByText('画像を読み込めませんでした')).toBeInTheDocument()
+  })
+
   it('期限が切れていたら、G-10 を開く前に取り直す', async () => {
     const expired = new Date(Date.now() - 1000).toISOString()
     renderHome([post(1, [image(11, { expiresAt: expired })])], {
