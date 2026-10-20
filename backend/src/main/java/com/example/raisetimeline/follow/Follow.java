@@ -9,7 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
 
-// フォロー（データ設計書 4.6）。タイムラインの「フォロー中」（FN-02）で読む。フォローする操作（FN-07）は開発計画書 1-7 で作る
+// フォロー（データ設計書 4.6）。追加は FollowRepository.insertIfAbsent で行い、この形では保存しない。タイムラインの「フォロー中」（FN-02）でも読む
 @Entity
 @Table(name = "follows")
 @IdClass(Follow.Key.class)
@@ -27,13 +27,7 @@ public class Follow {
 	private Instant createdAt;
 
 	protected Follow() {
-		this(0, 0, Instant.EPOCH);
-	}
-
-	public Follow(long followerId, long followeeId, Instant now) {
-		this.followerId = followerId;
-		this.followeeId = followeeId;
-		this.createdAt = now;
+		this.createdAt = Instant.EPOCH;
 	}
 
 	public long getFollowerId() {

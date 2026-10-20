@@ -52,6 +52,12 @@ public enum ErrorCode {
 	// すでに削除されたコメント。画面は一覧から消すだけで、メッセージは出さない
 	COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "このコメントは削除されました。"),
 
+	// フォロー・プロフィール（FN-07・FN-09 9 章）
+	USER_NOT_FOUND(HttpStatus.NOT_FOUND, "このユーザーは見つかりません。"),
+
+	// 自分にはフォローボタンを出さないので、ふつうは出ない
+	CANNOT_FOLLOW_SELF(HttpStatus.BAD_REQUEST, "操作に失敗しました。時間をおいてもう一度お試しください。"),
+
 	// 画面を通さずに送られた、条件に合わない入力（JSON が読めない、上限を超えた文字数など）
 	BAD_REQUEST(HttpStatus.BAD_REQUEST, "入力が正しくありません。"),
 
