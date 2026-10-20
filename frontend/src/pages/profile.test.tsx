@@ -43,6 +43,11 @@ function post(id: number, overrides: Partial<PostView> = {}): PostView {
   }
 }
 
+const summary = (overrides: Partial<UserSummary> = {}): UserSummary => ({
+  username: 'Taro_Y', displayName: 'たろう', bioFirstLine: '', iconUrl: null, followedByMe: false, me: false,
+  ...overrides,
+})
+
 const posts = (items: PostView[], nextCursor: string | null = null) => () => json(200, { items, nextCursor })
 
 function renderAt(path: string, routes: Record<string, Handler | Handler[]>) {
@@ -178,10 +183,6 @@ describe('その人の投稿の一覧（PF-2）', () => {
 })
 
 describe('G-6 への移動', () => {
-  const summary = (overrides: Partial<UserSummary> = {}): UserSummary => ({
-    username: 'Taro_Y', displayName: 'たろう', bioFirstLine: '', iconUrl: null, followedByMe: false, me: false,
-    ...overrides,
-  })
   const taroRoutes = {
     'GET /api/users/Taro_Y': () => json(200, profile()),
     'GET /api/users/Taro_Y/posts': posts([]),
