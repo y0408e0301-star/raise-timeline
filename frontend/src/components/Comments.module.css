@@ -1,0 +1,31 @@
+/* 画面設計書 7 章 G-4 のコメントフォームと一覧 */
+.form { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.main { flex: 1; min-width: 0; }
+.form textarea {
+  display: block; width: 100%; border: none; resize: none; font-size: 15px; color: var(--text);
+  padding: 6px 0; min-height: 34px; outline: none; overflow-y: auto; background: transparent;
+}
+.actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding-top: 8px; }
+
+.list { list-style: none; margin: 0; padding: 0; }
+.comment { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.head { display: flex; align-items: center; gap: 4px; min-width: 0; }
+/* 表示名・@ユーザー ID が長いときは末尾を「…」で省く（投稿カードと同じ） */
+.names { display: flex; gap: 4px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.name { font-weight: bold; font-size: 15px; overflow: hidden; text-overflow: ellipsis; }
+.username { color: var(--sub); overflow: hidden; text-overflow: ellipsis; }
+.time { color: var(--sub); white-space: nowrap; }
+/* 自分のコメントの「削除」（危険色の文字） */
+.delete {
+  margin-left: auto; flex: none; border: none; background: none; cursor: pointer;
+  color: var(--danger); font-size: 14px; padding: 4px 8px; border-radius: 12px;
+}
+.delete:hover { background: rgba(180, 35, 24, 0.08); }
+/* 本文の改行はそのまま出す（投稿と同じ） */
+.body { font-size: 15px; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 2px; }
+
+.more { display: flex; justify-content: center; padding: 16px; }
+
+/* 読み込み中・読み込みに失敗（M-9 と「再読み込み」） */
+.state { padding: 24px 16px; text-align: center; color: var(--sub); }
+.state p { margin: 0 0 12px; }

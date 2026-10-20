@@ -30,6 +30,8 @@ function post(overrides: Partial<PostView> = {}): PostView {
 const loggedIn = {
   'GET /api/auth/me': () => json(200, me),
   'GET /api/timeline?tab=following': () => json(200, { items: [], nextCursor: null, followingCount: 1 }),
+  // G-4 を開くとコメントを読む（FN-05。コメントの画面は comments.test.tsx）
+  'GET /api/posts/1/comments': () => json(200, { items: [], nextCursor: null }),
 }
 
 function renderAt(path: string, routes: Record<string, Handler | Handler[]> = {}) {

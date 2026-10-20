@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router'
 import { ApiError, fetchPost, type PostView } from '../api'
+import Comments from '../components/Comments'
 import PostCard from '../components/PostCard'
 import ui from '../components/ui.module.css'
 import { M } from '../messages'
@@ -20,7 +21,7 @@ async function load(id: number): Promise<State> {
   }
 }
 
-// G-4 投稿の詳細画面（W-6〜W-11、画面設計書 7 章）。コメント（FN-05）は開発計画書 1-5 で足す
+// G-4 投稿の詳細画面（W-6〜W-11・C-1〜C-6、画面設計書 7 章）
 export default function PostPage() {
   const id = Number(useParams().id)
   // 数字でない ID は、ない投稿と同じに扱う
@@ -56,6 +57,13 @@ export default function PostPage() {
     else navigate(-1)
   }
 
+  // 自分のコメント・削除で、投稿カードのコメント数を ±1 する（FN-05 5 章 No.4）
+  function changeCommentCount(delta: number) {
+    setState((prev) => prev.status === 'loaded'
+      ? { status: 'loaded', post: { ...prev.post, commentCount: prev.post.commentCount + delta } }
+      : prev)
+  }
+
   const shown: State = validId ? state : { status: 'deleted' }
 
   return (
@@ -73,10 +81,13 @@ export default function PostPage() {
         </div>
       )}
       {shown.status === 'loaded' && (
-        <PostCard post={shown.post} detail editing={editing} onEditingChange={setEditing}
-          onChange={(post) => setState({ status: 'loaded', post })}
-          // G-4 で削除したときは前の画面に戻る（FN-03 3.3）
-          onDelete={back} />
+        <>
+          <PostCard post={shown.post} detail editing={editing} onEditingChange={setEditing}
+            onChange={(post) => setState({ status: 'loaded', post })}
+            // G-4 で削除したときは前の画面に戻る（FN-03 3.3）
+            onDelete={back} />
+          <Comments postId={shown.post.id} onCountChange={changeCommentCount} />
+        </>
       )}
     </>
   )

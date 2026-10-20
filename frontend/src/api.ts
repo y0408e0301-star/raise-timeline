@@ -215,3 +215,33 @@ export function fetchTimeline(tab: Tab, cursor: string | null = null): Promise<T
   if (cursor !== null) query.set('cursor', cursor)
   return requestJson<TimelinePage>('GET', `/api/timeline?${query}`)
 }
+
+// ---------------------------------------------------------------- FN-05 コメント
+
+// コメント（機能定義書 FN-05 6 章）。author は投稿の author と同じ形
+export type CommentView = {
+  id: number
+  author: PostView['author']
+  body: string
+  mine: boolean
+  createdAt: string
+}
+
+// 古い順に 50 件ずつ。nextCursor が null なら続きはない
+export type CommentPage = {
+  items: CommentView[]
+  nextCursor: string | null
+}
+
+export function fetchComments(postId: number, cursor: string | null = null): Promise<CommentPage> {
+  const query = cursor === null ? '' : `?${new URLSearchParams({ cursor })}`
+  return requestJson<CommentPage>('GET', `/api/posts/${postId}/comments${query}`)
+}
+
+export function createComment(postId: number, body: string): Promise<CommentView> {
+  return requestJson<CommentView>('POST', `/api/posts/${postId}/comments`, { body })
+}
+
+export async function deleteComment(commentId: number): Promise<void> {
+  await request('DELETE', `/api/comments/${commentId}`)
+}

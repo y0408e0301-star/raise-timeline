@@ -5,7 +5,6 @@ import java.io.UncheckedIOException;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -16,6 +15,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.raisetimeline.common.ApiException;
+import com.example.raisetimeline.common.BodyText;
 import com.example.raisetimeline.common.ErrorCode;
 import com.example.raisetimeline.storage.ImageFormat;
 import com.example.raisetimeline.storage.ImageStorage;
@@ -29,14 +29,10 @@ class PostService {
 
 	private static final Logger log = LoggerFactory.getLogger(PostService.class);
 
-	static final int BODY_MAX = 280;
-
 	static final int IMAGES_MAX = 4;
 
 	// 1 枚 5MB まで（FN-04 4 章）
 	static final long IMAGE_BYTES_MAX = 5L * 1024 * 1024;
-
-	private static final Pattern NEWLINE = Pattern.compile("\\r\\n?");
 
 	private final PostRepository posts;
 
@@ -181,11 +177,10 @@ class PostService {
 		}
 	}
 
-	// 改行を LF にそろえ、前後の空白を取り除いて 0〜280 文字（コードポイント）。画像がなければ 1 文字以上（W-2・W-3、BR-2）。
-	// ブラウザは multipart で送るときに改行を CRLF に変えるので、そのまま数えると画面より改行 1 つにつき 1 文字多くなる
+	// 改行を LF にそろえ、前後の空白を取り除いて 0〜280 文字（コードポイント）。画像がなければ 1 文字以上（W-2・W-3、BR-2）
 	private static String validBody(@Nullable String rawBody, int imageCount) {
-		String body = (rawBody == null) ? "" : NEWLINE.matcher(rawBody).replaceAll("\n").strip();
-		if (body.codePointCount(0, body.length()) > BODY_MAX) {
+		String body = BodyText.normalize(rawBody);
+		if (BodyText.isTooLong(body)) {
 			throw new ApiException(ErrorCode.BODY_TOO_LONG, "body");
 		}
 		if (body.isEmpty() && imageCount == 0) {

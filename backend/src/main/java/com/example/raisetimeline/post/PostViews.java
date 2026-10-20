@@ -7,20 +7,25 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
+import com.example.raisetimeline.comment.CommentRepository;
+import com.example.raisetimeline.common.PostCount;
 import com.example.raisetimeline.storage.ImageStorage;
 import com.example.raisetimeline.storage.ImageStorage.SignedUrl;
 
-// 投稿を PostView にする。画像は投稿ごとに SQL を出さず、まとめて 1 回で取る（FN-02 5.2）。
+// 投稿を PostView にする。画像・コメント数は投稿ごとに SQL を出さず、まとめて 1 回ずつで取る（FN-02 5.2）。
 // 画像の URL は署名付き URL（15 分）にする（FN-04 5 章 No.4）
 @Component
 class PostViews {
 
 	private final PostImageRepository images;
 
+	private final CommentRepository comments;
+
 	private final ImageStorage storage;
 
-	PostViews(PostImageRepository images, ImageStorage storage) {
+	PostViews(PostImageRepository images, CommentRepository comments, ImageStorage storage) {
 		this.images = images;
+		this.comments = comments;
 		this.storage = storage;
 	}
 
@@ -32,12 +37,16 @@ class PostViews {
 		if (posts.isEmpty()) {
 			return List.of();
 		}
-		Map<Long, List<PostView.Image>> imagesByPost = this.images
-			.findByPostIdInOrderByPostIdAscSortOrderAsc(posts.stream().map(Post::getId).toList())
+		List<Long> ids = posts.stream().map(Post::getId).toList();
+		Map<Long, List<PostView.Image>> imagesByPost = this.images.findByPostIdInOrderByPostIdAscSortOrderAsc(ids)
 			.stream()
 			.collect(Collectors.groupingBy(PostImage::getPostId, Collectors.mapping(this::image, Collectors.toList())));
+		Map<Long, Long> commentCounts = this.comments.countByPostIds(ids)
+			.stream()
+			.collect(Collectors.toMap(PostCount::postId, PostCount::count));
 		return posts.stream()
-			.map((post) -> PostView.of(post, viewerId, imagesByPost.getOrDefault(post.getId(), List.of())))
+			.map((post) -> PostView.of(post, viewerId, imagesByPost.getOrDefault(post.getId(), List.of()),
+					commentCounts.getOrDefault(post.getId(), 0L)))
 			.toList();
 	}
 
