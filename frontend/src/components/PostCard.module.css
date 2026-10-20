@@ -16,6 +16,13 @@
 .actions { display: flex; align-items: center; gap: 48px; margin-top: 8px; color: var(--sub); }
 .action { display: inline-flex; align-items: center; gap: 4px; color: var(--sub); }
 .heart { font-size: 16px; }
+/* 「♡」はいいねの操作。いいねしていれば「♥」とその数をいいね色にする（画面設計書 3.7） */
+.heartButton {
+  display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; margin: -6px -2px -6px -8px;
+  border: none; border-radius: 50%; background: none; cursor: pointer; color: inherit; padding: 0;
+}
+.heartButton:hover { background: rgba(192, 36, 92, 0.1); color: var(--like); }
+.liked, .liked .countLink { color: var(--like); }
 .countLink:hover { color: var(--primary); }
 
 /* 「…」メニュー */

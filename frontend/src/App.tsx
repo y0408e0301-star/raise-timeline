@@ -4,6 +4,7 @@ import { GuestOnly, RequireAuth } from './auth/guards'
 import Layout from './components/Layout'
 import { ToastProvider } from './components/ToastProvider'
 import HomePage from './pages/HomePage'
+import LikesPage from './pages/LikesPage'
 import LoginPage from './pages/LoginPage'
 import PostPage from './pages/PostPage'
 import SignupPage from './pages/SignupPage'
@@ -23,6 +24,7 @@ export default function App() {
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
               <Route path="/posts/:id" element={<PostPage />} />
+              <Route path="/posts/:id/likes" element={<LikesPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
