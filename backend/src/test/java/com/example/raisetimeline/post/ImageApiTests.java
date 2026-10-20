@@ -102,7 +102,10 @@ class ImageApiTests {
 		assertThat(keys.get(0)).endsWith(".jpg");
 		assertThat(keys.get(3)).endsWith(".webp");
 		// 元のファイル名は使わない（5 章 No.1）
-		assertThat(keys).noneMatch((key) -> key.contains("a.jpg") || key.contains("b.png"));
+		// ファイル名の部分が UUID であることで確かめる。「b.png」などが含まれるかで確かめると、
+		// UUID の末尾がたまたま「b」で拡張子が png のときに落ちる
+		assertThat(keys).allMatch(
+				(key) -> key.matches("posts/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.[a-z]+"));
 
 		HeadObjectResponse head = this.s3
 			.headObject((request) -> request.bucket(TestcontainersConfiguration.BUCKET).key(keys.get(1)));
