@@ -187,6 +187,7 @@ describe('いいねした人の一覧（G-5、L-5）', () => {
     })
     expect(await screen.findByRole('heading', { name: 'いいね 21 件' })).toBeInTheDocument()
     await waitFor(() => expect(screen.getAllByRole('listitem')).toHaveLength(20))
+    await waitFor(() => expect(io.observing()).toBe(true))
     act(() => io.scrollToBottom())
     await waitFor(() => expect(screen.getAllByRole('listitem')).toHaveLength(21))
     expect(screen.getAllByRole('listitem')[20]).toHaveAccessibleName('利用者 1')

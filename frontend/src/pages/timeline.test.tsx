@@ -143,12 +143,14 @@ describe('一覧（T-2・T-4・T-8）', () => {
     await waitFor(() => expect(bodies()).toHaveLength(20))
     expect(screen.queryByText('これ以上の投稿はありません')).not.toBeInTheDocument()
 
+    await waitFor(() => expect(io.observing()).toBe(true))
     act(() => io.scrollToBottom())
     expect(await screen.findByText('読み込み中…')).toBeInTheDocument()
     await act(async () => finish?.(json(200, { items: posts(21, 2), nextCursor: '2' })))
     await waitFor(() => expect(bodies()).toHaveLength(40))
     expect(screen.queryByText('読み込み中…')).not.toBeInTheDocument()
 
+    await waitFor(() => expect(io.observing()).toBe(true))
     act(() => io.scrollToBottom())
     await waitFor(() => expect(bodies()).toHaveLength(41))
     expect(bodies()[40]).toBe('投稿 1')
@@ -191,6 +193,7 @@ describe('一覧（T-2・T-4・T-8）', () => {
       'GET /api/timeline?tab=all&cursor=2': [failed, page([post(1)])],
     })
     await waitFor(() => expect(bodies()).toHaveLength(20))
+    await waitFor(() => expect(io.observing()).toBe(true))
     act(() => io.scrollToBottom())
     expect(await screen.findByText(M[9])).toBeInTheDocument()
     expect(bodies()).toHaveLength(20)

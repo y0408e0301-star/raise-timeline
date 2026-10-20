@@ -1,7 +1,8 @@
 import { vi } from 'vitest'
 
 // jsdom には IntersectionObserver がないので、テストから「見えた」ことにできる偽物に差し替える。
-// 監視している要素がすべて見えたことにするには scrollToBottom() を呼ぶ
+// 監視している要素がすべて見えたことにするには scrollToBottom() を呼ぶ。
+// 画面が監視を始める（useEffect）前に呼ぶと何も起きないので、先に observing() が true になるのを待つ
 export function mockIntersectionObserver() {
   const observers = new Set<FakeObserver>()
 
@@ -34,5 +35,6 @@ export function mockIntersectionObserver() {
   vi.stubGlobal('IntersectionObserver', FakeObserver)
   return {
     scrollToBottom: () => [...observers].forEach((o) => o.fire()),
+    observing: () => [...observers].some((o) => o.targets.size > 0),
   }
 }
