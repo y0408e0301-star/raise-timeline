@@ -178,6 +178,16 @@ describe('URL の取り直し（I-8）', () => {
     expect(JSON.parse(sent as string)).toEqual({ imageIds: [11, 12] })
   })
 
+  it('同じ投稿の画像がいくつ同時に読み込めなくても、取り直しは 1 回だけ送る', async () => {
+    const fetch = renderHome([post(1, [image(11), image(12), image(13), image(14)])], {
+      'POST /api/images/urls': () => json(200, { items: [11, 12, 13, 14].map((id) => image(id, { url: `https://s3.example/new-${id}` })) }),
+    })
+    const cells = await screen.findAllByRole('button', { name: /を拡大$/ })
+    cells.forEach((cell) => fireEvent.error(cell.querySelector('img')!))
+    await waitFor(() => expect(cells[3].querySelector('img')).toHaveAttribute('src', 'https://s3.example/new-14'))
+    expect(fetch.calls.filter((c) => c.key === 'POST /api/images/urls')).toHaveLength(1)
+  })
+
   it('期限が切れていたら、G-10 を開く前に取り直す', async () => {
     const expired = new Date(Date.now() - 1000).toISOString()
     renderHome([post(1, [image(11, { expiresAt: expired })])], {

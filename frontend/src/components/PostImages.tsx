@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { refreshImageUrls, type PostImage } from '../api'
 import ImageDialog from './ImageDialog'
 import styles from './PostImages.module.css'
@@ -12,16 +12,26 @@ export default function PostImages({ images: initial }: { images: PostImage[] })
   const current = state.initial === initial ? state : { initial, images: initial, failed: false }
   const { images, failed } = current
 
+  // 取り直し中のもの。期限が切れると画像の数だけ onError が同時に起きるので、送るのは 1 回にしてその結果を待つ
+  const refreshing = useRef<{ initial: PostImage[], promise: Promise<void> } | null>(null)
+
   // 15 分の期限が切れた・読み込めなかったときは、新しい URL を取り直す（I-8）。取り直しは 1 回だけ
-  async function refresh() {
-    if (failed) return
-    try {
-      const fresh = await refreshImageUrls(images.map((i) => i.id))
-      const byId = new Map(fresh.map((i) => [i.id, i]))
-      setState({ initial, images: images.map((i) => byId.get(i.id) ?? i), failed: false })
-    } catch {
-      setState({ initial, images, failed: true })
-    }
+  function refresh(): Promise<void> {
+    if (failed) return Promise.resolve()
+    if (refreshing.current?.initial === initial) return refreshing.current.promise
+    const promise = (async () => {
+      try {
+        const fresh = await refreshImageUrls(images.map((i) => i.id))
+        const byId = new Map(fresh.map((i) => [i.id, i]))
+        setState({ initial, images: images.map((i) => byId.get(i.id) ?? i), failed: false })
+      } catch {
+        setState({ initial, images, failed: true })
+      }
+    })().finally(() => {
+      if (refreshing.current?.promise === promise) refreshing.current = null
+    })
+    refreshing.current = { initial, promise }
+    return promise
   }
 
   // G-10 を開く前に、期限が切れていれば取り直す
