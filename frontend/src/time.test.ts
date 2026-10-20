@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fullTime, relativeTime } from './time'
+import { fullTime, joinedMonth, relativeTime } from './time'
 
 // 画面設計書 3.9
 describe('relativeTime', () => {
@@ -25,5 +25,14 @@ describe('fullTime', () => {
   it('日本時間の 24 時間表記', () => {
     expect(fullTime('2026-10-16T06:30:00Z')).toBe('2026/10/16 15:30')
     expect(fullTime('2026-10-16T15:05:00Z')).toBe('2026/10/17 00:05')
+  })
+})
+
+describe('joinedMonth', () => {
+  it('日本時間の年月にする', () => {
+    expect(joinedMonth('2026-10-01T00:00:00Z')).toBe('2026年10月から利用')
+    // UTC では 9 月 30 日でも、日本時間では 10 月 1 日
+    expect(joinedMonth('2026-09-30T15:00:00Z')).toBe('2026年10月から利用')
+    expect(joinedMonth('2026-09-30T14:59:59Z')).toBe('2026年9月から利用')
   })
 })

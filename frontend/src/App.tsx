@@ -8,6 +8,7 @@ import HomePage from './pages/HomePage'
 import LikesPage from './pages/LikesPage'
 import LoginPage from './pages/LoginPage'
 import PostPage from './pages/PostPage'
+import ProfilePage from './pages/ProfilePage'
 import SignupPage from './pages/SignupPage'
 
 // 画面と URL（画面一覧 2 章）。BrowserRouter（テストでは MemoryRouter）の中で使う
@@ -26,6 +27,7 @@ export default function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/posts/:id" element={<PostPage />} />
               <Route path="/posts/:id/likes" element={<LikesPage />} />
+              <Route path="/users/:username" element={<ProfilePage />} />
               <Route path="/users/:username/following" element={<FollowsPage kind="following" />} />
               <Route path="/users/:username/followers" element={<FollowsPage kind="followers" />} />
             </Route>

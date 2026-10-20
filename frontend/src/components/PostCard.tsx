@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Link } from 'react-router'
-import { ApiError, deletePost, editPost, type PostView } from '../api'
+import { ApiError, deletePost, editPost, profileUrl, type PostView } from '../api'
 import { M } from '../messages'
 import { fullTime, relativeTime } from '../time'
 import { remainingChars } from '../validation'
@@ -53,10 +53,11 @@ export default function PostCard({ post, detail = false, editing, onEditingChang
       <Avatar displayName={post.author.displayName} iconUrl={post.author.iconUrl} size={40} />
       <div className={styles.main}>
         <div className={styles.head}>
-          <span className={styles.names}>
+          {/* 投稿者名を押すと G-6 */}
+          <Link to={profileUrl(post.author.username)} className={styles.names}>
             <span className={styles.name}>{post.author.displayName}</span>
             <span className={styles.username}>@{post.author.username}</span>
-          </span>
+          </Link>
           <time className={styles.time} dateTime={post.createdAt} title={fullTime(post.createdAt)}>
             · {relativeTime(post.createdAt)}
           </time>

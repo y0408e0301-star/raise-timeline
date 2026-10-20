@@ -309,3 +309,33 @@ export function fetchFollows(username: string, kind: FollowKind, cursor: string 
   const query = cursor === null ? '' : `?${new URLSearchParams({ cursor })}`
   return requestJson<UsersPage>('GET', `/api/users/${encodeURIComponent(username)}/${kind}${query}`)
 }
+
+// ---------------------------------------------------------------- FN-09 プロフィール
+
+// プロフィール（機能定義書 FN-09 6 章）。username は登録したときの書き方。件数は読み込んだ時点の値
+export type Profile = {
+  username: string
+  displayName: string
+  bio: string
+  iconUrl: string | null
+  joinedAt: string
+  followingCount: number
+  followerCount: number
+  postCount: number
+  followedByMe: boolean
+  me: boolean
+}
+
+// username は大文字・小文字を区別しない
+export function fetchProfile(username: string): Promise<Profile> {
+  return requestJson<Profile>('GET', `/api/users/${encodeURIComponent(username)}`)
+}
+
+// その人の投稿を新しい順に 20 件ずつ。形と読み込み方はタイムラインと同じ（PF-2）
+export function fetchUserPosts(username: string, cursor: string | null = null): Promise<TimelinePage> {
+  const query = cursor === null ? '' : `?${new URLSearchParams({ cursor })}`
+  return requestJson<TimelinePage>('GET', `/api/users/${encodeURIComponent(username)}/posts${query}`)
+}
+
+// G-6 の URL
+export const profileUrl = (username: string) => `/users/${encodeURIComponent(username)}`

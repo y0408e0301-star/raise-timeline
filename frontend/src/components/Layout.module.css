@@ -17,3 +17,5 @@
   .short { display: inline; }
   .container { border: none; }
 }
+/* 自分のアイコン（押すと自分の G-6） */
+.me { display: inline-flex; border-radius: 50%; }

@@ -27,4 +27,12 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 			""")
 	List<Post> findFollowingBefore(@Param("me") long me, @Param("cursor") long cursor, Limit limit);
 
+	// プロフィールの投稿の一覧：その人の投稿を、cursor より古いものから新しい順に（PF-2）。索引 (user_id, id DESC) を使う
+	@Query("select p from Post p join fetch p.author a where a.id = :authorId and p.id < :cursor order by p.id desc")
+	List<Post> findByAuthorBefore(@Param("authorId") long authorId, @Param("cursor") long cursor, Limit limit);
+
+	// 投稿数（PF-1）
+	@Query("select count(p) from Post p where p.author.id = :authorId")
+	long countByAuthorId(@Param("authorId") long authorId);
+
 }

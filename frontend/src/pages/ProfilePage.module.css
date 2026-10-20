@@ -1,0 +1,12 @@
+/* 画面設計書 9 章 G-6 の上の部分 */
+.profile { padding: 16px; border-bottom: 1px solid var(--line); }
+.top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.name { margin: 12px 0 0; font-size: 18px; overflow-wrap: anywhere; }
+.username { margin: 0; color: var(--sub); overflow-wrap: anywhere; }
+/* 自己紹介は改行をそのまま出す（PF-1） */
+.bio { margin: 12px 0 0; font-size: 15px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.joined { margin: 12px 0 0; color: var(--sub); }
+.counts { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 0; color: var(--sub); }
+.counts a { color: var(--sub); }
+.counts a:hover { text-decoration: underline; }
+.counts strong { color: var(--text); }

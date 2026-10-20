@@ -103,6 +103,11 @@ public class User {
 		return this.bio;
 	}
 
+	// 登録した日時（G-6 の「2026年10月から利用」。PF-1）
+	public Instant getCreatedAt() {
+		return this.createdAt;
+	}
+
 	public String getPasswordHash() {
 		return this.passwordHash;
 	}
