@@ -150,7 +150,7 @@ flowchart LR
 | FN-03 投稿 | 第 1 版 | [fn03-post.md](docs/functions/fn03-post.md) | ✅ | ✅ |
 | FN-04 画像 | 第 1 版 | [fn04-image.md](docs/functions/fn04-image.md) | ✅ | ✅ |
 | FN-05 コメント | 第 1 版 | [fn05-comment.md](docs/functions/fn05-comment.md) | ✅ | ✅ |
-| FN-06 いいね | 第 1 版 | [fn06-like.md](docs/functions/fn06-like.md) | 予定 | 予定 |
+| FN-06 いいね | 第 1 版 | [fn06-like.md](docs/functions/fn06-like.md) | ✅ | ✅（G-5 のフォローボタンは FN-07 で作る） |
 | FN-07 フォロー | 第 1 版 | [fn07-follow.md](docs/functions/fn07-follow.md) | 予定 | 予定 |
 | FN-08 ユーザー検索 | 第 1 版 | [fn08-user-search.md](docs/functions/fn08-user-search.md) | 予定 | 予定 |
 | FN-09 プロフィール（表示） | 第 1 版 | [fn09-profile.md](docs/functions/fn09-profile.md) | 予定 | 予定 |

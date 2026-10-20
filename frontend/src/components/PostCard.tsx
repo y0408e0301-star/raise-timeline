@@ -6,6 +6,7 @@ import { fullTime, relativeTime } from '../time'
 import { remainingChars } from '../validation'
 import Avatar from './Avatar'
 import ConfirmDialog from './ConfirmDialog'
+import LikeButton from './LikeButton'
 import PostImages from './PostImages'
 import styles from './PostCard.module.css'
 import { isSubmitKey, remainingText, useAutoGrow } from './textarea'
@@ -28,8 +29,7 @@ function failureMessage(e: unknown): string {
   return e instanceof ApiError && e.code === 'POST_NOT_FOUND' ? M[11] : M[18]
 }
 
-// 投稿カード（画面設計書 3.7。G-3・G-4・G-6 で共通）。
-// いいね（♡ を押す・いいね数から G-5）は開発計画書 1-6、名前からプロフィールへの移動は 1-9 で足す
+// 投稿カード（画面設計書 3.7。G-3・G-4・G-6 で共通）。名前からプロフィールへの移動は開発計画書 1-9 で足す
 export default function PostCard({ post, detail = false, editing, onEditingChange, onChange, onDelete }: Props) {
   const toast = useToast()
   const [confirming, setConfirming] = useState(false)
@@ -76,10 +76,7 @@ export default function PostCard({ post, detail = false, editing, onEditingChang
         {/* 編集中も画像はそのまま出す（変えられない） */}
         <PostImages images={post.images} />
         <div className={styles.actions}>
-          <span className={styles.action} aria-label={`いいね ${post.likeCount} 件`}>
-            <span className={styles.heart} aria-hidden="true">♡</span>
-            <span aria-hidden="true">{post.likeCount}</span>
-          </span>
+          <LikeButton post={post} onChange={onChange} onDelete={onDelete} />
           {detail
             ? <span className={styles.action} aria-label={`コメント ${post.commentCount} 件`}>💬 {post.commentCount}</span>
             : <Link to={postUrl} className={`${styles.action} ${styles.countLink}`}

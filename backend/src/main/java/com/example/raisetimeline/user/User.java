@@ -99,6 +99,10 @@ public class User {
 		return this.displayName;
 	}
 
+	public String getBio() {
+		return this.bio;
+	}
+
 	public String getPasswordHash() {
 		return this.passwordHash;
 	}

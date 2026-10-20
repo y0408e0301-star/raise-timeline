@@ -245,3 +245,39 @@ export function createComment(postId: number, body: string): Promise<CommentView
 export async function deleteComment(commentId: number): Promise<void> {
   await request('DELETE', `/api/comments/${commentId}`)
 }
+
+// ---------------------------------------------------------------- FN-06 いいね
+
+// いいね・取り消しの結果。likeCount はほかの人の操作も含めた最新の数
+export type LikeResult = { liked: boolean, likeCount: number }
+
+// 何回送っても同じ結果になる（冪等。FN-06 5 章 No.2）
+export function likePost(postId: number): Promise<LikeResult> {
+  return requestJson<LikeResult>('PUT', `/api/posts/${postId}/like`)
+}
+
+export function unlikePost(postId: number): Promise<LikeResult> {
+  return requestJson<LikeResult>('DELETE', `/api/posts/${postId}/like`)
+}
+
+// ユーザーの行に出すユーザー（機能定義書 3.5 UserSummary）
+export type UserSummary = {
+  username: string
+  displayName: string
+  bioFirstLine: string
+  iconUrl: string | null
+  followedByMe: boolean
+  me: boolean
+}
+
+// 新しくいいねした順に 20 件ずつ。totalCount は G-5 の見出しに使う
+export type LikersPage = {
+  items: UserSummary[]
+  nextCursor: string | null
+  totalCount: number
+}
+
+export function fetchLikers(postId: number, cursor: string | null = null): Promise<LikersPage> {
+  const query = cursor === null ? '' : `?${new URLSearchParams({ cursor })}`
+  return requestJson<LikersPage>('GET', `/api/posts/${postId}/likes${query}`)
+}

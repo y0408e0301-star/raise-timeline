@@ -1,0 +1,7 @@
+/* 画面設計書 8 章 ユーザーの行 */
+.row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+/* 長いときは末尾を「…」で省く */
+.name, .username { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.name { font-weight: bold; font-size: 15px; }
+.username { color: var(--sub); }

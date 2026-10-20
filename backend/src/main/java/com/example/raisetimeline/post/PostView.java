@@ -11,10 +11,14 @@ import com.example.raisetimeline.user.User;
 public record PostView(long id, Author author, String body, List<Image> images, long likeCount, long commentCount,
 		boolean likedByMe, boolean mine, Instant createdAt, @Nullable Instant editedAt) {
 
-	// いいね（FN-06）は 1-6 で入れる。それまでは 0 件。画像（並び順どおり）とコメント数は PostViews がまとめて取って渡す
-	static PostView of(Post post, long viewerId, List<Image> images, long commentCount) {
-		return new PostView(post.getId(), Author.of(post.getAuthor()), post.getBody(), images, 0, commentCount, false,
-				post.isWrittenBy(viewerId), post.getCreatedAt(), post.getEditedAt());
+	// 画像（並び順どおり）・いいね数・コメント数・自分がいいねしたかは、PostViews が一覧の分をまとめて取って渡す
+	static PostView of(Post post, long viewerId, List<Image> images, Counts counts) {
+		return new PostView(post.getId(), Author.of(post.getAuthor()), post.getBody(), images, counts.likeCount(),
+				counts.commentCount(), counts.likedByMe(), post.isWrittenBy(viewerId), post.getCreatedAt(),
+				post.getEditedAt());
+	}
+
+	record Counts(long likeCount, long commentCount, boolean likedByMe) {
 	}
 
 	// 投稿者・コメントした人（機能定義書 3.5）。アイコン（iconUrl）は第 2 版（PF-8〜PF-10）で入れる
