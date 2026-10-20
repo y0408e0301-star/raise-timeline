@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { ApiError, createComment, deleteComment, fetchComments, type CommentView } from '../api'
+import { Link } from 'react-router'
+import { ApiError, createComment, deleteComment, fetchComments, profileUrl, type CommentView } from '../api'
 import { useAuth } from '../auth/AuthContext'
 import { M } from '../messages'
 import { fullTime, relativeTime } from '../time'
@@ -136,10 +137,11 @@ function CommentItem({ comment, onDelete }: { comment: CommentView, onDelete: ()
       <Avatar displayName={comment.author.displayName} iconUrl={comment.author.iconUrl} size={32} />
       <div className={styles.main}>
         <div className={styles.head}>
-          <span className={styles.names}>
+          {/* 名前を押すと G-6 */}
+          <Link to={profileUrl(comment.author.username)} className={styles.names}>
             <span className={styles.name}>{comment.author.displayName}</span>
             <span className={styles.username}>@{comment.author.username}</span>
-          </span>
+          </Link>
           <time className={styles.time} dateTime={comment.createdAt} title={fullTime(comment.createdAt)}>
             · {relativeTime(comment.createdAt)}
           </time>

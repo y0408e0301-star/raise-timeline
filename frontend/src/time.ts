@@ -35,3 +35,9 @@ export function relativeTime(iso: string, now: Date = new Date()): string {
   const md = `${t.month}月${t.day}日`
   return t.year === jst(now).year ? md : `${t.year}年${md}`
 }
+
+// 「2026年10月から利用」（登録した年月、日本時間。PF-1、FN-09 5 章 No.4）
+export function joinedMonth(iso: string): string {
+  const t = jst(new Date(iso))
+  return `${t.year}年${t.month}月から利用`
+}

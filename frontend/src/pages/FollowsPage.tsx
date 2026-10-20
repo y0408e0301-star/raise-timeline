@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
-import { ApiError, fetchFollows, type FollowKind, type UserSummary } from '../api'
+import { ApiError, fetchFollows, fetchProfile, profileUrl, type FollowKind, type UserSummary } from '../api'
 import UserRow from '../components/UserRow'
 import ui from '../components/ui.module.css'
 import { M } from '../messages'
@@ -23,12 +23,13 @@ const TABS: { kind: FollowKind, label: string, empty: string }[] = [
 
 // G-8 フォロー中・フォロワーの一覧画面（F-6、画面設計書 11 章）。タブは URL の /following・/followers と合わせる。
 // 新しくフォローした順に 20 件ずつ、一番下まで見たら次の 20 件。
-// 見出しの表示名と、「←」で G-6 に戻るのは開発計画書 1-9（プロフィール）で足す。それまでは @ユーザー ID を出す
+// 見出しはその人の表示名（読み込むまでは @ユーザー ID）
 export default function FollowsPage({ kind }: { kind: FollowKind }) {
   const username = useParams().username ?? ''
   const navigate = useNavigate()
   const location = useLocation()
   const [list, setList] = useState<List>(initialList)
+  const [displayName, setDisplayName] = useState<string | null>(null)
   // タブを切り替えた後に、前のタブの応答が遅れて届いても使わない
   const requestRef = useRef(0)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -60,6 +61,24 @@ export default function FollowsPage({ kind }: { kind: FollowKind }) {
     void start()
   }, [load])
 
+  // 見出しの表示名。読めなくても一覧は出せるので、失敗しても何も出さない（@ユーザー ID のまま）
+  useEffect(() => {
+    let current = true
+    async function start() {
+      try {
+        const profile = await fetchProfile(username)
+        if (current) setDisplayName(profile.displayName)
+      } catch {
+        // 見出しは @ユーザー ID のまま
+      }
+    }
+    void start()
+    return () => {
+      current = false
+      setDisplayName(null)
+    }
+  }, [username])
+
   // 一覧の一番下が見えたら続きを読む
   const canLoadMore = list.status === 'loaded' && list.nextCursor !== null
   useEffect(() => {
@@ -72,9 +91,10 @@ export default function FollowsPage({ kind }: { kind: FollowKind }) {
     return () => observer.disconnect()
   }, [canLoadMore, list.nextCursor, load])
 
-  // 前の画面に戻る。この画面を直接開いたとき（前の画面がない）は G-3
+  // G-6 に戻る。G-8 へは G-6 から来る（タブの切り替えは履歴を増やさない）ので、前の画面に戻ればよい。
+  // この画面を直接開いたとき（前の画面がない）は G-6 を開く
   function back() {
-    if (location.key === 'default') navigate('/', { replace: true })
+    if (location.key === 'default') navigate(profileUrl(username), { replace: true })
     else navigate(-1)
   }
 
@@ -94,7 +114,7 @@ export default function FollowsPage({ kind }: { kind: FollowKind }) {
     <>
       <div className={styles.head}>
         <button type="button" className={styles.back} aria-label="戻る" onClick={back}>←</button>
-        <h1>@{username}</h1>
+        <h1>{displayName ?? `@${username}`}</h1>
       </div>
       {list.status === 'notFound'
         ? <p className={ui.empty}>{M[17]}</p>

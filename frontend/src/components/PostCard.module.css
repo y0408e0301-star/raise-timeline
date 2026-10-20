@@ -3,7 +3,8 @@
 .main { flex: 1; min-width: 0; }
 .head { display: flex; align-items: center; gap: 4px; min-width: 0; }
 /* 表示名・@ユーザー ID が長いときは末尾を「…」で省く */
-.names { display: flex; gap: 4px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.names { display: flex; gap: 4px; min-width: 0; overflow: hidden; white-space: nowrap; color: inherit; }
+.names:hover .name { text-decoration: underline; }
 .name { font-weight: bold; font-size: 15px; overflow: hidden; text-overflow: ellipsis; }
 .username { color: var(--sub); overflow: hidden; text-overflow: ellipsis; }
 .time, .edited { color: var(--sub); white-space: nowrap; }
