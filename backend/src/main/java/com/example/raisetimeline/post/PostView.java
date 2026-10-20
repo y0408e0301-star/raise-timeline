@@ -11,16 +11,16 @@ import com.example.raisetimeline.user.User;
 public record PostView(long id, Author author, String body, List<Image> images, long likeCount, long commentCount,
 		boolean likedByMe, boolean mine, Instant createdAt, @Nullable Instant editedAt) {
 
-	// いいね（FN-06）は 1-6、コメント（FN-05）は 1-5 で入れる。それまでは 0 件。画像は PostViews が並び順どおりに渡す
-	static PostView of(Post post, long viewerId, List<Image> images) {
-		return new PostView(post.getId(), Author.of(post.getAuthor()), post.getBody(), images, 0, 0, false,
+	// いいね（FN-06）は 1-6 で入れる。それまでは 0 件。画像（並び順どおり）とコメント数は PostViews がまとめて取って渡す
+	static PostView of(Post post, long viewerId, List<Image> images, long commentCount) {
+		return new PostView(post.getId(), Author.of(post.getAuthor()), post.getBody(), images, 0, commentCount, false,
 				post.isWrittenBy(viewerId), post.getCreatedAt(), post.getEditedAt());
 	}
 
-	// 投稿者。アイコン（iconUrl）は第 2 版（PF-8〜PF-10）で入れる
+	// 投稿者・コメントした人（機能定義書 3.5）。アイコン（iconUrl）は第 2 版（PF-8〜PF-10）で入れる
 	public record Author(String username, String displayName, @Nullable String iconUrl) {
 
-		static Author of(User user) {
+		public static Author of(User user) {
 			return new Author(user.getUsername(), user.getDisplayName(), null);
 		}
 

@@ -11,13 +11,13 @@ import org.springframework.test.web.servlet.assertj.MvcTestResult;
 import jakarta.servlet.http.Cookie;
 
 // 投稿まわりのテストで使う準備
-final class PostTestSupport {
+public final class PostTestSupport {
 
 	private PostTestSupport() {
 	}
 
 	// ユーザーを登録し、ログインした状態の Cookie（access_token）を返す
-	static Cookie signup(MockMvcTester mvc, String username, String displayName) {
+	public static Cookie signup(MockMvcTester mvc, String username, String displayName) {
 		MvcTestResult result = mvc.post()
 			.uri("/api/auth/signup")
 			.with(csrf())

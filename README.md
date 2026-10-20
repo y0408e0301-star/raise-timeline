@@ -146,10 +146,10 @@ flowchart LR
 | 機能 | 版 | 機能定義書 | API | 画面 |
 | --- | --- | --- | --- | --- |
 | FN-01 ユーザー登録・ログイン | 第 1 版 | [fn01-auth.md](docs/functions/fn01-auth.md) | ✅ | ✅ |
-| FN-02 タイムライン | 第 1 版 | [fn02-timeline.md](docs/functions/fn02-timeline.md) | 予定 | 予定 |
-| FN-03 投稿 | 第 1 版 | [fn03-post.md](docs/functions/fn03-post.md) | ✅ | ✅（G-3 の一覧は FN-02、G-4 のコメントは FN-05 で作る） |
-| FN-04 画像 | 第 1 版 | [fn04-image.md](docs/functions/fn04-image.md) | 予定 | 予定 |
-| FN-05 コメント | 第 1 版 | [fn05-comment.md](docs/functions/fn05-comment.md) | 予定 | 予定 |
+| FN-02 タイムライン | 第 1 版 | [fn02-timeline.md](docs/functions/fn02-timeline.md) | ✅ | ✅ |
+| FN-03 投稿 | 第 1 版 | [fn03-post.md](docs/functions/fn03-post.md) | ✅ | ✅ |
+| FN-04 画像 | 第 1 版 | [fn04-image.md](docs/functions/fn04-image.md) | ✅ | ✅ |
+| FN-05 コメント | 第 1 版 | [fn05-comment.md](docs/functions/fn05-comment.md) | ✅ | ✅ |
 | FN-06 いいね | 第 1 版 | [fn06-like.md](docs/functions/fn06-like.md) | 予定 | 予定 |
 | FN-07 フォロー | 第 1 版 | [fn07-follow.md](docs/functions/fn07-follow.md) | 予定 | 予定 |
 | FN-08 ユーザー検索 | 第 1 版 | [fn08-user-search.md](docs/functions/fn08-user-search.md) | 予定 | 予定 |

@@ -46,6 +46,12 @@ public enum ErrorCode {
 
 	CURSOR_INVALID(HttpStatus.BAD_REQUEST, "読み込みに失敗しました。時間をおいてもう一度お試しください。"),
 
+	// コメント（FN-05 9 章）。本文の条件は画面で押せないようにしているので、ふつうは出ない
+	COMMENT_INVALID(HttpStatus.BAD_REQUEST, "操作に失敗しました。時間をおいてもう一度お試しください。"),
+
+	// すでに削除されたコメント。画面は一覧から消すだけで、メッセージは出さない
+	COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "このコメントは削除されました。"),
+
 	// 画面を通さずに送られた、条件に合わない入力（JSON が読めない、上限を超えた文字数など）
 	BAD_REQUEST(HttpStatus.BAD_REQUEST, "入力が正しくありません。"),
 
