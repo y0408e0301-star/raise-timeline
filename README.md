@@ -4,7 +4,7 @@ X（Twitter）のようなタイムライン形式のテキスト SNS です。�
 
 学習用に、要件定義から設計・実装・テスト・AWS への公開までを一通り行います。画面は React、API は Spring Boot、データは PostgreSQL、画像は AWS S3 に保存し、AWS（CloudFront・EC2・RDS・S3）で公開します。
 
-> **いまの状況（2026-10-20）**：要件定義書・機能定義書・基本設計書・技術スタック定義書を書き終え、承認待ちです。画面の動きを確かめる[モック](#画面のモックmock)（`mock/`）を作りました。実装は、**機能ごとに API とそれを使う画面を作る**順番で進めています（[開発計画書](docs/development-plan.md)）。第 1 版の機能のうち、ユーザー検索（FN-08）を除く FN-01〜FN-07・FN-09 の API（`backend/`）と画面（`frontend/`）ができました。公開環境（`deploy/`）はまだありません。この README で「予定」と書いているものは、文書で決めた内容で、まだ作っていません。
+> **いまの状況（2026-10-23）**：要件定義書・機能定義書・基本設計書・技術スタック定義書を書き終え、承認待ちです。画面の動きを確かめる[モック](#画面のモックmock)（`mock/`）を作りました。実装は、**機能ごとに API とそれを使う画面を作る**順番で進めています（[開発計画書](docs/development-plan.md)）。第 1 版の機能（FN-01〜FN-09）と、第 2 版のプロフィールの編集の API（`backend/`）と画面（`frontend/`）ができました。公開環境（`deploy/`）はまだありません。この README で「予定」と書いているものは、文書で決めた内容で、まだ作っていません。
 
 ## 目次
 
@@ -152,7 +152,7 @@ flowchart LR
 | FN-05 コメント | 第 1 版 | [fn05-comment.md](docs/functions/fn05-comment.md) | ✅ | ✅ |
 | FN-06 いいね | 第 1 版 | [fn06-like.md](docs/functions/fn06-like.md) | ✅ | ✅ |
 | FN-07 フォロー | 第 1 版 | [fn07-follow.md](docs/functions/fn07-follow.md) | ✅ | ✅ |
-| FN-08 ユーザー検索 | 第 1 版 | [fn08-user-search.md](docs/functions/fn08-user-search.md) | 予定 | 予定 |
+| FN-08 ユーザー検索 | 第 1 版 | [fn08-user-search.md](docs/functions/fn08-user-search.md) | ✅ | ✅ |
 | FN-09 プロフィール（表示） | 第 1 版 | [fn09-profile.md](docs/functions/fn09-profile.md) | ✅ | ✅ |
 | FN-09 プロフィール（編集） | 第 2 版 | 同上 | ✅ | ✅ |
 
@@ -281,7 +281,7 @@ Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml]
 | PUT / DELETE | `/api/users/{username}/follow` | フォロー・解除 | FN-07 |
 | GET | `/api/users/{username}/following?cursor=` | フォロー中の一覧 | FN-07 |
 | GET | `/api/users/{username}/followers?cursor=` | フォロワーの一覧 | FN-07 |
-| GET | `/api/users/search?q=&offset=` | ユーザー検索 | FN-08 |
+| GET | `/api/search/users?q=&offset=` | ユーザー検索 | FN-08 |
 | GET | `/api/users/{username}` | プロフィール | FN-09 |
 | GET | `/api/users/{username}/posts?cursor=` | その人の投稿の一覧 | FN-09 |
 | PATCH | `/api/me/profile` | プロフィールの編集（第 2 版） | FN-09 |

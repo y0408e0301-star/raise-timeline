@@ -3,9 +3,9 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-FD-08 |
-| 版数 | 0.1 |
+| 版数 | 0.2 |
 | 作成日 | 2026-10-16 |
-| 最終更新日 | 2026-10-16 |
+| 最終更新日 | 2026-10-23 |
 | 作成者 | （氏名） |
 | 上位文書 | [機能定義書](function-definition.md)（RT-FD） |
 | 状態 | 承認待ち |
@@ -15,6 +15,7 @@
 | 版数 | 日付 | 内容 | 作成者 |
 | --- | --- | --- | --- |
 | 0.1 | 2026-10-16 | 初版。機能要件定義書 2.8（S-1〜S-9）を移し、3 章以降を追加 | （氏名） |
+| 0.2 | 2026-10-23 | API の URL を /api/users/search から /api/search/users に変えた（3 章・6 章）。/api/users/{username}（プロフィール）とぶつかり、「search」というユーザー ID の人のプロフィールが開けなくなるため。offset が 1,000 のときは空の一覧を返すことを書いた（4 章） | （氏名） |
 
 本書は機能定義書の一部である。承認は[機能定義書](function-definition.md)で一括して行う。API とメッセージの共通の決まりは機能定義書 3 章・4 章のとおり。
 
@@ -55,7 +56,7 @@ sequenceDiagram
 
     H->>H: トリムして 0 文字なら何もしない（S-5）
     H->>B: /search?q=taro を開く
-    B->>A: GET /api/users/search?q=taro&offset=0
+    B->>A: GET /api/search/users?q=taro&offset=0
     A->>A: トリム・先頭の @ を取る・小文字にする・LIKE の記号をエスケープ
     A->>D: データ設計書 8 章の SQL（21 件）
     A-->>B: items（20 件）と nextOffset（21 件目があれば 20）
@@ -71,7 +72,7 @@ URL に検索語（?q=）を入れるので、結果の画面を開き直した�
 | q（検索語） | 文字列 | ○ | トリムして先頭の「@」を取った後で 1〜30 文字 | 400 QUERY_INVALID |
 | offset | 数値 | | 0 以上の 20 の倍数、1,000 以下 | 400 OFFSET_INVALID |
 
-offset の上限は、深く読み進めて重い検索を続けられないようにするためである（1,000 件より後は出さない）。
+offset の上限は、深く読み進めて重い検索を続けられないようにするためである（1,000 件より後は出さない）。offset が 1,000 のときは空の一覧を返し、980 から読んだときの nextOffset は null にする。
 
 ## 5. 業務ルール
 
@@ -101,9 +102,11 @@ offset の上限は、深く読み進めて重い検索を続けられないよ�
 
 | メソッド | URL | 入力 | 出力（成功） | 主なエラー |
 | --- | --- | --- | --- | --- |
-| GET | /api/users/search?q=&offset= | 4 章のとおり | 200 `{"items":[UserSummary…],"nextOffset":20}` | 400 QUERY_INVALID・OFFSET_INVALID |
+| GET | /api/search/users?q=&offset= | 4 章のとおり | 200 `{"items":[UserSummary…],"nextOffset":20}` | 400 QUERY_INVALID・OFFSET_INVALID |
 
 最後まで読んだら nextOffset は null。UserSummary の形は機能定義書 3.5 のとおり。
+
+URL を /api/users の下に置かないのは、/api/users/{username}（FN-09 のプロフィール）とぶつからないようにするためである（「search」も登録できるユーザー ID のため）。
 
 ## 7. 使うデータ
 

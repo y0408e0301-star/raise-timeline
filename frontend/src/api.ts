@@ -340,6 +340,24 @@ export function fetchUserPosts(username: string, cursor: string | null = null): 
 // G-6 の URL
 export const profileUrl = (username: string) => `/users/${encodeURIComponent(username)}`
 
+// ---------------------------------------------------------------- FN-08 ユーザー検索
+
+// 検索結果の 1 回分。nextOffset は続きを読むときに送る件数で、最後まで読んだら null
+export type UserSearchPage = {
+  items: UserSummary[]
+  nextOffset: number | null
+}
+
+// ユーザー ID か表示名の部分一致で探す。20 件ずつ（S-4〜S-7）
+export function searchUsers(q: string, offset = 0): Promise<UserSearchPage> {
+  const query = new URLSearchParams({ q })
+  if (offset > 0) query.set('offset', String(offset))
+  return requestJson<UserSearchPage>('GET', `/api/search/users?${query}`)
+}
+
+// G-9 の URL。検索した文字を ?q= に入れる（開き直しても同じ結果を出す）
+export const searchUrl = (q: string) => `/search?${new URLSearchParams({ q })}`
+
 // ---------------------------------------------------------------- FN-09 第 2 版 プロフィールの編集
 
 // 自分の表示名と自己紹介を変える。URL にユーザー ID を入れない（ほかの人のものは変えられない）

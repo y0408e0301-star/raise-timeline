@@ -58,6 +58,11 @@ public enum ErrorCode {
 	// 自分にはフォローボタンを出さないので、ふつうは出ない
 	CANNOT_FOLLOW_SELF(HttpStatus.BAD_REQUEST, "操作に失敗しました。時間をおいてもう一度お試しください。"),
 
+	// ユーザー検索（FN-08 9 章）。画面で防ぐので、ふつうは出ない。出たら M-9
+	QUERY_INVALID(HttpStatus.BAD_REQUEST, "読み込みに失敗しました。時間をおいてもう一度お試しください。"),
+
+	OFFSET_INVALID(HttpStatus.BAD_REQUEST, "読み込みに失敗しました。時間をおいてもう一度お試しください。"),
+
 	// プロフィールの編集（FN-09 9 章）。自己紹介は画面で 161 文字目を入力できないので、ふつうは出ない
 	BIO_TOO_LONG(HttpStatus.BAD_REQUEST, "操作に失敗しました。時間をおいてもう一度お試しください。"),
 
