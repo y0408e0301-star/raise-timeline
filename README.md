@@ -242,7 +242,7 @@ git config core.hooksPath .githooks
 
 ## テストとコードチェック
 
-API サーバーと画面の行は使えます（画面の `npm run test:e2e` と公開環境の行は予定です）。ツールとバージョンは[技術スタック定義書 3.5](docs/tech-stack.md#35-開発ツール)、テストの観点は各機能定義書の 10 章にあります。
+API サーバーと画面の行は使えます（公開環境の行は予定です）。ツールとバージョンは[技術スタック定義書 3.5](docs/tech-stack.md#35-開発ツール)、テストの観点は各機能定義書の 10 章にあります。
 
 | 対象 | コマンド（それぞれのフォルダで実行） | 内容 |
 | --- | --- | --- |
@@ -250,10 +250,23 @@ API サーバーと画面の行は使えます（画面の `npm run test:e2e` �
 | 画面 | `npm run lint` | oxlint でコードをチェック。警告が 1 つでもあれば失敗する |
 | 画面 | `npm test` | Vitest・Testing Library のテスト。サーバーは要らない |
 | 画面 | `npm run build` | 型チェックと本番用のビルド |
-| 画面（予定） | `npm run test:e2e` | Playwright で、登録 → 投稿 → いいね → フォロー → 検索の流れを画面から確かめる（サーバーを全部起動しておく） |
+| 画面 | `npm run test:e2e` | Playwright で、登録 → 投稿 → 検索 → フォロー → いいね・コメントの流れを画面から確かめる（下の「画面を通したテスト」） |
 | 公開環境 | `deploy/terraform` で `terraform fmt -check -recursive`・`terraform validate`・`tflint` | Terraform の書式・構文・書き方。AWS には接続しない |
 
 Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）が自動で実行します。いまは API サーバーの `mvnw verify` と、画面の `npm run lint`・`npm test`・`npm run build` です。公開環境のチェックは作ったときに足します（E2E テストは自動では実行しません）。
+
+### 画面を通したテスト（E2E テスト）
+
+[frontend/e2e](frontend/e2e) のテストは、Playwright でブラウザ（パソコンに入っている Microsoft Edge）を動かし、2 人のユーザーを別々のブラウザで操作して、次のことを確かめます。
+
+- 登録 → 投稿 → ヘッダーの検索欄で相手を探す → フォロー → 「フォロー中」タブに相手の投稿が出る → いいね・コメント
+- 操作の後に、API で読んだ DB の中身が操作どおりになっていること。読み直したときと、相手の画面にも同じものが出ること
+- ログアウトとログインし直し（パスワードが違えばログインできない）
+
+使い方：
+
+- 3 つのサーバー（DB・API・画面）を「起動方法」のとおりに起動してから、`frontend` で `npm run test:e2e` を実行します
+- テストは開発用の DB にユーザーを作ります。ユーザー ID は `e2e_` で始まり、テストを始める前と終わった後に `docker compose exec` で DB から消します（投稿・いいね・フォローも一緒に消えます）。画像は添えないので、S3 には何も残りません
 
 ## API
 
