@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-TECH |
-| 版数 | 0.6 |
+| 版数 | 0.7 |
 | 作成日 | 2026-10-16 |
 | 最終更新日 | 2026-10-23 |
 | 作成者 | （氏名） |
@@ -20,6 +20,7 @@
 | 0.4 | 2026-10-18 | 画面を作り、React Router（7.18.4）と Testing Library のバージョンを決めた。画面の部品のテストに使う jsdom・user-event・jest-dom を 3.5 に追加した | （氏名） |
 | 0.5 | 2026-10-19 | 開発中の画像の保存先を、MinIO から S3 の開発用のバケットに変更した。MinIO の公式のイメージが配られなくなったため、自動のテストでは chainguard/minio を使う（3.3・3.5）。AWS SDK のバージョン（2.56.0）を決めた（3.1） | （氏名） |
 | 0.6 | 2026-10-23 | 公開の入口を ALB から CloudFront に変更し、ACM・Route 53 をなくした（3.4・4 章）。Actuator の用途を、公開した後の稼働の確認に直した（3.1） | （氏名） |
+| 0.7 | 2026-10-23 | 画面を通したテスト（Playwright 1.63.0）を入れ、ブラウザはパソコンの Microsoft Edge を使うことにした（3.5） | （氏名） |
 
 ## 承認
 
@@ -153,7 +154,7 @@ kadai で使っている dnd-kit（ドラッグ＆ドロップ）は、本アプ
 | 画面のテスト | Vitest | 5.0.3 | ○ | |
 | 画面の部品のテスト | Testing Library（@testing-library/react・@testing-library/user-event・@testing-library/jest-dom） | 16.3.3・14.6.8・7.0.1 | 新 | 画面が増えるため、部品を表示して確かめる。user-event で入力・クリックをまね、jest-dom で「押せない」「フォーカスがある」などを確かめる |
 | テストの中のブラウザ | jsdom | 30.1.3 | 新 | Vitest の中で画面の部品を表示するため（Node.js にはブラウザの DOM がない） |
-| 画面を通したテスト | Playwright（@playwright/test） | 1.63.0 | ○ | 主な流れ（登録 → 投稿 → いいね → フォロー → 検索）を確かめる |
+| 画面を通したテスト | Playwright（@playwright/test） | 1.63.0 | ○ | 主な流れ（登録 → 投稿 → いいね → フォロー → 検索）を確かめる。ブラウザはパソコンの Microsoft Edge（kadai と同じ。ブラウザのダウンロードは要らない） |
 | Java の書式 | spring-javaformat | 0.0.48 | ○ | |
 | Java の静的解析 | SpotBugs（spotbugs-maven-plugin） | 4.10.4.1 | ○ | |
 | TypeScript の lint | oxlint | 1.86.0（package.json は ^1.81.0） | ○ | |
