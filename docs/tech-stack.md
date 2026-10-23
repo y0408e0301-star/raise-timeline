@@ -3,9 +3,9 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-TECH |
-| 版数 | 0.5 |
+| 版数 | 0.6 |
 | 作成日 | 2026-10-16 |
-| 最終更新日 | 2026-10-19 |
+| 最終更新日 | 2026-10-23 |
 | 作成者 | （氏名） |
 | 元にした文書 | [要件定義書](requirements/requirements.md) 版数 0.6、[基本設計書](design/basic-design.md) 版数 0.4 |
 | 状態 | 承認待ち |
@@ -19,6 +19,7 @@
 | 0.3 | 2026-10-17 | ログインをセッション認証から JWT 認証に変更。Spring Security の OAuth2 Resource Server（JWT の作成・確認）を追加し、4 章を直し、5.3（ログインの方式の比較）を追加した | （氏名） |
 | 0.4 | 2026-10-18 | 画面を作り、React Router（7.18.4）と Testing Library のバージョンを決めた。画面の部品のテストに使う jsdom・user-event・jest-dom を 3.5 に追加した | （氏名） |
 | 0.5 | 2026-10-19 | 開発中の画像の保存先を、MinIO から S3 の開発用のバケットに変更した。MinIO の公式のイメージが配られなくなったため、自動のテストでは chainguard/minio を使う（3.3・3.5）。AWS SDK のバージョン（2.56.0）を決めた（3.1） | （氏名） |
+| 0.6 | 2026-10-23 | 公開の入口を ALB から CloudFront に変更し、ACM・Route 53 をなくした（3.4・4 章）。Actuator の用途を、公開した後の稼働の確認に直した（3.1） | （氏名） |
 
 ## 承認
 
@@ -41,7 +42,7 @@
 
 ### 1.1 基本の方針
 
-技術スタックは、タスク管理アプリ（[kadai](https://github.com/y0408e0301-star/kadai)）とほぼ同じにする。**バージョンも kadai と同じものを使う**。kadai にないもの（S3・ALB など、本アプリで新しく必要になるもの）だけを新しく選ぶ。kadai との違いは 4 章にまとめる。
+技術スタックは、タスク管理アプリ（[kadai](https://github.com/y0408e0301-star/kadai)）とほぼ同じにする。**バージョンも kadai と同じものを使う**。kadai にないもの（S3・Parameter Store など、本アプリで新しく必要になるもの）だけを新しく選ぶ。kadai との違いは 4 章にまとめる。
 
 | 理由 | 内容 |
 | --- | --- |
@@ -92,7 +93,7 @@
 | データベースの接続 | PostgreSQL JDBC Driver | 同上 | ○ | |
 | ログイン・権限 | Spring Boot Starter Security | 同上 | 新 | BCrypt・CSRF 対策・権限の確認（条件 2）。セッションは使わない（STATELESS）。kadai はログインがないため新しく使う |
 | JWT の作成・確認 | Spring Boot Starter Security OAuth2 Resource Server（spring-boot-starter-security-oauth2-resource-server。中で Nimbus JOSE + JWT を使う） | 同上 | 新 | JWT（HS256）の署名・期限の確認と、ログインのときの JWT の作成（JwtEncoder）。Cookie から JWT を読むところだけを自分で書く（機能定義書 3.2）。JWT を作るライブラリ（jjwt など）を別に足さなくてよい |
-| 稼働の確認 | Spring Boot Starter Actuator | 同上 | 新 | ALB のヘルスチェック（/actuator/health） |
+| 稼働の確認 | Spring Boot Starter Actuator | 同上 | 新 | 公開した後の稼働の確認（/actuator/health。反映・起動のスクリプトが CloudFront の URL で確かめる） |
 | S3 の操作 | AWS SDK for Java 2.x（s3） | 2.56.0（BOM の software.amazon.awssdk:bom で固定し、pom.xml の aws-sdk.version に書く） | 新 | 画像の保存・削除と署名付き URL（条件 3）。接続先を変えれば MinIO にも使える |
 | ビルド | Maven | 3.9.16（Maven Wrapper 3.3.4） | ○ | mvnw をリポジトリに入れる |
 
@@ -131,9 +132,8 @@ kadai で使っている dnd-kit（ドラッグ＆ドロップ）は、本アプ
 | サーバー | Amazon EC2 | t4g.micro（ARM・メモリ 1GB）、Amazon Linux 2023（arm64） | ○ | Spring Boot の jar を systemd で動かす |
 | サーバーの Java | Amazon Corretto | 21（java-21-amazon-corretto-headless） | ○ | ヒープの上限は kadai と同じ -Xmx384m から始める |
 | データベース | Amazon RDS for PostgreSQL | 17、db.t4g.micro | ○ | |
-| ロードバランサー | Elastic Load Balancing（ALB） | | 新 | HTTPS の終端とヘルスチェック。kadai は CloudFront ＋ nginx（4 章） |
+| 入口・HTTPS | Amazon CloudFront | PriceClass_200 | ○ | HTTPS の終端（*.cloudfront.net の証明書。独自ドメインは取らない）。EC2 は 1 台なので ALB は置かない（インフラ設計書 方針 2） |
 | 画像の保存先 | Amazon S3 | | 新 | P-2 |
-| 証明書・DNS | AWS Certificate Manager、Amazon Route 53 | | 新 | ALB を HTTPS にする（N-9）。独自ドメインは U-2 で決める |
 | 秘密の値 | AWS Systems Manager Parameter Store | | 新 | N-16。kadai は AMI を探すのにだけ使っている |
 | サーバーの操作 | AWS Systems Manager Session Manager | | 新 | SSH を開けずに EC2 を操作する |
 | ログ・監視 | Amazon CloudWatch | | 新 | |
@@ -167,9 +167,9 @@ kadai で使っている dnd-kit（ドラッグ＆ドロップ）は、本アプ
 | --- | --- | --- | --- |
 | ログイン | なし | Spring Security（JWT 認証・BCrypt） | 複数のユーザーが使うため（FN-01） |
 | 画面の数 | 1 画面 | 11 画面（React Router） | G-1〜G-11 |
-| 公開の入口 | CloudFront → EC2 の nginx | ALB → EC2 の Spring Boot | ALB を使う構成にするため（要件定義書 P-3）。画面も Spring Boot から配るので nginx は使わない |
+| 公開の入口 | CloudFront → EC2 の nginx | CloudFront → EC2 の Spring Boot | 画面も Spring Boot から配るので nginx は使わない |
 | 画像 | なし | S3（テストでは MinIO）、AWS SDK for Java | FN-04 |
-| ヘルスチェック | なし | Spring Boot Actuator | ALB が EC2 の状態を確かめるため |
+| 稼働の確認 | なし | Spring Boot Actuator | 反映・起動のスクリプトが、アプリが動き出したことを確かめるため |
 | ドラッグ＆ドロップ | dnd-kit | 使わない | 本アプリに並べ替えの機能がないため |
 
 ---
@@ -212,7 +212,7 @@ kadai と同じものを使うことを前提にしたため、比較したの�
 
 ## 6. 費用
 
-AWS の月額の概算は[インフラ設計書](design/infra-design.md) 7 章のとおり（常に動かした場合 約 8,700 円）。構築の前に AWS Pricing Calculator で確かめ、ここに記録する。
+AWS の月額の概算は[インフラ設計書](design/infra-design.md) 7 章のとおり（常に動かした場合 約 5,600 円）。構築の前に AWS Pricing Calculator で確かめ、ここに記録する。
 
 | サービス | 項目 | 金額 | 確認日 | 確認した URL |
 | --- | --- | --- | --- | --- |
