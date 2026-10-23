@@ -25,6 +25,8 @@ docs/
 │   ├── screen-design.md               … 画面設計書
 │   ├── data-design.md                 … データ設計書（ER 図）
 │   └── infra-design.md                … インフラ設計書（AWS の構成図）
+├── api/
+│   └── openapi.yaml                   … API の仕様書（OpenAPI。コードから自動で作る。手で直さない）
 ├── tech-stack.md                      … 技術スタック定義書
 └── development-plan.md                … 開発計画書（作る順番と進み具合）
 ```
@@ -40,6 +42,7 @@ docs/
 | [画面設計書](design/screen-design.md) | RT-BD-SCR | 画面ごとのレイアウト・表示項目・操作、共通仕様 | 〃 |
 | [データ設計書](design/data-design.md) | RT-BD-DATA | ER 図、テーブル定義、データのルール、CRUD 表 | 〃 |
 | [インフラ設計書](design/infra-design.md) | RT-BD-INFRA | AWS の構成図、ネットワーク、通信の許可、費用の目安 | 〃 |
+| [API の仕様書](api/openapi.yaml) | | API ごとの入力・出力の項目（型・必須・条件）とエラーの一覧。API のコードから自動で作る（基本設計書 2.1.1） | 承認しない（コードが正本） |
 | [技術スタック定義書](tech-stack.md) | RT-TECH | 使う言語・フレームワーク・サービス・開発ツールと選んだ理由 | 本書で行う |
 | [開発計画書](development-plan.md) | RT-PLAN | 作る順番（段階と Pull Request の単位）、段階ごとの完了条件、どこまでできたか | 本書で行う |
 
