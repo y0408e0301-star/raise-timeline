@@ -240,6 +240,14 @@ git config core.hooksPath .githooks
 - 画面・API サーバー：それぞれのターミナルで `Ctrl + C`
 - データベース：`docker compose down`（データは残ります）
 
+### 公開用の jar を作る
+
+公開環境では、画面も API と同じ Spring Boot から配ります（[インフラ設計書 5.3](docs/design/infra-design.md#53-jar-から配る画面)）。
+
+1. `frontend` で `npm run build`
+2. `backend` で `.\mvnw.cmd clean package -Pwith-frontend`（画面をビルドしていなければ止まります）
+3. `java -jar target\backend-0.0.1-SNAPSHOT.jar` で起動すると、http://localhost:8080/ で画面も使えます（API サーバーと同じ 8080 なので、開発用の API サーバーは止めておきます）
+
 ## テストとコードチェック
 
 API サーバーと画面の行は使えます（公開環境の行は予定です）。ツールとバージョンは[技術スタック定義書 3.5](docs/tech-stack.md#35-開発ツール)、テストの観点は各機能定義書の 10 章にあります。
