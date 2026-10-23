@@ -179,6 +179,7 @@ raise-timeline/
 │   ├── requirements/           要件定義書（本体・画面一覧・データ要件）
 │   ├── functions/              機能定義書（本体・FN-01〜FN-09）
 │   ├── design/                 基本設計書（本体・画面・データ・インフラ）
+│   ├── api/openapi.yaml        API の仕様書（コードから自動で作る）
 │   ├── tech-stack.md           技術スタック定義書
 │   └── development-plan.md     開発計画書（作る順番と進み具合）
 ├── mock/                       画面のモック（HTML・CSS・JavaScript だけ。index.html を開く）
@@ -229,6 +230,7 @@ git config core.hooksPath .githooks
 | 3 | 画面 | `cd frontend` → `npm install`（初回のみ）→ `npm run dev` | 5173 |
 
 - API サーバーは http://localhost:8080/actuator/health で `{"status":"UP"}` が返れば起動済みです
+- API の仕様書は http://localhost:8080/swagger-ui.html （Swagger UI）で見られます（下の「API」）
 - ブラウザで http://localhost:5173 を開き、「アカウントを作る」から登録します。画面から `/api` へのリクエストは、Vite の proxy で API サーバー（8080）へ転送します
 - 画像は S3 の開発用のバケットに置き、ブラウザが署名付き URL（15 分）で S3 から直接読みます。バケットは `application.properties` の既定値（`S3_BUCKET` で変えられる）、鍵は `~/.aws/credentials` を使います
 - ポートは上の表のものだけを使います（[CLAUDE.md](CLAUDE.md) の「サーバーのポート」）。使われていたら、そのポートを使っているプロセスを止めてから起動し直します（別のポートでは起動しません）
@@ -254,14 +256,15 @@ API サーバーと画面の行は使えます（公開環境の行は予定で�
 
 | 対象 | コマンド（それぞれのフォルダで実行） | 内容 |
 | --- | --- | --- |
-| API サーバー | `.\mvnw.cmd verify` | テスト（下の「API サーバーのテストの種類」。DB は Testcontainers がテスト用の PostgreSQL を Docker で起動する）、書式チェック（spring-javaformat）、静的解析（SpotBugs） |
+| API サーバー | `.\mvnw.cmd verify` | テスト（下の「API サーバーのテストの種類」。DB は Testcontainers がテスト用の PostgreSQL を Docker で起動する）、書式チェック（spring-javaformat）、静的解析（SpotBugs）。API の仕様書（docs/api/openapi.yaml）がコードと違えば、書き直して失敗する |
+| 画面 | `npm run gen:api` | API の仕様書から画面の型（src/api-schema.d.ts）を作り直す |
 | 画面 | `npm run lint` | oxlint でコードをチェック。警告が 1 つでもあれば失敗する |
 | 画面 | `npm test` | Vitest・Testing Library のテスト。サーバーは要らない |
 | 画面 | `npm run build` | 型チェックと本番用のビルド |
 | 画面 | `npm run test:e2e` | Playwright で、登録 → 投稿 → 検索 → フォロー → いいね・コメントの流れを画面から確かめる（下の「画面を通したテスト」） |
 | 公開環境 | `deploy/terraform` で `terraform fmt -check -recursive`・`terraform validate`・`tflint` | Terraform の書式・構文・書き方。AWS には接続しない |
 
-Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）が自動で実行します。いまは API サーバーの `mvnw verify` と、画面の `npm run lint`・`npm test`・`npm run build` です。公開環境のチェックは作ったときに足します（E2E テストは自動では実行しません）。
+Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）が自動で実行します。いまは API サーバーの `mvnw verify` と、画面の `npm run gen:api`（作り直した型がコミットしたものと同じか）・`npm run lint`・`npm test`・`npm run build`、API の仕様書の HTML（成果物 `api-spec`）の作成です。公開環境のチェックは作ったときに足します（E2E テストは自動では実行しません）。
 
 ### API サーバーのテストの種類
 
@@ -308,7 +311,7 @@ Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml]
 
 ## API
 
-`/api/auth/*`（FN-01）は作りました。それ以外は予定です。API は機能定義書の「6. API（案）」で決めています。共通の決まり（ログイン・CSRF・エラーの形・ページング）は[機能定義書 3 章](docs/functions/function-definition.md#3-共通の決まりapi)にあります。
+下の API はすべて作りました。API は機能定義書の「6. API（案）」で決めています。項目ごとの型・必須・条件は、コードから自動で作る API の仕様書（[docs/api/openapi.yaml](docs/api/openapi.yaml)、OpenAPI 3.1）にあります。共通の決まり（ログイン・CSRF・エラーの形・ページング）は[機能定義書 3 章](docs/functions/function-definition.md#3-共通の決まりapi)にあります。
 
 | メソッド | パス | 内容 | 機能 |
 | --- | --- | --- | --- |
@@ -347,6 +350,24 @@ Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml]
 ```json
 {"code": "USERNAME_TAKEN", "message": "このユーザー ID は使われています。", "field": "username"}
 ```
+
+### API の仕様書（OpenAPI）
+
+仕様書は API のコード（Controller と record）から springdoc-openapi で作ります。手で直しません（[基本設計書 2.1.1](docs/design/basic-design.md#211-api-の仕様書openapi)）。
+
+| 見たいもの | 方法 |
+| --- | --- |
+| 開発中に見る・試す | API サーバーを起動して http://localhost:8080/swagger-ui.html を開く。「Try it out」でログイン（`POST /api/auth/login`）すると、そのあとの API も Cookie と CSRF のヘッダー付きで試せる |
+| ファイルで読む | [docs/api/openapi.yaml](docs/api/openapi.yaml) |
+| HTML で読む | GitHub Actions の実行結果の画面から、成果物 `api-spec` を取り出して `api-spec.html` を開く |
+
+API を変えたときは、次の順に作り直してコミットします。
+
+1. `backend` で `.\mvnw.cmd verify` を実行する。仕様書が変われば、`docs/api/openapi.yaml` を書き直してテストが失敗するので、もう一度実行して通ることを確かめる
+2. `frontend` で `npm run gen:api` を実行し、画面の型（`src/api-schema.d.ts`）を作り直す。画面が使っている項目を変えたなら、`npm run build` の型チェックで直すところが分かる
+
+- 仕様書と Swagger UI は、公開環境では出しません（`mvnw spring-boot:run` で起動したときの dev プロファイルだけで出します）
+- record の項目は、`@Nullable` がなければ必須、あれば null になることがある、として仕様書に書きます。リクエストの項目の条件は `@Schema` で書きます
 
 ## データベース
 

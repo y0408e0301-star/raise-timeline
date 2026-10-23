@@ -1,11 +1,12 @@
+import type { components, operations } from './api-schema'
 import { M } from './messages'
 
+// API が返す形・受け取る形は、API の仕様書（docs/api/openapi.yaml）から作った api-schema.d.ts の型を使う。
+// API を変えたら、backend の mvnw verify で仕様書を書き直し、npm run gen:api で型を作り直す（README）
+type Schemas = components['schemas']
+
 // ログインしている自分（GET /api/auth/me などが返す）
-export type Me = {
-  username: string
-  displayName: string
-  iconUrl: string | null
-}
+export type Me = Schemas['Me']
 
 // API がエラーを返したとき（機能定義書 3.3）。message は画面にそのまま出せる文、
 // field があればその入力欄の下に出す
@@ -140,11 +141,11 @@ export async function isUsernameAvailable(username: string): Promise<boolean> {
 }
 
 export function signup(username: string, displayName: string, password: string): Promise<Me> {
-  return requestJson<Me>('POST', '/api/auth/signup', { username, displayName, password })
+  return requestJson<Me>('POST', '/api/auth/signup', { username, displayName, password } satisfies Schemas['SignupRequest'])
 }
 
 export function login(username: string, password: string): Promise<Me> {
-  return requestJson<Me>('POST', '/api/auth/login', { username, password })
+  return requestJson<Me>('POST', '/api/auth/login', { username, password } satisfies Schemas['LoginRequest'])
 }
 
 // ログアウトする。ログインが切れていても G-1 に戻るだけなので M-19 は出さない
@@ -155,18 +156,7 @@ export async function logout(): Promise<void> {
 // ---------------------------------------------------------------- FN-03 投稿
 
 // 投稿（機能定義書 3.5 PostView）。日時は ISO 8601 の UTC
-export type PostView = {
-  id: number
-  author: { username: string, displayName: string, iconUrl: string | null }
-  body: string
-  images: { id: number, url: string, expiresAt: string }[]
-  likeCount: number
-  commentCount: number
-  likedByMe: boolean
-  mine: boolean
-  createdAt: string
-  editedAt: string | null
-}
+export type PostView = Schemas['PostView']
 
 // 画像（FN-04）は選んだ順に images として送る
 export function createPost(body: string, images: File[] = []): Promise<PostView> {
@@ -181,7 +171,7 @@ export function fetchPost(id: number): Promise<PostView> {
 }
 
 export function editPost(id: number, body: string): Promise<PostView> {
-  return requestJson<PostView>('PATCH', `/api/posts/${id}`, { body })
+  return requestJson<PostView>('PATCH', `/api/posts/${id}`, { body } satisfies Schemas['EditPostRequest'])
 }
 
 export async function deletePost(id: number): Promise<void> {
@@ -190,25 +180,22 @@ export async function deletePost(id: number): Promise<void> {
 
 // ---------------------------------------------------------------- FN-04 画像
 
-export type PostImage = PostView['images'][number]
+export type PostImage = Schemas['Image']
 
 // 署名付き URL を取り直す（I-8）。削除された画像は結果に入らない。1 回に 50 個まで
 export async function refreshImageUrls(imageIds: number[]): Promise<PostImage[]> {
-  const res = await requestJson<{ items: PostImage[] }>('POST', '/api/images/urls', { imageIds })
+  const res = await requestJson<Schemas['UrlsResponse']>('POST', '/api/images/urls',
+    { imageIds } satisfies Schemas['UrlsRequest'])
   return res.items
 }
 
 // ---------------------------------------------------------------- FN-02 タイムライン
 
-export type Tab = 'following' | 'all'
+export type Tab = operations['readTimeline']['parameters']['query']['tab']
 
 // 20 件ずつ（機能定義書 FN-02 6 章）。nextCursor が null なら続きはない。
 // followingCount は「フォロー中」の最初の 20 件のときだけ返る（M-8 を出すかどうかを決める）
-export type TimelinePage = {
-  items: PostView[]
-  nextCursor: string | null
-  followingCount?: number
-}
+export type TimelinePage = Schemas['TimelineResponse']
 
 export function fetchTimeline(tab: Tab, cursor: string | null = null): Promise<TimelinePage> {
   const query = new URLSearchParams({ tab })
@@ -219,19 +206,10 @@ export function fetchTimeline(tab: Tab, cursor: string | null = null): Promise<T
 // ---------------------------------------------------------------- FN-05 コメント
 
 // コメント（機能定義書 FN-05 6 章）。author は投稿の author と同じ形
-export type CommentView = {
-  id: number
-  author: PostView['author']
-  body: string
-  mine: boolean
-  createdAt: string
-}
+export type CommentView = Schemas['CommentView']
 
 // 古い順に 50 件ずつ。nextCursor が null なら続きはない
-export type CommentPage = {
-  items: CommentView[]
-  nextCursor: string | null
-}
+export type CommentPage = Schemas['CommentsResponse']
 
 export function fetchComments(postId: number, cursor: string | null = null): Promise<CommentPage> {
   const query = cursor === null ? '' : `?${new URLSearchParams({ cursor })}`
@@ -239,7 +217,7 @@ export function fetchComments(postId: number, cursor: string | null = null): Pro
 }
 
 export function createComment(postId: number, body: string): Promise<CommentView> {
-  return requestJson<CommentView>('POST', `/api/posts/${postId}/comments`, { body })
+  return requestJson<CommentView>('POST', `/api/posts/${postId}/comments`, { body } satisfies Schemas['CreateCommentRequest'])
 }
 
 export async function deleteComment(commentId: number): Promise<void> {
@@ -249,7 +227,7 @@ export async function deleteComment(commentId: number): Promise<void> {
 // ---------------------------------------------------------------- FN-06 いいね
 
 // いいね・取り消しの結果。likeCount はほかの人の操作も含めた最新の数
-export type LikeResult = { liked: boolean, likeCount: number }
+export type LikeResult = Schemas['LikeResult']
 
 // 何回送っても同じ結果になる（冪等。FN-06 5 章 No.2）
 export function likePost(postId: number): Promise<LikeResult> {
@@ -261,21 +239,10 @@ export function unlikePost(postId: number): Promise<LikeResult> {
 }
 
 // ユーザーの行に出すユーザー（機能定義書 3.5 UserSummary）
-export type UserSummary = {
-  username: string
-  displayName: string
-  bioFirstLine: string
-  iconUrl: string | null
-  followedByMe: boolean
-  me: boolean
-}
+export type UserSummary = Schemas['UserSummary']
 
 // 新しくいいねした順に 20 件ずつ。totalCount は G-5 の見出しに使う
-export type LikersPage = {
-  items: UserSummary[]
-  nextCursor: string | null
-  totalCount: number
-}
+export type LikersPage = Schemas['LikersResponse']
 
 export function fetchLikers(postId: number, cursor: string | null = null): Promise<LikersPage> {
   const query = cursor === null ? '' : `?${new URLSearchParams({ cursor })}`
@@ -285,7 +252,7 @@ export function fetchLikers(postId: number, cursor: string | null = null): Promi
 // ---------------------------------------------------------------- FN-07 フォロー
 
 // フォロー・解除の結果。followerCount は相手のフォロワー数（ほかの人の操作も含めた最新の数）
-export type FollowResult = { following: boolean, followerCount: number }
+export type FollowResult = Schemas['FollowResult']
 
 // 何回送っても同じ結果になる（冪等。FN-07 5 章 No.2）
 export function followUser(username: string): Promise<FollowResult> {
@@ -300,10 +267,7 @@ export function unfollowUser(username: string): Promise<FollowResult> {
 export type FollowKind = 'following' | 'followers'
 
 // 新しくフォローした順に 20 件ずつ。nextCursor が null なら続きはない
-export type UsersPage = {
-  items: UserSummary[]
-  nextCursor: string | null
-}
+export type UsersPage = Schemas['FollowsResponse']
 
 export function fetchFollows(username: string, kind: FollowKind, cursor: string | null = null): Promise<UsersPage> {
   const query = cursor === null ? '' : `?${new URLSearchParams({ cursor })}`
@@ -313,18 +277,7 @@ export function fetchFollows(username: string, kind: FollowKind, cursor: string 
 // ---------------------------------------------------------------- FN-09 プロフィール
 
 // プロフィール（機能定義書 FN-09 6 章）。username は登録したときの書き方。件数は読み込んだ時点の値
-export type Profile = {
-  username: string
-  displayName: string
-  bio: string
-  iconUrl: string | null
-  joinedAt: string
-  followingCount: number
-  followerCount: number
-  postCount: number
-  followedByMe: boolean
-  me: boolean
-}
+export type Profile = Schemas['Profile']
 
 // username は大文字・小文字を区別しない
 export function fetchProfile(username: string): Promise<Profile> {
@@ -343,10 +296,7 @@ export const profileUrl = (username: string) => `/users/${encodeURIComponent(use
 // ---------------------------------------------------------------- FN-08 ユーザー検索
 
 // 検索結果の 1 回分。nextOffset は続きを読むときに送る件数で、最後まで読んだら null
-export type UserSearchPage = {
-  items: UserSummary[]
-  nextOffset: number | null
-}
+export type UserSearchPage = Schemas['UserSearchResponse']
 
 // ユーザー ID か表示名の部分一致で探す。20 件ずつ（S-4〜S-7）
 export function searchUsers(q: string, offset = 0): Promise<UserSearchPage> {
@@ -362,7 +312,7 @@ export const searchUrl = (q: string) => `/search?${new URLSearchParams({ q })}`
 
 // 自分の表示名と自己紹介を変える。URL にユーザー ID を入れない（ほかの人のものは変えられない）
 export function editProfile(displayName: string, bio: string): Promise<Profile> {
-  return requestJson<Profile>('PATCH', '/api/me/profile', { displayName, bio })
+  return requestJson<Profile>('PATCH', '/api/me/profile', { displayName, bio } satisfies Schemas['EditProfileRequest'])
 }
 
 // アイコン画像を差し替える。新しいプロフィール（iconUrl つき）を返す

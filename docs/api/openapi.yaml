@@ -1,0 +1,1357 @@
+openapi: 3.1.0
+info:
+  description: |-
+    タイムライン型 SNS「Raise timeline」の API。機能ごとの決まりは機能定義書（docs/functions）を見る。
+
+    ## エラーの一覧
+
+    エラーのときは `{"code", "message", "field"}` を返す。message は画面にそのまま出せる文、field があればその入力欄の下に出す。
+
+    | code | HTTP ステータス | message |
+    | --- | --- | --- |
+    | USERNAME_INVALID | 400 | ユーザー ID は 3〜15 文字の半角英数字と「_」で入力してください。 |
+    | USERNAME_TAKEN | 409 | このユーザー ID は使われています。 |
+    | PASSWORD_INVALID | 400 | パスワードは英字と数字を含む 8〜64 文字の半角文字で入力してください。 |
+    | DISPLAY_NAME_REQUIRED | 400 | 表示名を入力してください。 |
+    | LOGIN_FAILED | 401 | ユーザー ID かパスワードが違います。 |
+    | LOGIN_LOCKED | 423 | ログインに続けて失敗したため、15 分間ログインできません。 |
+    | UNAUTHENTICATED | 401 | ログインの有効期限が切れました。もう一度ログインしてください。 |
+    | TOKEN_EXPIRED | 401 | ログインの有効期限が切れました。もう一度ログインしてください。 |
+    | REFRESH_FAILED | 401 | ログインの有効期限が切れました。もう一度ログインしてください。 |
+    | BODY_TOO_LONG | 400 | 投稿に失敗しました。時間をおいてもう一度お試しください。 |
+    | POST_EMPTY | 400 | 投稿に失敗しました。時間をおいてもう一度お試しください。 |
+    | POST_NOT_FOUND | 404 | この投稿は削除されました。 |
+    | TOO_MANY_IMAGES | 400 | 画像は 1 つの投稿に 4 枚までです。 |
+    | IMAGE_TOO_LARGE | 413 | 添えられるのは 5MB までの JPEG・PNG・GIF・WebP の画像です。 |
+    | IMAGE_TYPE_INVALID | 400 | 添えられるのは 5MB までの JPEG・PNG・GIF・WebP の画像です。 |
+    | IMAGE_UPLOAD_FAILED | 500 | 投稿に失敗しました。時間をおいてもう一度お試しください。 |
+    | TAB_INVALID | 400 | 読み込みに失敗しました。時間をおいてもう一度お試しください。 |
+    | CURSOR_INVALID | 400 | 読み込みに失敗しました。時間をおいてもう一度お試しください。 |
+    | COMMENT_INVALID | 400 | 操作に失敗しました。時間をおいてもう一度お試しください。 |
+    | COMMENT_NOT_FOUND | 404 | このコメントは削除されました。 |
+    | USER_NOT_FOUND | 404 | このユーザーは見つかりません。 |
+    | CANNOT_FOLLOW_SELF | 400 | 操作に失敗しました。時間をおいてもう一度お試しください。 |
+    | QUERY_INVALID | 400 | 読み込みに失敗しました。時間をおいてもう一度お試しください。 |
+    | OFFSET_INVALID | 400 | 読み込みに失敗しました。時間をおいてもう一度お試しください。 |
+    | BIO_TOO_LONG | 400 | 操作に失敗しました。時間をおいてもう一度お試しください。 |
+    | ICON_TOO_LARGE | 413 | アイコンにできるのは 5MB までの JPEG・PNG・WebP の画像です。 |
+    | ICON_TYPE_INVALID | 400 | アイコンにできるのは 5MB までの JPEG・PNG・WebP の画像です。 |
+    | ICON_UPLOAD_FAILED | 500 | 操作に失敗しました。時間をおいてもう一度お試しください。 |
+    | BAD_REQUEST | 400 | 入力が正しくありません。 |
+    | FORBIDDEN | 403 | 操作に失敗しました。時間をおいてもう一度お試しください。 |
+    | NOT_FOUND | 404 | 見つかりません。 |
+    | INTERNAL_ERROR | 500 | 操作に失敗しました。時間をおいてもう一度お試しください。 |
+  title: Raise timeline API
+  version: "1"
+servers:
+- url: /
+security:
+- accessToken: []
+paths:
+  /api/auth/login:
+    post:
+      description: access_token・refresh_token の Cookie を返す。続けて失敗すると 15 分ロックする（423）
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      security: []
+      summary: ログイン
+      tags:
+      - FN-01 ユーザー登録・ログイン
+  /api/auth/logout:
+    post:
+      description: refresh_token を無効にし、Cookie を消す
+      operationId: logout
+      parameters:
+      - in: cookie
+        name: refresh_token
+        required: false
+        schema:
+          type: string
+      responses:
+        "204":
+          description: ログアウトした
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: ログアウト
+      tags:
+      - FN-01 ユーザー登録・ログイン
+  /api/auth/me:
+    get:
+      operationId: me
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: ログインしている自分
+      tags:
+      - FN-01 ユーザー登録・ログイン
+  /api/auth/refresh:
+    post:
+      description: refresh_token の Cookie で、access_token・refresh_token を取り直す
+      operationId: refresh
+      parameters:
+      - in: cookie
+        name: refresh_token
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+          description: 取り直した
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      security: []
+      summary: JWT の取り直し
+      tags:
+      - FN-01 ユーザー登録・ログイン
+  /api/auth/signup:
+    post:
+      description: 登録したらそのままログインし、access_token・refresh_token の Cookie を返す
+      operationId: signup
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+          description: 登録した
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      security: []
+      summary: ユーザー登録
+      tags:
+      - FN-01 ユーザー登録・ログイン
+  /api/auth/username-availability:
+    get:
+      operationId: usernameAvailability
+      parameters:
+      - in: query
+        name: username
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsernameAvailability"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      security: []
+      summary: ユーザー ID が使えるか
+      tags:
+      - FN-01 ユーザー登録・ログイン
+  /api/comments/{commentId}:
+    delete:
+      description: 自分のコメントと、自分の投稿に付いたコメント
+      operationId: deleteComment
+      parameters:
+      - in: path
+        name: commentId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: No Content
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: コメントを削除する
+      tags:
+      - FN-05 コメント
+  /api/images/urls:
+    post:
+      description: 削除された画像は結果に入らない
+      operationId: urls
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UrlsRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UrlsResponse"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: 画像の署名付き URL を取り直す
+      tags:
+      - FN-04 画像
+  /api/me/icon:
+    delete:
+      operationId: removeIcon
+      responses:
+        "204":
+          description: No Content
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: アイコン画像を外す
+      tags:
+      - FN-09 プロフィール
+    put:
+      description: 1 枚。5MB まで、JPEG・PNG・WebP
+      operationId: changeIcon
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                icon:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: アイコン画像を差し替える
+      tags:
+      - FN-09 プロフィール
+  /api/me/profile:
+    patch:
+      operationId: editProfile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditProfileRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: 自分の表示名と自己紹介を変える
+      tags:
+      - FN-09 プロフィール
+  /api/posts:
+    post:
+      description: 本文（改行を LF にそろえ、前後の空白を除いて 280 文字まで）と画像（0〜4 枚。1 枚 5MB まで、JPEG・PNG・GIF・WebP）。本文と画像のどちらかは必要
+      operationId: createPost
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                body:
+                  type: string
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostView"
+          description: Created
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: 投稿する
+      tags:
+      - FN-03 投稿
+  /api/posts/{id}:
+    delete:
+      description: 自分の投稿だけ。画像・コメント・いいねも消える
+      operationId: deletePost
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: No Content
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: 投稿を削除する
+      tags:
+      - FN-03 投稿
+    get:
+      operationId: getPost
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostView"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: 投稿の詳細
+      tags:
+      - FN-03 投稿
+    patch:
+      description: 自分の投稿だけ。画像は変えられない
+      operationId: editPost
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditPostRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostView"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: 投稿の本文を編集する
+      tags:
+      - FN-03 投稿
+  /api/posts/{postId}/comments:
+    get:
+      description: 古い順に 50 件ずつ。続きは nextCursor を cursor に入れて読む
+      operationId: listComments
+      parameters:
+      - in: path
+        name: postId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentsResponse"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: コメントの一覧
+      tags:
+      - FN-05 コメント
+    post:
+      operationId: createComment
+      parameters:
+      - in: path
+        name: postId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCommentRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentView"
+          description: Created
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: コメントする
+      tags:
+      - FN-05 コメント
+  /api/posts/{postId}/like:
+    delete:
+      description: 何回送っても同じ結果になる
+      operationId: unlike
+      parameters:
+      - in: path
+        name: postId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikeResult"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: いいねを取り消す
+      tags:
+      - FN-06 いいね
+    put:
+      description: 何回送っても同じ結果になる
+      operationId: like
+      parameters:
+      - in: path
+        name: postId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikeResult"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: いいねする
+      tags:
+      - FN-06 いいね
+  /api/posts/{postId}/likes:
+    get:
+      description: 新しくいいねした順に 20 件ずつ
+      operationId: likers
+      parameters:
+      - in: path
+        name: postId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikersResponse"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: いいねした人の一覧
+      tags:
+      - FN-06 いいね
+  /api/search/users:
+    get:
+      description: ユーザー ID か表示名の部分一致。20 件ずつ、1000 件まで
+      operationId: searchUsers
+      parameters:
+      - description: 前後の空白を除いて 1〜30 文字
+        in: query
+        name: q
+        required: true
+        schema:
+          type: string
+      - description: 続きを読むときに、前の結果の nextOffset を入れる
+        in: query
+        name: offset
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSearchResponse"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: ユーザーを探す
+      tags:
+      - FN-08 ユーザー検索
+  /api/timeline:
+    get:
+      description: 新しい順に 20 件ずつ。続きは nextCursor を cursor に入れて読む
+      operationId: readTimeline
+      parameters:
+      - in: query
+        name: tab
+        required: true
+        schema:
+          type: string
+          enum:
+          - following
+          - all
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimelineResponse"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: タイムライン
+      tags:
+      - FN-02 タイムライン
+  /api/users/{username}:
+    get:
+      operationId: readProfile
+      parameters:
+      - in: path
+        name: username
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: プロフィール
+      tags:
+      - FN-09 プロフィール
+  /api/users/{username}/follow:
+    delete:
+      description: 何回送っても同じ結果になる
+      operationId: unfollow
+      parameters:
+      - in: path
+        name: username
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowResult"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: フォローを解除する
+      tags:
+      - FN-07 フォロー
+    put:
+      description: 何回送っても同じ結果になる。自分はフォローできない
+      operationId: follow
+      parameters:
+      - in: path
+        name: username
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowResult"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: フォローする
+      tags:
+      - FN-07 フォロー
+  /api/users/{username}/followers:
+    get:
+      description: 新しくフォローされた順に 20 件ずつ
+      operationId: followers
+      parameters:
+      - in: path
+        name: username
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowsResponse"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: その人のフォロワー
+      tags:
+      - FN-07 フォロー
+  /api/users/{username}/following:
+    get:
+      description: 新しくフォローした順に 20 件ずつ
+      operationId: following
+      parameters:
+      - in: path
+        name: username
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowsResponse"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: その人がフォローしている人
+      tags:
+      - FN-07 フォロー
+  /api/users/{username}/posts:
+    get:
+      operationId: listUserPosts
+      parameters:
+      - in: path
+        name: username
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: cursor
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimelineResponse"
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 入力の誤り・ログインが必要・見つからないなど（code は API の説明のエラーの一覧）
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: 思いがけない失敗
+      summary: その人の投稿の一覧
+      tags:
+      - FN-09 プロフィール
+components:
+  schemas:
+    Author:
+      type: object
+      properties:
+        displayName:
+          type: string
+        iconUrl:
+          type:
+          - string
+          - "null"
+        username:
+          type: string
+      required:
+      - displayName
+      - iconUrl
+      - username
+    CommentView:
+      type: object
+      properties:
+        author:
+          $ref: "#/components/schemas/Author"
+        body:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        id:
+          type: integer
+          format: int64
+        mine:
+          type: boolean
+      required:
+      - author
+      - body
+      - createdAt
+      - id
+      - mine
+    CommentsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommentView"
+        nextCursor:
+          type:
+          - string
+          - "null"
+      required:
+      - items
+      - nextCursor
+    CreateCommentRequest:
+      type: object
+      properties:
+        body:
+          type: string
+          description: 改行を LF にそろえ、前後の空白を除いて 1〜280 文字（C-2）
+      required:
+      - body
+    EditPostRequest:
+      type: object
+      properties:
+        body:
+          type: string
+          description: 改行を LF にそろえ、前後の空白を除いて 280 文字まで（W-2）
+      required:
+      - body
+    EditProfileRequest:
+      type: object
+      properties:
+        bio:
+          type: string
+          description: 改行を LF にそろえ、前後の空白を除いて 160 文字まで。空でもよい（PF-7）
+        displayName:
+          type: string
+          description: 前後の空白を除いて 1〜30 文字（PF-6）
+      required:
+      - bio
+      - displayName
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        field:
+          type:
+          - string
+          - "null"
+        message:
+          type: string
+      required:
+      - code
+      - field
+      - message
+    FollowResult:
+      type: object
+      properties:
+        followerCount:
+          type: integer
+          format: int64
+        following:
+          type: boolean
+      required:
+      - followerCount
+      - following
+    FollowsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserSummary"
+        nextCursor:
+          type:
+          - string
+          - "null"
+      required:
+      - items
+      - nextCursor
+    Image:
+      type: object
+      properties:
+        expiresAt:
+          type: string
+          format: date-time
+        id:
+          type: integer
+          format: int64
+        url:
+          type: string
+      required:
+      - expiresAt
+      - id
+      - url
+    LikeResult:
+      type: object
+      properties:
+        likeCount:
+          type: integer
+          format: int64
+        liked:
+          type: boolean
+      required:
+      - likeCount
+      - liked
+    LikersResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserSummary"
+        nextCursor:
+          type:
+          - string
+          - "null"
+        totalCount:
+          type: integer
+          format: int64
+      required:
+      - items
+      - nextCursor
+      - totalCount
+    LoginRequest:
+      type: object
+      properties:
+        password:
+          type: string
+        username:
+          type: string
+      required:
+      - password
+      - username
+    Me:
+      type: object
+      properties:
+        displayName:
+          type: string
+        iconUrl:
+          type:
+          - string
+          - "null"
+        username:
+          type: string
+      required:
+      - displayName
+      - iconUrl
+      - username
+    PostView:
+      type: object
+      properties:
+        author:
+          $ref: "#/components/schemas/Author"
+        body:
+          type: string
+        commentCount:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+        editedAt:
+          type:
+          - string
+          - "null"
+          format: date-time
+        id:
+          type: integer
+          format: int64
+        images:
+          type: array
+          items:
+            $ref: "#/components/schemas/Image"
+        likeCount:
+          type: integer
+          format: int64
+        likedByMe:
+          type: boolean
+        mine:
+          type: boolean
+      required:
+      - author
+      - body
+      - commentCount
+      - createdAt
+      - editedAt
+      - id
+      - images
+      - likeCount
+      - likedByMe
+      - mine
+    Profile:
+      type: object
+      properties:
+        bio:
+          type: string
+        displayName:
+          type: string
+        followedByMe:
+          type: boolean
+        followerCount:
+          type: integer
+          format: int64
+        followingCount:
+          type: integer
+          format: int64
+        iconUrl:
+          type:
+          - string
+          - "null"
+        joinedAt:
+          type: string
+          format: date-time
+        me:
+          type: boolean
+        postCount:
+          type: integer
+          format: int64
+        username:
+          type: string
+      required:
+      - bio
+      - displayName
+      - followedByMe
+      - followerCount
+      - followingCount
+      - iconUrl
+      - joinedAt
+      - me
+      - postCount
+      - username
+    SignupRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+          description: 前後の空白を除いて 1〜30 文字（A-4）
+        password:
+          type: string
+          description: 8〜64 文字の半角文字で、英字と数字を 1 文字以上ずつ含む（A-3）
+        username:
+          type: string
+          description: 前後の空白を除いて 3〜15 文字の半角英数字と「_」（A-2）
+      required:
+      - displayName
+      - password
+      - username
+    TimelineResponse:
+      type: object
+      properties:
+        followingCount:
+          type: integer
+          format: int64
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PostView"
+        nextCursor:
+          type:
+          - string
+          - "null"
+      required:
+      - items
+      - nextCursor
+    UrlsRequest:
+      type: object
+      properties:
+        imageIds:
+          type: array
+          description: 画像の ID。50 個まで
+          items:
+            type: integer
+            format: int64
+      required:
+      - imageIds
+    UrlsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Image"
+      required:
+      - items
+    UserSearchResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserSummary"
+        nextOffset:
+          type:
+          - integer
+          - "null"
+          format: int32
+      required:
+      - items
+      - nextOffset
+    UserSummary:
+      type: object
+      properties:
+        bioFirstLine:
+          type: string
+        displayName:
+          type: string
+        followedByMe:
+          type: boolean
+        iconUrl:
+          type:
+          - string
+          - "null"
+        me:
+          type: boolean
+        username:
+          type: string
+      required:
+      - bioFirstLine
+      - displayName
+      - followedByMe
+      - iconUrl
+      - me
+      - username
+    UsernameAvailability:
+      type: object
+      properties:
+        available:
+          type: boolean
+      required:
+      - available
+  securitySchemes:
+    accessToken:
+      description: ログイン（POST /api/auth/login）で受け取る JWT の Cookie（機能定義書 3.2）。GET 以外では、Cookie
+        の XSRF-TOKEN の値を X-XSRF-TOKEN ヘッダーで送り返す（CSRF 対策）
+      in: cookie
+      name: access_token
+      type: apiKey

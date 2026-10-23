@@ -11,7 +11,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 // フォローの API（機能定義書 FN-07 6 章）。{username} は大文字・小文字を区別しない
+@Tag(name = "FN-07 フォロー")
 @RestController
 @RequestMapping("/api/users/{username}")
 class FollowController {
@@ -22,22 +26,26 @@ class FollowController {
 		this.followService = followService;
 	}
 
+	@Operation(summary = "フォローする", description = "何回送っても同じ結果になる。自分はフォローできない")
 	@PutMapping("/follow")
 	FollowResult follow(@AuthenticationPrincipal Jwt jwt, @PathVariable String username) {
 		return this.followService.follow(userId(jwt), username);
 	}
 
+	@Operation(summary = "フォローを解除する", description = "何回送っても同じ結果になる")
 	@DeleteMapping("/follow")
 	FollowResult unfollow(@AuthenticationPrincipal Jwt jwt, @PathVariable String username) {
 		return this.followService.unfollow(userId(jwt), username);
 	}
 
+	@Operation(summary = "その人がフォローしている人", description = "新しくフォローした順に 20 件ずつ")
 	@GetMapping("/following")
 	FollowsResponse following(@AuthenticationPrincipal Jwt jwt, @PathVariable String username,
 			@RequestParam(required = false) @Nullable String cursor) {
 		return this.followService.following(userId(jwt), username, cursor);
 	}
 
+	@Operation(summary = "その人のフォロワー", description = "新しくフォローされた順に 20 件ずつ")
 	@GetMapping("/followers")
 	FollowsResponse followers(@AuthenticationPrincipal Jwt jwt, @PathVariable String username,
 			@RequestParam(required = false) @Nullable String cursor) {

@@ -32,6 +32,8 @@
 		<spotbugs-maven-plugin.version>4.10.4.1</spotbugs-maven-plugin.version>
 		<!-- AWS SDK for Java 2.x の版（技術スタック定義書：BOM で 2.x の最新に固定する） -->
 		<aws-sdk.version>2.56.0</aws-sdk.version>
+		<!-- API の仕様書（OpenAPI）を作る springdoc-openapi。3.x が Spring Boot 4 に対応している -->
+		<springdoc.version>3.1.1</springdoc.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -84,6 +86,13 @@
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>
+		</dependency>
+		<!-- API の仕様書（OpenAPI）をコードから作り、開発中は Swagger UI で見る（基本設計書 2.1）。
+			 公開先では出さない（application.properties の springdoc.*.enabled） -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>${springdoc.version}</version>
 		</dependency>
 
 		<dependency>
@@ -145,6 +154,12 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<!-- mvnw spring-boot:run（開発中）だけ dev プロファイルにする（application-dev.properties） -->
+					<profiles>
+						<profile>dev</profile>
+					</profiles>
+				</configuration>
 			</plugin>
 			<!-- コンパイラーの警告（非推奨 API・未検査の型変換など）をすべて表示する -->
 			<plugin>

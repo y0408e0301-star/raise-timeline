@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-TECH |
-| 版数 | 0.8 |
+| 版数 | 0.9 |
 | 作成日 | 2026-10-16 |
 | 最終更新日 | 2026-10-24 |
 | 作成者 | （氏名） |
@@ -22,6 +22,7 @@
 | 0.6 | 2026-10-23 | 公開の入口を ALB から CloudFront に変更し、ACM・Route 53 をなくした（3.4・4 章）。Actuator の用途を、公開した後の稼働の確認に直した（3.1） | （氏名） |
 | 0.7 | 2026-10-23 | 画面を通したテスト（Playwright 1.63.0）を入れ、ブラウザはパソコンの Microsoft Edge を使うことにした（3.5） | （氏名） |
 | 0.8 | 2026-10-24 | API のテストに、Controller・Service・Repository を 1 つずつ確かめる単体テストを足した。Mockito と、Spring Boot のテスト用の部品（@WebMvcTest・@DataJpaTest）を使う（3.5）。テスト用の DB は今までどおり Testcontainers の PostgreSQL とし、H2 は使わない | （氏名） |
+| 0.9 | 2026-10-24 | API の仕様書（OpenAPI）をコードから作る springdoc-openapi（3.1.1）を 3.1 に、画面の型を作る openapi-typescript（7.13.0）と、配布用の HTML を作る Redocly CLI（2.62.1）を 3.5 に追加した（基本設計書 2.1.1） | （氏名） |
 
 ## 承認
 
@@ -96,6 +97,7 @@
 | ログイン・権限 | Spring Boot Starter Security | 同上 | 新 | BCrypt・CSRF 対策・権限の確認（条件 2）。セッションは使わない（STATELESS）。kadai はログインがないため新しく使う |
 | JWT の作成・確認 | Spring Boot Starter Security OAuth2 Resource Server（spring-boot-starter-security-oauth2-resource-server。中で Nimbus JOSE + JWT を使う） | 同上 | 新 | JWT（HS256）の署名・期限の確認と、ログインのときの JWT の作成（JwtEncoder）。Cookie から JWT を読むところだけを自分で書く（機能定義書 3.2）。JWT を作るライブラリ（jjwt など）を別に足さなくてよい |
 | 稼働の確認 | Spring Boot Starter Actuator | 同上 | 新 | 公開した後の稼働の確認（/actuator/health。反映・起動のスクリプトが CloudFront の URL で確かめる） |
+| API の仕様書 | springdoc-openapi（springdoc-openapi-starter-webmvc-ui） | 3.1.1（pom.xml の springdoc.version） | 新 | Controller・record から OpenAPI 3.1 の仕様書を作り、開発中は Swagger UI で見る（基本設計書 2.1.1）。3.x が Spring Boot 4 に対応している。公開先では出さない |
 | S3 の操作 | AWS SDK for Java 2.x（s3） | 2.56.0（BOM の software.amazon.awssdk:bom で固定し、pom.xml の aws-sdk.version に書く） | 新 | 画像の保存・削除と署名付き URL（条件 3）。接続先を変えれば MinIO にも使える |
 | ビルド | Maven | 3.9.16（Maven Wrapper 3.3.4） | ○ | mvnw をリポジトリに入れる |
 
@@ -149,7 +151,7 @@ kadai で使っている dnd-kit（ドラッグ＆ドロップ）は、本アプ
 | 区分 | 使うもの | バージョン | kadai | 用途・理由 |
 | --- | --- | --- | --- | --- |
 | ソース管理 | Git・GitHub | | ○ | N-21 |
-| 自動のチェック | GitHub Actions | actions/checkout@v7、actions/setup-node@v7、actions/setup-java@v6（temurin 21）、hashicorp/setup-terraform@v4、terraform-linters/setup-tflint@v6 | ○ | N-24。Pull Request ごとに書式・lint・テスト・ビルドを動かす |
+| 自動のチェック | GitHub Actions | actions/checkout@v7、actions/setup-node@v7、actions/setup-java@v6（temurin 21）、actions/upload-artifact@v7、hashicorp/setup-terraform@v4、terraform-linters/setup-tflint@v6 | ○ | N-24。Pull Request ごとに書式・lint・テスト・ビルドを動かす |
 | 開発用のコンテナ | Docker Compose | | ○ | PostgreSQL を起動する |
 | API のテスト | JUnit 5、MockMvc、Testcontainers（testcontainers-junit-jupiter・testcontainers-postgresql・testcontainers-minio） | Spring Boot 4.1.1 に合わせる | ○ | 本物の PostgreSQL と MinIO（S3 の代わり）でテストする。開発用の DB は使わない |
 | API の単体テスト | Mockito（Service のテストで Repository・S3 を偽物にする）、@WebMvcTest（Controller だけを動かす）、@DataJpaTest（Repository だけを動かす） | Spring Boot 4.1.1 に合わせる（Mockito 5.23.0） | 新 | 層ごとに確かめ、落ちたときに原因の層が分かるようにする。Repository のテストの DB も Testcontainers の PostgreSQL にする。H2 は pg_trgm・照合順序（COLLATE "C"）など PostgreSQL にしかない機能を確かめられないため使わない |
@@ -160,6 +162,8 @@ kadai で使っている dnd-kit（ドラッグ＆ドロップ）は、本アプ
 | Java の書式 | spring-javaformat | 0.0.48 | ○ | |
 | Java の静的解析 | SpotBugs（spotbugs-maven-plugin） | 4.10.4.1 | ○ | |
 | TypeScript の lint | oxlint | 1.86.0（package.json は ^1.81.0） | ○ | |
+| API の型の生成 | openapi-typescript | 7.13.0 | 新 | API の仕様書（docs/api/openapi.yaml）から画面の型（src/api-schema.d.ts）を作る（npm run gen:api）。TypeScript 5 向けと書かれているが、6 でも動くので package.json の overrides で本アプリの TypeScript を使わせる |
+| API の仕様書の HTML | Redocly CLI（@redocly/cli） | 2.62.1 | 新 | CI で仕様書から 1 ファイルの HTML を作る。npx で使い、package.json には入れない |
 | エディタ | Visual Studio Code | | ○ | |
 
 ---

@@ -3,9 +3,9 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-BD |
-| 版数 | 0.9 |
+| 版数 | 0.10 |
 | 作成日 | 2026-10-16 |
-| 最終更新日 | 2026-10-23 |
+| 最終更新日 | 2026-10-24 |
 | 作成者 | （氏名） |
 | 元にした文書 | [要件定義書](../requirements/requirements.md)（RT-REQ）版数 0.9、[機能定義書](../functions/function-definition.md)（RT-FD）版数 0.3 |
 | 状態 | 承認待ち |
@@ -23,6 +23,7 @@
 | 0.7 | 2026-10-23 | 公開の構成から ALB をなくし、CloudFront → EC2 にしたことに合わせ、インフラ設計書を 0.5 にした | （氏名） |
 | 0.8 | 2026-10-23 | ユーザー検索の実装に合わせ、データ設計書を 0.5 にした | （氏名） |
 | 0.9 | 2026-10-23 | 画面を jar に入れて配る方法に合わせ、インフラ設計書を 0.6 にした | （氏名） |
+| 0.10 | 2026-10-24 | 2.1 の「入力・出力の項目の一覧」を、OpenAPI の形式でコードから自動で作ることに決めた（2.1.1） | （氏名） |
 
 ## 承認
 
@@ -74,9 +75,30 @@ API の一覧（URL・メソッド・入力・出力・主なエラー）、エ�
 
 | 項目 | 内容 |
 | --- | --- |
-| 入力・出力の項目の一覧 | 機能定義書 6 章の「案」をもとに、項目ごとの型・必須・上限を表にする。OpenAPI の形式で書くかどうかもここで決める |
+| 入力・出力の項目の一覧 | 機能定義書 6 章の「案」をもとに、項目ごとの型・必須・上限を表にする。OpenAPI の形式で、コードから自動で作ることにした（2.1.1） |
 | 処理の分け方 | Controller・Service・Repository の分け方と、1 つのトランザクションにまとめる範囲（データ設計書 BR-4・BR-5） |
 | 画面の部品の分け方 | 画面（G）ごとの React の部品と、共通の部品（投稿カード・ユーザーの行・ヘッダー） |
+
+#### 2.1.1 API の仕様書（OpenAPI）
+
+入力・出力の項目の一覧は、手で表を書かず、API のコード（Controller と record）から OpenAPI 3.1 の形式で自動で作る。手で書くと、API を変えたときに直し忘れて実装とずれるためである。
+
+| 項目 | 決めたこと |
+| --- | --- |
+| 正本 | API のコード。仕様書は [docs/api/openapi.yaml](../api/openapi.yaml) に書き出してコミットし、Pull Request の差分で API の変更が分かるようにする |
+| 作り方 | springdoc-openapi が Controller・record から作る。機能 ID のタグ（例：FN-03 投稿）・説明・リクエストの項目の条件は注釈で足す。record の項目は、`@Nullable` がなければ必須、あれば null になることがある、として書く |
+| ずれの防ぎ方 | テスト（OpenApiExportTests）が仕様書を作り、コミットしたものと違えば書き直したうえで失敗する。画面の型（frontend/src/api-schema.d.ts）も仕様書から作り（openapi-typescript）、CI で作り直して違えば失敗する。API を変えて画面を直し忘れると、画面の型チェックで止まる |
+| エラー | 全部の API に 4XX・5XX として ErrorResponse（機能定義書 3.3）を付ける。code の一覧は ErrorCode から作り、仕様書の説明に表で入れる。API ごとに返す code は各機能定義書 9 章のとおり |
+| 見方 | 開発中は Swagger UI（http://localhost:8080/swagger-ui.html）で見て、そのまま API を試せる（ログインの Cookie と CSRF のヘッダーも送る）。CI は 1 ファイルの HTML（Redocly）を作り、成果物 api-spec にする |
+| 公開先 | 仕様書（/v3/api-docs）と Swagger UI は出さない。API の一覧を外に見せないため。開発中だけ dev プロファイル（`mvnw spring-boot:run`）で出す |
+
+```mermaid
+flowchart LR
+  code[Controller・record] -->|springdoc-openapi| spec[docs/api/openapi.yaml]
+  spec -->|openapi-typescript| types[frontend/src/api-schema.d.ts]
+  spec -->|Redocly| html[api-spec.html（CI の成果物）]
+  code -->|開発中だけ| ui[Swagger UI]
+```
 
 ### 2.2 運用設計
 
