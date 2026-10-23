@@ -58,6 +58,17 @@ public enum ErrorCode {
 	// 自分にはフォローボタンを出さないので、ふつうは出ない
 	CANNOT_FOLLOW_SELF(HttpStatus.BAD_REQUEST, "操作に失敗しました。時間をおいてもう一度お試しください。"),
 
+	// プロフィールの編集（FN-09 9 章）。自己紹介は画面で 161 文字目を入力できないので、ふつうは出ない
+	BIO_TOO_LONG(HttpStatus.BAD_REQUEST, "操作に失敗しました。時間をおいてもう一度お試しください。"),
+
+	// アイコン画像（M-21）。画面でも確かめるので、ふつうは画面の確認で止まる
+	ICON_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE, "アイコンにできるのは 5MB までの JPEG・PNG・WebP の画像です。"),
+
+	ICON_TYPE_INVALID(HttpStatus.BAD_REQUEST, "アイコンにできるのは 5MB までの JPEG・PNG・WebP の画像です。"),
+
+	// S3 への保存に失敗した。users.icon_key は変えていない（BR-10）
+	ICON_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "操作に失敗しました。時間をおいてもう一度お試しください。"),
+
 	// 画面を通さずに送られた、条件に合わない入力（JSON が読めない、上限を超えた文字数など）
 	BAD_REQUEST(HttpStatus.BAD_REQUEST, "入力が正しくありません。"),
 

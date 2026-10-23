@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
@@ -34,25 +35,31 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 	@Override
 	protected @Nullable ResponseEntity<Object> handleExceptionInternal(Exception ex, @Nullable Object body,
 			HttpHeaders headers, HttpStatusCode statusCode, WebRequest request) {
-		return super.handleExceptionInternal(ex, toErrorResponse(statusCode), headers, statusCode, request);
+		return super.handleExceptionInternal(ex, toErrorResponse(statusCode, request), headers, statusCode, request);
 	}
 
-	private static ErrorResponse toErrorResponse(HttpStatusCode statusCode) {
+	private static ErrorResponse toErrorResponse(HttpStatusCode statusCode, WebRequest request) {
 		if (statusCode.value() == 400) {
 			return ErrorResponse.of(ErrorCode.BAD_REQUEST, null);
 		}
 		if (statusCode.value() == 404) {
 			return ErrorResponse.of(ErrorCode.NOT_FOUND, null);
 		}
-		// 送られたファイルが multipart の上限（1 枚 5MB・1 回 21MB）を超えた（FN-04 4 章）
+		// 送られたファイルが multipart の上限（1 枚 5MB・1 回 21MB）を超えた（FN-04 4 章、FN-09 4 章）
 		if (statusCode.value() == 413) {
-			return ErrorResponse.of(ErrorCode.IMAGE_TOO_LARGE, "images");
+			return isIconUpload(request) ? ErrorResponse.of(ErrorCode.ICON_TOO_LARGE, "icon")
+					: ErrorResponse.of(ErrorCode.IMAGE_TOO_LARGE, "images");
 		}
 		if (statusCode.is5xxServerError()) {
 			return ErrorResponse.of(ErrorCode.INTERNAL_ERROR, null);
 		}
 		// 405（メソッドが違う）・415（JSON でない）など。画面からは起きないので、code に HTTP ステータスの名前を入れる
 		return new ErrorResponse(HttpStatus.valueOf(statusCode.value()).name(), ErrorCode.BAD_REQUEST.message(), null);
+	}
+
+	private static boolean isIconUpload(WebRequest request) {
+		return request instanceof ServletWebRequest servlet
+				&& "/api/me/icon".equals(servlet.getRequest().getRequestURI());
 	}
 
 }

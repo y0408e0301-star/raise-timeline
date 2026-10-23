@@ -339,3 +339,22 @@ export function fetchUserPosts(username: string, cursor: string | null = null): 
 
 // G-6 の URL
 export const profileUrl = (username: string) => `/users/${encodeURIComponent(username)}`
+
+// ---------------------------------------------------------------- FN-09 第 2 版 プロフィールの編集
+
+// 自分の表示名と自己紹介を変える。URL にユーザー ID を入れない（ほかの人のものは変えられない）
+export function editProfile(displayName: string, bio: string): Promise<Profile> {
+  return requestJson<Profile>('PATCH', '/api/me/profile', { displayName, bio })
+}
+
+// アイコン画像を差し替える。新しいプロフィール（iconUrl つき）を返す
+export function changeIcon(icon: File): Promise<Profile> {
+  const form = new FormData()
+  form.append('icon', icon)
+  return requestJson<Profile>('PUT', '/api/me/icon', form)
+}
+
+// アイコンを外して頭文字の丸に戻す（PF-9）
+export async function removeIcon(): Promise<void> {
+  await request('DELETE', '/api/me/icon')
+}

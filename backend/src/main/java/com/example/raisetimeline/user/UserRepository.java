@@ -20,6 +20,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 	@Query("select u from User u where lower(u.username) = lower(:username)")
 	Optional<User> findByUsernameForUpdate(@Param("username") String username);
 
+	// アイコンの差し替えで使う。同時に差し替えても、前のアイコンを消し忘れないよう行をロックする（BR-10）
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select u from User u where u.id = :id")
+	Optional<User> findByIdForUpdate(@Param("id") long id);
+
 	@Query("select count(u) > 0 from User u where lower(u.username) = lower(:username)")
 	boolean existsByUsername(@Param("username") String username);
 

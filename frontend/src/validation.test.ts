@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { addImages, isAcceptableImage, isValidDisplayName, isValidPassword, isValidUsername } from './validation'
+import {
+  addImages, isAcceptableIcon, isAcceptableImage, isValidDisplayName, isValidPassword, isValidUsername, limitBio,
+} from './validation'
 
 // FN-01 10 章のテストの観点
 describe('isValidUsername', () => {
@@ -76,5 +78,25 @@ describe('addImages', () => {
   it('添えられない画像は外して M-13', () => {
     const ok = png(1)
     expect(addImages([], [ok, file('a.pdf', 'application/pdf')])).toEqual({ images: [ok], error: 'M13' })
+  })
+})
+
+// FN-09 10 章のテストの観点
+describe('isAcceptableIcon', () => {
+  it('5MB までの JPEG・PNG・WebP。GIF は使えない', () => {
+    expect(isAcceptableIcon(file('a.jpg', 'image/jpeg', 5 * 1024 * 1024))).toBe(true)
+    expect(isAcceptableIcon(file('a.PNG', 'image/png'))).toBe(true)
+    expect(isAcceptableIcon(file('a.webp', 'image/webp'))).toBe(true)
+    expect(isAcceptableIcon(file('a.png', 'image/png', 5 * 1024 * 1024 + 1))).toBe(false)
+    expect(isAcceptableIcon(file('a.gif', 'image/gif'))).toBe(false)
+    expect(isAcceptableIcon(file('a.txt', 'image/png'))).toBe(false)
+  })
+})
+
+describe('limitBio', () => {
+  it('160 文字（コードポイント）を超えた分を切る', () => {
+    expect(limitBio('あ'.repeat(160))).toBe('あ'.repeat(160))
+    expect(limitBio('😀'.repeat(161))).toBe('😀'.repeat(160))
+    expect(limitBio('1 行目\n2 行目')).toBe('1 行目\n2 行目')
   })
 })

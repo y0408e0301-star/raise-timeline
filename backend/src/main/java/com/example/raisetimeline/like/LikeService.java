@@ -17,6 +17,7 @@ import com.example.raisetimeline.common.ErrorCode;
 import com.example.raisetimeline.common.TimeCursor;
 import com.example.raisetimeline.follow.FollowRepository;
 import com.example.raisetimeline.post.PostRepository;
+import com.example.raisetimeline.user.UserIcons;
 import com.example.raisetimeline.user.UserSummary;
 
 // いいね（機能定義書 FN-06）
@@ -31,12 +32,15 @@ class LikeService {
 
 	private final FollowRepository follows;
 
+	private final UserIcons icons;
+
 	private final Clock clock;
 
-	LikeService(LikeRepository likes, PostRepository posts, FollowRepository follows, Clock clock) {
+	LikeService(LikeRepository likes, PostRepository posts, FollowRepository follows, UserIcons icons, Clock clock) {
 		this.likes = likes;
 		this.posts = posts;
 		this.follows = follows;
+		this.icons = icons;
 		this.clock = clock;
 	}
 
@@ -74,7 +78,7 @@ class LikeService {
 		Set<Long> followed = new HashSet<>(
 				this.follows.findFolloweeIds(userId, page.stream().map((liker) -> liker.user().getId()).toList()));
 		List<UserSummary> items = page.stream()
-			.map((liker) -> UserSummary.of(liker.user(), userId, followed.contains(liker.user().getId())))
+			.map((liker) -> UserSummary.of(liker.user(), userId, followed.contains(liker.user().getId()), this.icons))
 			.toList();
 		return new LikersResponse(items, nextCursor, this.likes.countByPostId(postId));
 	}
