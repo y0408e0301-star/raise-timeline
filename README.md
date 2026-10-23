@@ -280,6 +280,19 @@ Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml]
 - Repository のテストは、テストごとにトランザクションを巻き戻すので、データは残りません。API のテストは、テストの始めに表を空にします
 - Controller のテストで、ログインした状態は `ControllerTestSupport.loggedIn(ユーザーの ID)` で作ります。spring-security-test の `jwt()` は CSRF の確認を飛ばすため使いません（本アプリは Cookie で JWT を送るので CSRF を確かめています）
 
+### 画面のテストの種類
+
+`npm test` で、次の 3 種類をまとめて実行します。どれもサーバーは要りません。API は `fetch` の偽物（[src/test/fetchMock.ts](frontend/src/test/fetchMock.ts)）が返します。
+
+| 種類 | ファイル | 確かめること |
+| --- | --- | --- |
+| 関数のテスト | `api.test.ts`・`validation.test.ts`・`time.test.ts` | API の URL・メソッド・送る中身、JWT の取り直し、入力の条件と境界値、日時の表示 |
+| 部品のテスト | `components/*.test.tsx`・`auth/*.test.tsx` | 部品を 1 つだけ描画して、表示・操作、素早く何度も押したとき、失敗したときに元に戻すこと |
+| 画面のテスト | `pages/*.test.tsx`・`App.test.tsx` | アプリ全体を描画して、画面の移動と、機能定義書 10 章の観点 |
+
+- 部品のテストは、[src/test/render.tsx](frontend/src/test/render.tsx) の `renderComponent` で描画します。ルーター・ログインしている自分・トーストを用意し、今の URL を「今の URL」という名前で画面に出します（移動したかを確かめるため）
+- API の応答を待っている間の表示（押してすぐ「♥」にする、など）を確かめるときは、応答を止めておく偽物を使います。すぐ返す偽物だと、確かめる前に応答の値に戻ってしまいます
+
 ### 画面を通したテスト（E2E テスト）
 
 [frontend/e2e](frontend/e2e) のテストは、Playwright でブラウザ（パソコンに入っている Microsoft Edge）を動かし、2 人のユーザーを別々のブラウザで操作して、次のことを確かめます。

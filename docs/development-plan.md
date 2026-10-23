@@ -94,7 +94,7 @@
 | 3-1 | 画面を通したテスト（Playwright。登録 → 投稿 → いいね → フォロー → 検索） | #45 | ✅ |
 | 3-2a | アプリを 1 つの jar で配れるようにする（画面を jar に含める、画面の URL を直接開いても index.html を返す、キャッシュの設定） | #47 | ✅ |
 | 3-5 | API の単体テスト（小さなクラス・Service は Mockito、Repository は @DataJpaTest、Controller は @WebMvcTest。DB は Testcontainers の PostgreSQL） | #51 | ✅ |
-| 3-6 | 画面の単体テスト（関数・hook・部品。E2E は足さない） | #52 | |
+| 3-6 | 画面の単体テスト（関数・hook・部品。E2E は足さない） | #52 | ✅ |
 | 3-2b | AWS の環境を作る Terraform（CloudFront・EC2・RDS・S3・Parameter Store・CloudWatch・Budgets。インフラ設計書 3 章）と、CI の terraform のチェック | | |
 | 3-2c | 反映・起動・停止のスクリプトと運用の手順（P-4、基本設計書 2.2）。実際に公開して、公開した URL で主な流れを確かめる | | |
 | 3-3 | 受け入れ（要件定義書 13 章）と、文書を実装に合わせる | | |
