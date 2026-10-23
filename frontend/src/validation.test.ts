@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   addImages, countChars, isAcceptableIcon, isAcceptableImage, isValidDisplayName, isValidPassword, isValidUsername,
-  limitBio, remainingChars,
+  limitBio, limitChars, remainingChars,
 } from './validation'
 
 // 文字数の数え方（画面設計書 3.8）。API と同じくコードポイントで数える
@@ -62,6 +62,21 @@ describe('isValidDisplayName', () => {
     expect(isValidDisplayName('た')).toBe(true)
     expect(isValidDisplayName('あ'.repeat(30))).toBe(true)
     expect(isValidDisplayName('あ'.repeat(31))).toBe(false)
+  })
+
+  it('絵文字も 1 文字と数える（API と同じ。Issue #56）', () => {
+    expect(isValidDisplayName('😀'.repeat(30))).toBe(true)
+    expect(isValidDisplayName('😀'.repeat(31))).toBe(false)
+  })
+})
+
+describe('limitChars', () => {
+  it('上限までの文字（コードポイント）だけを残す', () => {
+    expect(limitChars('あ'.repeat(30), 30)).toBe('あ'.repeat(30))
+    expect(limitChars('あ'.repeat(31), 30)).toBe('あ'.repeat(30))
+    // 絵文字を途中で切らない
+    expect(limitChars('😀'.repeat(31), 30)).toBe('😀'.repeat(30))
+    expect(limitChars('', 30)).toBe('')
   })
 })
 
