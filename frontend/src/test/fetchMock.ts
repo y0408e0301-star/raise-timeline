@@ -24,3 +24,15 @@ export function mockFetch(routes: Record<string, Handler | Handler[]>) {
   vi.stubGlobal('fetch', fetch)
   return { calls, keys: () => calls.map((c) => c.key) }
 }
+
+// index 番目の呼び出しで送った JSON
+export function sentJson(fetch: ReturnType<typeof mockFetch>, index = 0): unknown {
+  return JSON.parse(String(fetch.calls[index]?.init?.body))
+}
+
+// index 番目の呼び出しで送った multipart の中身
+export function sentForm(fetch: ReturnType<typeof mockFetch>, index = 0): FormData {
+  const body = fetch.calls[index]?.init?.body
+  if (!(body instanceof FormData)) throw new Error(`${index} 番目の呼び出しは multipart で送っていない`)
+  return body
+}
