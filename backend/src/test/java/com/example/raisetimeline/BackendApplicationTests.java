@@ -17,7 +17,7 @@ class BackendApplicationTests {
 	@Autowired
 	MockMvcTester mvc;
 
-	// ALB のヘルスチェックに使う。ログインしなくても読める
+	// 公開した後の稼働の確認に使う。ログインしなくても読める
 	@Test
 	void ヘルスチェックはログインなしでUPを返す() {
 		assertThat(this.mvc.get().uri("/actuator/health")).hasStatusOk()

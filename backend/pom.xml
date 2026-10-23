@@ -71,7 +71,7 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>
 		</dependency>
-		<!-- 稼働の確認（/actuator/health）。ALB のヘルスチェックに使う -->
+		<!-- 稼働の確認（/actuator/health）。公開した後、反映・起動のスクリプトが確かめる -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>

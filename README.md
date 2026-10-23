@@ -2,7 +2,7 @@
 
 X（Twitter）のようなタイムライン形式のテキスト SNS です。ユーザー登録した人どうしでフォローし合い、文章と画像を投稿し、いいね・コメントで反応できます。**インプレッション数を出さないこと、リツイートがないこと**が特徴で、数字や拡散を気にせず投稿できるようにします。
 
-学習用に、要件定義から設計・実装・テスト・AWS への公開までを一通り行います。画面は React、API は Spring Boot、データは PostgreSQL、画像は AWS S3 に保存し、AWS（ALB・EC2・RDS・S3）で公開します。
+学習用に、要件定義から設計・実装・テスト・AWS への公開までを一通り行います。画面は React、API は Spring Boot、データは PostgreSQL、画像は AWS S3 に保存し、AWS（CloudFront・EC2・RDS・S3）で公開します。
 
 > **いまの状況（2026-10-20）**：要件定義書・機能定義書・基本設計書・技術スタック定義書を書き終え、承認待ちです。画面の動きを確かめる[モック](#画面のモックmock)（`mock/`）を作りました。実装は、**機能ごとに API とそれを使う画面を作る**順番で進めています（[開発計画書](docs/development-plan.md)）。第 1 版の機能のうち、ユーザー検索（FN-08）を除く FN-01〜FN-07・FN-09 の API（`backend/`）と画面（`frontend/`）ができました。公開環境（`deploy/`）はまだありません。この README で「予定」と書いているものは、文書で決めた内容で、まだ作っていません。
 
@@ -93,7 +93,7 @@ flowchart LR
     user(["ブラウザ"])
 
     subgraph aws["AWS 東京リージョン"]
-        alb["ALB<br/>HTTPS"]
+        cf["CloudFront<br/>HTTPS"]
         subgraph ec2["EC2 t4g.micro"]
             app["Spring Boot 8080<br/>API ＋ 画面（React のビルド）"]
         end
@@ -102,7 +102,7 @@ flowchart LR
         ssm["Parameter Store<br/>秘密の値"]
     end
 
-    user -- "画面・API" --> alb --> app
+    user -- "画面・API" --> cf --> app
     app --> rds
     app -- "画像の保存・削除" --> s3
     user -- "署名付き URL で画像を表示" --> s3
@@ -115,7 +115,7 @@ flowchart LR
 | API サーバー | Java 21・Spring Boot 4（Web MVC・Data JPA・Validation・Security・Actuator）、テーブルは Flyway で作成 |
 | データベース | PostgreSQL 17（開発は Docker、公開環境は RDS）。ユーザー検索は pg_trgm の索引で速くする |
 | 画像 | S3（自動テストは MinIO）、AWS SDK for Java 2.x |
-| 公開環境 | AWS（ALB・EC2・RDS・S3・Parameter Store・CloudWatch）を Terraform で作成 |
+| 公開環境 | AWS（CloudFront・EC2・RDS・S3・Parameter Store・CloudWatch）を Terraform で作成 |
 | CI | GitHub Actions（PR ごとに画面・API・Terraform のチェックとテスト） |
 
 画面も API と同じ Spring Boot から配るので、JWT を入れる Cookie と CSRF 対策が簡単になり、CORS の設定も要りません。
@@ -129,7 +129,7 @@ flowchart LR
 - **投稿と画像の保存を食い違わせない**：S3 への保存に失敗したら投稿を作らず、データベースへの保存に失敗したら S3 に置いた画像を消します。削除は データベース → S3 の順にし、S3 で消せなかったものは記録してあとで消します（[データ設計書 7 章](docs/design/data-design.md#7-データのルール) BR-4・BR-5）
 - **部分一致の検索を索引で速くする**：ユーザー ID・表示名に pg_trgm の GIN 索引を張り、`LIKE '%…%'` でも全件を調べずに済むようにします。並びは「ID の完全一致 → 前方一致 → 表示名の前方一致 → それ以外」、同じならフォロワーの多い順です（[データ設計書 8 章](docs/design/data-design.md#8-ユーザー検索の実装)）
 - **接続先だけを切り替える**：開発中はデータベースを Docker で動かし、画像は S3 の開発用のバケットに置きます。自動テストは Testcontainers で PostgreSQL と MinIO（S3 の代わり）を起動するので、AWS の鍵は要りません。接続先は環境変数で切り替え、開発環境と AWS でコードを変えません（[インフラ設計書 6 章](docs/design/infra-design.md#6-開発環境との対応)）
-- **費用を抑える**：EC2 は 1 台でパブリックサブネットに置き、ALB からの通信しか受け付けないようにして、NAT ゲートウェイ（月 7,000 円ほど）を使わずに済ませます。使わない間は EC2・RDS を止め、ALB を消します
+- **費用を抑える**：EC2 は 1 台でパブリックサブネットに置き、CloudFront からの通信しか受け付けないようにして、NAT ゲートウェイ（月 7,000 円ほど）を使わずに済ませます。振り分けが要らないのでロードバランサー（ALB。止められず月 3,000 円ほど）は置かず、HTTPS は CloudFront で受けます。使わない間は EC2・RDS を止めます
 - **文書を GitHub で読めるようにする**：文書はすべて Markdown で、図は Mermaid で書いています。差分を PR で確かめられます
 
 ## 開発の進め方
@@ -165,7 +165,7 @@ flowchart LR
 | 画面 | Node.js 24、React 19 + TypeScript 6 + Vite 8、React Router 7、CSS Modules、コードチェックは oxlint、テストは Vitest・Testing Library、E2E テストは Playwright |
 | API サーバー | Java 21 + Spring Boot 4.1（Web MVC・Data JPA・Validation・Security・OAuth2 Resource Server（JWT）・Actuator）、AWS SDK for Java 2.x（S3）、ビルドは Maven（`mvnw` 同梱）、コードチェックは spring-javaformat・SpotBugs、テストは JUnit 5・Testcontainers |
 | データベース・画像 | PostgreSQL 17（開発は Docker Compose）、テーブルは Flyway で作成。画像は S3（開発用のバケット） |
-| 公開環境 | AWS（ALB・EC2 t4g.micro・RDS db.t4g.micro・S3・ACM・Route 53・Parameter Store・Session Manager・CloudWatch・Budgets）、環境は Terraform 1.16 で作成 |
+| 公開環境 | AWS（CloudFront・EC2 t4g.micro・RDS db.t4g.micro・S3・Parameter Store・Session Manager・CloudWatch・Budgets）、環境は Terraform 1.16 で作成 |
 | CI | GitHub Actions |
 
 ## フォルダ構成
@@ -316,8 +316,8 @@ Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml]
 予定です。構成・セキュリティグループ・費用は[インフラ設計書](docs/design/infra-design.md)にあります。
 
 - AWS のリソースは Terraform（`deploy/terraform/`）で作ります。消して作り直すことが多いため、手作業では作りません
-- 常に動かすと月 8,700 円ほどかかるため、使わない間は EC2・RDS を止め、ALB を消します。起動と停止はスクリプトにします
-- 公開の URL（独自ドメイン）は未決です（要件定義書 17 章 U-2）
+- 常に動かすと月 5,600 円ほどかかるため、使わない間は EC2・RDS を止めます。止めている間は「止めています」のページを出します。起動と停止はスクリプトにします
+- 公開の URL は CloudFront のもの（https://〜.cloudfront.net）で、独自ドメインは取りません。公開の時期は未決です（要件定義書 17 章 U-2）
 
 ## 困ったとき
 
