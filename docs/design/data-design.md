@@ -3,9 +3,9 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-BD-DATA |
-| 版数 | 0.4 |
+| 版数 | 0.5 |
 | 作成日 | 2026-10-16 |
-| 最終更新日 | 2026-10-19 |
+| 最終更新日 | 2026-10-23 |
 | 作成者 | （氏名） |
 | 上位文書 | [基本設計書](basic-design.md)（RT-BD） |
 | 元にした文書 | [データ要件定義書](../requirements/data-requirements.md)、[機能定義書](../functions/function-definition.md)（要件定義書 版数 0.7） |
@@ -19,6 +19,7 @@
 | 0.2 | 2026-10-17 | JWT 認証のためにリフレッシュトークン（refresh_tokens）を追加。投稿の編集のために posts.edited_at、アイコン画像のために users.icon_key を追加。BR-7 に投稿の編集を足し、BR-9（リフレッシュトークン）・BR-10（アイコンの差し替え）を追加。索引・CRUD 表・データ量の見積もりを直した | （氏名） |
 | 0.3 | 2026-10-17 | BR-8 に、ロックをかけたときに失敗の回数を 0 に戻すことを追加 | （氏名） |
 | 0.4 | 2026-10-19 | S3 から消せなかったファイルを記録する表（storage_deletions。4.8）を追加し、2 章・3 章・BR-5・9 章を直した | （氏名） |
+| 0.5 | 2026-10-23 | ユーザー検索の SQL（8 章）に、LIKE のエスケープ（ESCAPE）と、ユーザー ID の順を文字コードの順にすること（COLLATE "C"）を書き足した | （氏名） |
 
 本書は基本設計書の一部である。承認は[基本設計書](basic-design.md)で一括して行う。表記のルールは基本設計書 1.3 のとおり。
 
@@ -266,24 +267,27 @@ erDiagram
 S-3〜S-6 を次のように実現する。
 
 ```sql
--- :q は、トリムして先頭の @ を取り、小文字にした検索語
+-- :q は、トリムして先頭の @ を取り、小文字にした検索語。
+-- :prefix は「エスケープした :q || '%'」、:contains は「'%' || エスケープした :q || '%'」
 SELECT u.*
 FROM users u
-WHERE lower(u.username) LIKE '%' || :q || '%'
-   OR lower(u.display_name) LIKE '%' || :q || '%'
+WHERE lower(u.username) LIKE :contains ESCAPE '\'
+   OR lower(u.display_name) LIKE :contains ESCAPE '\'
 ORDER BY
   CASE
-    WHEN lower(u.username) = :q            THEN 1  -- ユーザー ID が完全に一致
-    WHEN lower(u.username) LIKE :q || '%'  THEN 2  -- ユーザー ID が前方一致
-    WHEN lower(u.display_name) LIKE :q || '%' THEN 3  -- 表示名が前方一致
-    ELSE 4                                          -- それ以外の部分一致
+    WHEN lower(u.username) = :q                          THEN 1  -- ユーザー ID が完全に一致
+    WHEN lower(u.username) LIKE :prefix ESCAPE '\'       THEN 2  -- ユーザー ID が前方一致
+    WHEN lower(u.display_name) LIKE :prefix ESCAPE '\'   THEN 3  -- 表示名が前方一致
+    ELSE 4                                                        -- それ以外の部分一致
   END,
   (SELECT count(*) FROM follows f WHERE f.followee_id = u.id) DESC,
-  lower(u.username)
+  lower(u.username) COLLATE "C"
 LIMIT 21 OFFSET :offset;  -- 21 件目は「続きがあるか」を知るため
 ```
 
-- 検索語に含まれる「%」「_」「\」は、LIKE の特別な記号として扱わないようにエスケープする
+- 検索語に含まれる「%」「_」「\」は、前に「\」を付けて、LIKE の特別な記号として扱わないようにする（ESCAPE '\'）
+- ユーザー ID の順は文字コードの順にする（COLLATE "C"）。データベースの照合順序のままだと、「_」などの記号を飛ばして比べることがあるため
+- 索引（6 章）は、マイグレーション V7 で pg_trgm の拡張を入れてから作る
 - pg_trgm の索引は 3 文字以上の検索語で効く。1〜2 文字のときは全件を調べるが、ユーザー 1,000 人なら N-5（1 秒以内）に収まる
 - 検索結果は並び順が検索語ごとに変わるため、読み込みの位置はカーソルではなく件数（OFFSET）で指定する。検索中にユーザーが増えて 1 件ずれることは許す
 

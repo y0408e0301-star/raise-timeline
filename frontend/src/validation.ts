@@ -5,6 +5,7 @@ export const DISPLAY_NAME_MAX = 30
 export const PASSWORD_MAX = 64
 export const POST_BODY_MAX = 280
 export const BIO_MAX = 160
+export const SEARCH_QUERY_MAX = 30
 
 // 文字数は Unicode の文字（コードポイント）で数える（画面設計書 3.8）。API の数え方と同じ
 export function countChars(text: string): number {
