@@ -3,9 +3,9 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-TECH |
-| 版数 | 0.7 |
+| 版数 | 0.8 |
 | 作成日 | 2026-10-16 |
-| 最終更新日 | 2026-10-23 |
+| 最終更新日 | 2026-10-24 |
 | 作成者 | （氏名） |
 | 元にした文書 | [要件定義書](requirements/requirements.md) 版数 0.6、[基本設計書](design/basic-design.md) 版数 0.4 |
 | 状態 | 承認待ち |
@@ -21,6 +21,7 @@
 | 0.5 | 2026-10-19 | 開発中の画像の保存先を、MinIO から S3 の開発用のバケットに変更した。MinIO の公式のイメージが配られなくなったため、自動のテストでは chainguard/minio を使う（3.3・3.5）。AWS SDK のバージョン（2.56.0）を決めた（3.1） | （氏名） |
 | 0.6 | 2026-10-23 | 公開の入口を ALB から CloudFront に変更し、ACM・Route 53 をなくした（3.4・4 章）。Actuator の用途を、公開した後の稼働の確認に直した（3.1） | （氏名） |
 | 0.7 | 2026-10-23 | 画面を通したテスト（Playwright 1.63.0）を入れ、ブラウザはパソコンの Microsoft Edge を使うことにした（3.5） | （氏名） |
+| 0.8 | 2026-10-24 | API のテストに、Controller・Service・Repository を 1 つずつ確かめる単体テストを足した。Mockito と、Spring Boot のテスト用の部品（@WebMvcTest・@DataJpaTest）を使う（3.5）。テスト用の DB は今までどおり Testcontainers の PostgreSQL とし、H2 は使わない | （氏名） |
 
 ## 承認
 
@@ -150,7 +151,8 @@ kadai で使っている dnd-kit（ドラッグ＆ドロップ）は、本アプ
 | ソース管理 | Git・GitHub | | ○ | N-21 |
 | 自動のチェック | GitHub Actions | actions/checkout@v7、actions/setup-node@v7、actions/setup-java@v6（temurin 21）、hashicorp/setup-terraform@v4、terraform-linters/setup-tflint@v6 | ○ | N-24。Pull Request ごとに書式・lint・テスト・ビルドを動かす |
 | 開発用のコンテナ | Docker Compose | | ○ | PostgreSQL を起動する |
-| API のテスト | JUnit 5、MockMvc、Testcontainers（testcontainers-junit-jupiter・testcontainers-postgresql・testcontainers-minio） | Spring Boot 4.1.1 に合わせる | ○ | 本物の PostgreSQL と MinIO（S3 の代わり）でテストする |
+| API のテスト | JUnit 5、MockMvc、Testcontainers（testcontainers-junit-jupiter・testcontainers-postgresql・testcontainers-minio） | Spring Boot 4.1.1 に合わせる | ○ | 本物の PostgreSQL と MinIO（S3 の代わり）でテストする。開発用の DB は使わない |
+| API の単体テスト | Mockito（Service のテストで Repository・S3 を偽物にする）、@WebMvcTest（Controller だけを動かす）、@DataJpaTest（Repository だけを動かす） | Spring Boot 4.1.1 に合わせる（Mockito 5.23.0） | 新 | 層ごとに確かめ、落ちたときに原因の層が分かるようにする。Repository のテストの DB も Testcontainers の PostgreSQL にする。H2 は pg_trgm・照合順序（COLLATE "C"）など PostgreSQL にしかない機能を確かめられないため使わない |
 | 画面のテスト | Vitest | 5.0.3 | ○ | |
 | 画面の部品のテスト | Testing Library（@testing-library/react・@testing-library/user-event・@testing-library/jest-dom） | 16.3.3・14.6.8・7.0.1 | 新 | 画面が増えるため、部品を表示して確かめる。user-event で入力・クリックをまね、jest-dom で「押せない」「フォーカスがある」などを確かめる |
 | テストの中のブラウザ | jsdom | 30.1.3 | 新 | Vitest の中で画面の部品を表示するため（Node.js にはブラウザの DOM がない） |

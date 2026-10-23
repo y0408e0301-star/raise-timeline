@@ -254,7 +254,7 @@ API サーバーと画面の行は使えます（公開環境の行は予定で�
 
 | 対象 | コマンド（それぞれのフォルダで実行） | 内容 |
 | --- | --- | --- |
-| API サーバー | `.\mvnw.cmd verify` | テスト（JUnit 5・MockMvc。DB は Testcontainers がテスト用の PostgreSQL を Docker で起動する）、書式チェック（spring-javaformat）、静的解析（SpotBugs） |
+| API サーバー | `.\mvnw.cmd verify` | テスト（下の「API サーバーのテストの種類」。DB は Testcontainers がテスト用の PostgreSQL を Docker で起動する）、書式チェック（spring-javaformat）、静的解析（SpotBugs） |
 | 画面 | `npm run lint` | oxlint でコードをチェック。警告が 1 つでもあれば失敗する |
 | 画面 | `npm test` | Vitest・Testing Library のテスト。サーバーは要らない |
 | 画面 | `npm run build` | 型チェックと本番用のビルド |
@@ -262,6 +262,23 @@ API サーバーと画面の行は使えます（公開環境の行は予定で�
 | 公開環境 | `deploy/terraform` で `terraform fmt -check -recursive`・`terraform validate`・`tflint` | Terraform の書式・構文・書き方。AWS には接続しない |
 
 Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）が自動で実行します。いまは API サーバーの `mvnw verify` と、画面の `npm run lint`・`npm test`・`npm run build` です。公開環境のチェックは作ったときに足します（E2E テストは自動では実行しません）。
+
+### API サーバーのテストの種類
+
+`mvnw verify` で、次の 5 種類をまとめて実行します。Controller・Service・Repository を 1 つずつ確かめるテストと、それらをつないで API を通して確かめるテストです。落ちたテストの種類で、どの層に原因があるかが分かります。
+
+| 種類 | クラス名 | 確かめること | 本物を使うもの | 偽物にするもの |
+| --- | --- | --- | --- | --- |
+| 小さなクラスのテスト | `BodyTextTests`・`TimeCursorTests`・`ImageFormatTests` など | 入力の条件と境界値（280 文字と 281 文字など） | そのクラスだけ | なし |
+| Service のテスト | `*ServiceTests` | 処理の順番、エラー、S3 やデータベースに失敗したときの後始末 | Service | Repository・S3・時計（Mockito） |
+| Repository のテスト | `*RepositoryTests`（`@RepositoryTest`） | SQL の結果・並び順・件数、テーブルの制約 | PostgreSQL（Flyway でテーブルを作る） | なし（Controller・Service は動かさない） |
+| Controller のテスト | `*ControllerTests`（`@ControllerTest`） | URL・ステータス・JSON の形、ログインと CSRF トークンが要るか、エラーの形 | Controller・ログインの確かめ方（SecurityConfig） | Service（`@MockitoBean`） |
+| API のテスト | `*ApiTests` | 機能定義書 10 章の観点を、API を通して（Controller から DB・S3 まで） | すべて（S3 は MinIO） | なし |
+
+- **開発用の DB（compose.yaml）と S3 の開発用のバケットは使いません。** DB を使うテストは、Testcontainers が使い捨ての PostgreSQL 17（と S3 の代わりの MinIO）を Docker で起動し、終わったら消します。Docker は動かしておいてください（開発用の DB は止めていても構いません）
+- H2 などのメモリーの DB は使いません。ユーザー検索の pg_trgm や照合順序（`COLLATE "C"`）など、PostgreSQL にしかない機能を本番と同じ形で確かめるためです
+- Repository のテストは、テストごとにトランザクションを巻き戻すので、データは残りません。API のテストは、テストの始めに表を空にします
+- Controller のテストで、ログインした状態は `ControllerTestSupport.loggedIn(ユーザーの ID)` で作ります。spring-security-test の `jwt()` は CSRF の確認を飛ばすため使いません（本アプリは Cookie で JWT を送るので CSRF を確かめています）
 
 ### 画面を通したテスト（E2E テスト）
 
