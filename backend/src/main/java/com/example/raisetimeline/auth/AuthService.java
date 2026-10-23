@@ -15,7 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.raisetimeline.common.ApiException;
 import com.example.raisetimeline.common.ErrorCode;
+import com.example.raisetimeline.user.DisplayNames;
 import com.example.raisetimeline.user.User;
+import com.example.raisetimeline.user.UserIcons;
 import com.example.raisetimeline.user.UserRepository;
 
 // ユーザー登録・ログイン・JWT の取り直し・ログアウト（機能定義書 FN-01）
@@ -34,8 +36,6 @@ class AuthService {
 
 	private static final Pattern HAS_DIGIT = Pattern.compile("[0-9]");
 
-	private static final int DISPLAY_NAME_MAX = 30;
-
 	// BCrypt は先頭の 72 バイトしか使わず、Spring Security はそれより長いと例外にする
 	private static final int BCRYPT_MAX_BYTES = 72;
 
@@ -47,17 +47,20 @@ class AuthService {
 
 	private final PasswordEncoder passwordEncoder;
 
+	private final UserIcons icons;
+
 	private final Clock clock;
 
 	// ユーザーがいないときに、いるときと同じくらい時間をかけるために確かめるハッシュ（FN-01 3.2）
 	private final String dummyPasswordHash;
 
 	AuthService(UserRepository users, RefreshTokenRepository refreshTokens, TokenService tokens,
-			PasswordEncoder passwordEncoder, Clock clock) {
+			PasswordEncoder passwordEncoder, UserIcons icons, Clock clock) {
 		this.users = users;
 		this.refreshTokens = refreshTokens;
 		this.tokens = tokens;
 		this.passwordEncoder = passwordEncoder;
+		this.icons = icons;
 		this.clock = clock;
 		this.dummyPasswordHash = passwordEncoder.encode("dummy-password-0");
 	}
@@ -71,7 +74,7 @@ class AuthService {
 	@Transactional
 	LoginResult signup(@Nullable String rawUsername, @Nullable String rawDisplayName, @Nullable String password) {
 		String username = validUsername(rawUsername);
-		String displayName = validDisplayName(rawDisplayName);
+		String displayName = DisplayNames.valid(rawDisplayName);
 		validatePassword(password);
 		if (this.users.existsByUsername(username)) {
 			throw new ApiException(ErrorCode.USERNAME_TAKEN, "username");
@@ -85,7 +88,7 @@ class AuthService {
 		catch (DataIntegrityViolationException ex) {
 			throw new ApiException(ErrorCode.USERNAME_TAKEN, "username");
 		}
-		return new LoginResult(Me.of(user), this.tokens.issue(user));
+		return new LoginResult(Me.of(user, this.icons), this.tokens.issue(user));
 	}
 
 	// 失敗の回数を増やしたことは、401・423 を返すときもコミットする（noRollbackFor）
@@ -112,7 +115,7 @@ class AuthService {
 			throw new ApiException(user.isLocked(now) ? ErrorCode.LOGIN_LOCKED : ErrorCode.LOGIN_FAILED);
 		}
 		user.recordSuccessfulLogin(now);
-		return new LoginResult(Me.of(user), this.tokens.issue(user));
+		return new LoginResult(Me.of(user, this.icons), this.tokens.issue(user));
 	}
 
 	// リフレッシュトークンを使って、両方のトークンを新しくする（FN-01 3.3、BR-9）。
@@ -136,7 +139,7 @@ class AuthService {
 		current.revoke(now);
 		User user = this.users.findById(current.getUserId())
 			.orElseThrow(() -> new ApiException(ErrorCode.REFRESH_FAILED));
-		return new LoginResult(Me.of(user), this.tokens.issue(user));
+		return new LoginResult(Me.of(user, this.icons), this.tokens.issue(user));
 	}
 
 	// ログアウトしたブラウザのリフレッシュトークンだけを無効にする（ほかのブラウザのログインは続く。FN-01 5 章 No.7）
@@ -153,7 +156,9 @@ class AuthService {
 	@Transactional(readOnly = true)
 	Me me(long userId) {
 		// JWT は正しいがユーザーがいない（運用で消した）ときは、ログインしていないものとして扱う
-		return this.users.findById(userId).map(Me::of).orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
+		return this.users.findById(userId)
+			.map((user) -> Me.of(user, this.icons))
+			.orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
 	}
 
 	private boolean passwordMatches(String password, String hash) {
@@ -173,18 +178,6 @@ class AuthService {
 		return username;
 	}
 
-	private static String validDisplayName(@Nullable String rawDisplayName) {
-		String displayName = (rawDisplayName == null) ? "" : rawDisplayName.strip();
-		if (displayName.isEmpty()) {
-			throw new ApiException(ErrorCode.DISPLAY_NAME_REQUIRED, "displayName");
-		}
-		// 画面では 31 文字目を入力できないため、超えるのは画面を通さずに送られたときだけ（A-4）
-		if (displayName.codePointCount(0, displayName.length()) > DISPLAY_NAME_MAX) {
-			throw new ApiException(ErrorCode.BAD_REQUEST, "displayName");
-		}
-		return displayName;
-	}
-
 	// パスワードはトリムしない（BR-1）
 	private static void validatePassword(@Nullable String password) {
 		if (password == null || !PASSWORD_CHARS.matcher(password).matches() || !HAS_LETTER.matcher(password).find()
@@ -193,11 +186,11 @@ class AuthService {
 		}
 	}
 
-	// 自分の情報（FN-01 6 章）。アイコン（iconUrl）は第 2 版（PF-8〜PF-10）で入れる
+	// 自分の情報（FN-01 6 章）。ヘッダーの自分のアイコン（PF-10）
 	record Me(String username, String displayName, @Nullable String iconUrl) {
 
-		static Me of(User user) {
-			return new Me(user.getUsername(), user.getDisplayName(), null);
+		static Me of(User user, UserIcons icons) {
+			return new Me(user.getUsername(), user.getDisplayName(), icons.url(user));
 		}
 
 	}

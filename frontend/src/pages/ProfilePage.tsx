@@ -25,8 +25,7 @@ type Posts = {
 const initialPosts: Posts = { items: [], nextCursor: null, status: 'loading' }
 
 // G-6 プロフィール画面（画面設計書 9 章、FN-09 PF-1〜PF-4）。上にその人の情報とフォローボタン、
-// 下にその人の投稿を新しい順に 20 件ずつ（読み込み方は G-3 と同じ）。
-// 自分の G-6 の「プロフィールを編集」は第 2 版（開発計画書 4-2）で足す
+// 下にその人の投稿を新しい順に 20 件ずつ（読み込み方は G-3 と同じ）。自分の G-6 には「プロフィールを編集」（PF-3・PF-5）
 export default function ProfilePage() {
   const username = useParams().username ?? ''
   const [state, setState] = useState<ProfileState>({ status: 'loading', profile: null })
@@ -118,7 +117,9 @@ export default function ProfilePage() {
       <section className={styles.profile} aria-label="プロフィール">
         <div className={styles.top}>
           <Avatar displayName={profile.displayName} iconUrl={profile.iconUrl} size={80} />
-          {!profile.me && <FollowButton following={following} onClick={() => void toggle()} />}
+          {profile.me
+            ? <Link to="/settings/profile" className={ui.secondary}>プロフィールを編集</Link>
+            : <FollowButton following={following} onClick={() => void toggle()} />}
         </div>
         <h1 className={styles.name}>{profile.displayName}</h1>
         <p className={styles.username}>@{profile.username}</p>

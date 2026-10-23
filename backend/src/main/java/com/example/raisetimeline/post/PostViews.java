@@ -13,6 +13,7 @@ import com.example.raisetimeline.common.PostCount;
 import com.example.raisetimeline.like.LikeRepository;
 import com.example.raisetimeline.storage.ImageStorage;
 import com.example.raisetimeline.storage.ImageStorage.SignedUrl;
+import com.example.raisetimeline.user.UserIcons;
 
 // 投稿を PostView にする。画像・いいね・コメント数は投稿ごとに SQL を出さず、まとめて 1 回ずつで取る（FN-02 5.2）。
 // 画像の URL は署名付き URL（15 分）にする（FN-04 5 章 No.4）
@@ -27,11 +28,15 @@ class PostViews {
 
 	private final ImageStorage storage;
 
-	PostViews(PostImageRepository images, CommentRepository comments, LikeRepository likes, ImageStorage storage) {
+	private final UserIcons icons;
+
+	PostViews(PostImageRepository images, CommentRepository comments, LikeRepository likes, ImageStorage storage,
+			UserIcons icons) {
 		this.images = images;
 		this.comments = comments;
 		this.likes = likes;
 		this.storage = storage;
+		this.icons = icons;
 	}
 
 	PostView of(Post post, long viewerId) {
@@ -53,7 +58,7 @@ class PostViews {
 			long id = post.getId();
 			PostView.Counts counts = new PostView.Counts(likeCounts.getOrDefault(id, 0L),
 					commentCounts.getOrDefault(id, 0L), liked.contains(id));
-			return PostView.of(post, viewerId, imagesByPost.getOrDefault(id, List.of()), counts);
+			return PostView.of(post, viewerId, imagesByPost.getOrDefault(id, List.of()), counts, this.icons);
 		}).toList();
 	}
 

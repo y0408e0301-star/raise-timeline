@@ -46,9 +46,9 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 @SpringBootTest
 @Import({ TestcontainersConfiguration.class, MutableClock.Config.class })
 @AutoConfigureMockMvc
-class ImageApiTests {
+public class ImageApiTests {
 
-	static final int FIVE_MB = 5 * 1024 * 1024;
+	public static final int FIVE_MB = 5 * 1024 * 1024;
 
 	@Autowired
 	MockMvcTester mvc;
@@ -294,11 +294,11 @@ class ImageApiTests {
 		return objects(this.s3);
 	}
 
-	static List<S3Object> objects(S3Client s3) {
+	public static List<S3Object> objects(S3Client s3) {
 		return s3.listObjectsV2((request) -> request.bucket(TestcontainersConfiguration.BUCKET)).contents();
 	}
 
-	static void emptyBucket(S3Client s3) {
+	public static void emptyBucket(S3Client s3) {
 		for (S3Object object : objects(s3)) {
 			s3.deleteObject((request) -> request.bucket(TestcontainersConfiguration.BUCKET).key(object.key()));
 		}
@@ -309,20 +309,20 @@ class ImageApiTests {
 		return new MockMultipartFile("images", filename, "application/octet-stream", data);
 	}
 
-	// 先頭のバイトだけを合わせた画像（FN-04 4 章）。残りは extra バイトの 0
-	static byte[] jpeg(int extra) {
+	// 先頭のバイトだけを合わせた画像（FN-04 4 章）。残りは extra バイトの 0。アイコン（ProfileEditApiTests）でも使う
+	public static byte[] jpeg(int extra) {
 		return withHead(new byte[] { (byte) 0xFF, (byte) 0xD8, (byte) 0xFF }, extra);
 	}
 
-	static byte[] png(int extra) {
+	public static byte[] png(int extra) {
 		return withHead(new byte[] { (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A }, extra);
 	}
 
-	static byte[] gif(int extra) {
+	public static byte[] gif(int extra) {
 		return withHead("GIF89a".getBytes(StandardCharsets.US_ASCII), extra);
 	}
 
-	static byte[] webp(int extra) {
+	public static byte[] webp(int extra) {
 		return withHead("RIFF\0\0\0\0WEBPVP8 ".getBytes(StandardCharsets.US_ASCII), extra);
 	}
 
@@ -330,7 +330,7 @@ class ImageApiTests {
 		return Arrays.copyOf(head, head.length + extra);
 	}
 
-	private static HttpResponse<byte[]> httpGet(String url) throws IOException, InterruptedException {
+	public static HttpResponse<byte[]> httpGet(String url) throws IOException, InterruptedException {
 		try (HttpClient client = HttpClient.newHttpClient()) {
 			return client.send(HttpRequest.newBuilder(URI.create(url)).build(),
 					HttpResponse.BodyHandlers.ofByteArray());

@@ -15,7 +15,7 @@
 .count { color: var(--sub); font-size: 14px; }
 .over { color: var(--danger); font-weight: bold; }
 
-/* 3.11 アイコン（アイコン画像は第 2 版。それまでは頭文字の丸） */
+/* 3.11 アイコン（アイコン画像か頭文字の丸） */
 .avatar {
   flex: none; border-radius: 50%; overflow: hidden;
   display: inline-flex; align-items: center; justify-content: center;

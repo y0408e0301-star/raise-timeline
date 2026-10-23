@@ -15,6 +15,7 @@ import com.example.raisetimeline.common.Cursors;
 import com.example.raisetimeline.common.ErrorCode;
 import com.example.raisetimeline.post.PostRepository;
 import com.example.raisetimeline.user.User;
+import com.example.raisetimeline.user.UserIcons;
 import com.example.raisetimeline.user.UserRepository;
 
 // コメント（機能定義書 FN-05）
@@ -29,12 +30,16 @@ class CommentService {
 
 	private final UserRepository users;
 
+	private final UserIcons icons;
+
 	private final Clock clock;
 
-	CommentService(CommentRepository comments, PostRepository posts, UserRepository users, Clock clock) {
+	CommentService(CommentRepository comments, PostRepository posts, UserRepository users, UserIcons icons,
+			Clock clock) {
 		this.comments = comments;
 		this.posts = posts;
 		this.users = users;
+		this.icons = icons;
 		this.clock = clock;
 	}
 
@@ -47,8 +52,8 @@ class CommentService {
 		List<Comment> found = this.comments.findAfter(postId, after, Limit.of(PAGE_SIZE + 1));
 		List<Comment> page = found.subList(0, Math.min(found.size(), PAGE_SIZE));
 		String nextCursor = (found.size() > PAGE_SIZE) ? String.valueOf(page.getLast().getId()) : null;
-		return new CommentsResponse(page.stream().map((comment) -> CommentView.of(comment, userId)).toList(),
-				nextCursor);
+		return new CommentsResponse(
+				page.stream().map((comment) -> CommentView.of(comment, userId, this.icons)).toList(), nextCursor);
 	}
 
 	// 本文は投稿と同じ扱いで、トリム後 1〜280 文字（C-2、5 章 No.2）
@@ -61,7 +66,8 @@ class CommentService {
 		requirePost(postId);
 		User author = this.users.findById(userId).orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
 		try {
-			return CommentView.of(this.comments.save(new Comment(postId, author, body, this.clock.instant())), userId);
+			return CommentView.of(this.comments.save(new Comment(postId, author, body, this.clock.instant())), userId,
+					this.icons);
 		}
 		catch (DataIntegrityViolationException ex) {
 			// 確かめた後で投稿が削除された（外部キーの制約に引っかかった）

@@ -1,9 +1,10 @@
-// 入力の確認（機能定義書 FN-01・FN-03・FN-04 4 章）。API でも同じことを確かめる
+// 入力の確認（機能定義書 FN-01・FN-03・FN-04・FN-09 4 章）。API でも同じことを確かめる
 
 export const USERNAME_MAX = 15
 export const DISPLAY_NAME_MAX = 30
 export const PASSWORD_MAX = 64
 export const POST_BODY_MAX = 280
+export const BIO_MAX = 160
 
 // 文字数は Unicode の文字（コードポイント）で数える（画面設計書 3.8）。API の数え方と同じ
 export function countChars(text: string): number {
@@ -40,6 +41,21 @@ const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp)$/i
 // 画面では拡張子と File.type で確かめる。ファイルの中身（先頭のバイト）は API が確かめる
 export function isAcceptableImage(file: File): boolean {
   return file.size <= IMAGE_BYTES_MAX && IMAGE_TYPES.includes(file.type) && IMAGE_EXTENSIONS.test(file.name)
+}
+
+// ---- アイコン画像（FN-09 PF-8）。GIF は使えない
+
+export const ICON_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const ICON_EXTENSIONS = /\.(jpe?g|png|webp)$/i
+
+// 画面では拡張子と File.type で確かめる。ファイルの中身（先頭のバイト）は API が確かめる
+export function isAcceptableIcon(file: File): boolean {
+  return file.size <= IMAGE_BYTES_MAX && ICON_TYPES.includes(file.type) && ICON_EXTENSIONS.test(file.name)
+}
+
+// 自己紹介を 160 文字（コードポイント）までにする。161 文字目以降は入力できない（PF-6）
+export function limitBio(bio: string): string {
+  return countChars(bio) > BIO_MAX ? Array.from(bio).slice(0, BIO_MAX).join('') : bio
 }
 
 // 選んだ画像を今の画像の後ろに足す。添えられない画像は外し（M-13）、合わせて 5 枚以上なら先の 4 枚だけにする（M-12）

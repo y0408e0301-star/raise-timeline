@@ -154,7 +154,7 @@ flowchart LR
 | FN-07 フォロー | 第 1 版 | [fn07-follow.md](docs/functions/fn07-follow.md) | ✅ | ✅ |
 | FN-08 ユーザー検索 | 第 1 版 | [fn08-user-search.md](docs/functions/fn08-user-search.md) | 予定 | 予定 |
 | FN-09 プロフィール（表示） | 第 1 版 | [fn09-profile.md](docs/functions/fn09-profile.md) | ✅ | ✅ |
-| FN-09 プロフィール（編集） | 第 2 版 | 同上 | 予定 | 予定 |
+| FN-09 プロフィール（編集） | 第 2 版 | 同上 | ✅ | ✅ |
 
 ## 技術スタック
 

@@ -37,7 +37,8 @@ public class User {
 	@Column(nullable = false)
 	private String bio = "";
 
-	// アイコンの置き場所（icon_key）は、アイコンの機能（第 2 版、PF-8〜PF-10）を作るときに足す
+	// アイコン画像の S3 のキー（icons/{UUID}.{拡張子}）。設定していなければ null（PF-8〜PF-10）
+	private @Nullable String iconKey;
 
 	@Column(nullable = false)
 	private short failedLoginCount;
@@ -84,6 +85,21 @@ public class User {
 		}
 	}
 
+	// 表示名と自己紹介を変える（PF-5・PF-6）。値は確かめてから渡す
+	public void editProfile(String displayName, String bio, Instant now) {
+		this.displayName = displayName;
+		this.bio = bio;
+		this.updatedAt = now;
+	}
+
+	// アイコンを差し替える（null なら外す）。前のキーを返すので、呼んだ側が S3 から消す（BR-10）
+	public @Nullable String changeIcon(@Nullable String iconKey, Instant now) {
+		String previous = this.iconKey;
+		this.iconKey = iconKey;
+		this.updatedAt = now;
+		return previous;
+	}
+
 	public long getId() {
 		if (this.id == null) {
 			throw new IllegalStateException("まだ保存していないユーザーです");
@@ -101,6 +117,10 @@ public class User {
 
 	public String getBio() {
 		return this.bio;
+	}
+
+	public @Nullable String getIconKey() {
+		return this.iconKey;
 	}
 
 	// 登録した日時（G-6 の「2026年10月から利用」。PF-1）

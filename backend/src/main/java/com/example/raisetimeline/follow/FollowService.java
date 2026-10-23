@@ -17,6 +17,7 @@ import com.example.raisetimeline.common.ErrorCode;
 import com.example.raisetimeline.common.TimeCursor;
 import com.example.raisetimeline.user.User;
 import com.example.raisetimeline.user.UserRepository;
+import com.example.raisetimeline.user.UserIcons;
 import com.example.raisetimeline.user.UserSummary;
 
 // フォロー（機能定義書 FN-07）
@@ -29,11 +30,14 @@ class FollowService {
 
 	private final UserRepository users;
 
+	private final UserIcons icons;
+
 	private final Clock clock;
 
-	FollowService(FollowRepository follows, UserRepository users, Clock clock) {
+	FollowService(FollowRepository follows, UserRepository users, UserIcons icons, Clock clock) {
 		this.follows = follows;
 		this.users = users;
+		this.icons = icons;
 		this.clock = clock;
 	}
 
@@ -89,7 +93,7 @@ class FollowService {
 		Set<Long> followed = new HashSet<>(
 				this.follows.findFolloweeIds(viewerId, page.stream().map((row) -> row.user().getId()).toList()));
 		List<UserSummary> items = page.stream()
-			.map((row) -> UserSummary.of(row.user(), viewerId, followed.contains(row.user().getId())))
+			.map((row) -> UserSummary.of(row.user(), viewerId, followed.contains(row.user().getId()), this.icons))
 			.toList();
 		return new FollowsResponse(items, nextCursor);
 	}
