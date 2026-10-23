@@ -85,6 +85,14 @@ describe('ユーザー登録（G-2）', () => {
     expect(await screen.findByText('このユーザー ID は使われています。')).toBeInTheDocument()
   })
 
+  it('表示名は 30 文字（コードポイント）まで。絵文字も 1 文字と数え、31 文字目は入力できない', async () => {
+    mockFetch(notLoggedIn)
+    renderAt('/signup')
+    await userEvent.click(await screen.findByLabelText('表示名'))
+    await userEvent.paste('😀'.repeat(31))
+    expect(Array.from((screen.getByLabelText('表示名') as HTMLInputElement).value)).toHaveLength(30)
+  })
+
   it('登録すると G-3 に移る', async () => {
     const fetch = mockFetch({
       ...notLoggedIn,

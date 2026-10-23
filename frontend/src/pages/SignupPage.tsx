@@ -4,7 +4,7 @@ import { ApiError, isUsernameAvailable, signup } from '../api'
 import { useAuth } from '../auth/AuthContext'
 import { M } from '../messages'
 import {
-  DISPLAY_NAME_MAX, PASSWORD_MAX, USERNAME_MAX, isValidDisplayName, isValidPassword, isValidUsername,
+  DISPLAY_NAME_MAX, PASSWORD_MAX, USERNAME_MAX, isValidDisplayName, isValidPassword, isValidUsername, limitChars,
 } from '../validation'
 import styles from './AuthPage.module.css'
 
@@ -36,7 +36,9 @@ export default function SignupPage() {
   const inputs = useRef<Partial<Record<Key, HTMLInputElement | null>>>({})
 
   // 入力したら、その入力欄のメッセージを消す（画面設計書 3.4）
+  // 表示名は 31 文字目（コードポイント）を入力できない（A-4）
   function change(key: Key, value: string) {
+    if (key === 'displayName') value = limitChars(value, DISPLAY_NAME_MAX)
     setValues((v) => ({ ...v, [key]: value }))
     setErrors((e) => ({ ...e, [key]: undefined }))
   }
@@ -80,7 +82,7 @@ export default function SignupPage() {
     }
   }
 
-  function renderField(key: Key, label: string, type: string, autoComplete: string, maxLength: number, hint?: string) {
+  function renderField(key: Key, label: string, type: string, autoComplete: string, maxLength?: number, hint?: string) {
     const id = `signup-${key}`
     const error = errors[key]
     return (
@@ -104,7 +106,7 @@ export default function SignupPage() {
       <h1 className={styles.subtitle}>アカウントを作る</h1>
       <form onSubmit={handleSubmit} noValidate>
         {renderField('username', 'ユーザー ID', 'text', 'username', USERNAME_MAX, '3〜15 文字の半角英数字と「_」')}
-        {renderField('displayName', '表示名', 'text', 'nickname', DISPLAY_NAME_MAX)}
+        {renderField('displayName', '表示名', 'text', 'nickname')}
         {renderField('password', 'パスワード', 'password', 'new-password', PASSWORD_MAX, '英字と数字を含む 8〜64 文字の半角文字')}
         {renderField('passwordConfirm', 'パスワード（確認）', 'password', 'new-password', PASSWORD_MAX)}
         {message && <div className={styles.message} role="alert">{message}</div>}

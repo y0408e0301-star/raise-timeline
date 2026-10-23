@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { searchUrl } from '../api'
-import { SEARCH_QUERY_MAX } from '../validation'
+import { limitChars, SEARCH_QUERY_MAX } from '../validation'
 import styles from './SearchBox.module.css'
 
 type Props = {
@@ -34,8 +34,8 @@ export default function SearchBox({ initialQuery, autoFocus, className }: Props)
     <search className={`${styles.wrap} ${className}`}>
       <form className={styles.box} onSubmit={submit}>
         <input ref={inputRef} type="search" className={styles.input} placeholder="ユーザーを検索"
-          aria-label="ユーザーを検索する文字" maxLength={SEARCH_QUERY_MAX} enterKeyHint="search"
-          value={query} onChange={(e) => setQuery(e.target.value)} />
+          aria-label="ユーザーを検索する文字" enterKeyHint="search"
+          value={query} onChange={(e) => setQuery(limitChars(e.target.value, SEARCH_QUERY_MAX))} />
         <button type="submit" className={styles.button} aria-label="検索">🔍</button>
       </form>
     </search>

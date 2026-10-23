@@ -3,11 +3,10 @@ package com.example.raisetimeline;
 import java.net.URI;
 
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistrar;
 import org.testcontainers.containers.MinIOContainer;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import com.github.dockerjava.api.command.InspectContainerResponse;
@@ -21,6 +20,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 // 開発用の DB（compose.yaml）と S3 の開発用バケットは使わないので、AWS の鍵がなくてもテストできる（Docker は動かしておく）。
 // テストクラスどうしで Spring のコンテキストを使い回すので、コンテナは 1 回だけ起動する
 @TestConfiguration(proxyBeanMethods = false)
+@Import(DatabaseTestConfiguration.class)
 public class TestcontainersConfiguration {
 
 	public static final String BUCKET = "rt-images-test";
@@ -30,13 +30,6 @@ public class TestcontainersConfiguration {
 	private static final DockerImageName MINIO = DockerImageName
 		.parse("chainguard/minio@sha256:709099319add48dfb44aa596a7070d3ddd8dd04d7ae881765719aec29df9e510")
 		.asCompatibleSubstituteFor("minio/minio");
-
-	@Bean
-	@ServiceConnection
-	PostgreSQLContainer postgresContainer() {
-		// 開発用・本番と同じ版（compose.yaml）
-		return new PostgreSQLContainer("postgres:17");
-	}
 
 	// 起動したらテスト用のバケットを作る
 	@Bean

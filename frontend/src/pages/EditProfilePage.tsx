@@ -7,7 +7,9 @@ import { remainingText } from '../components/textarea'
 import { useToast } from '../components/ToastContext'
 import ui from '../components/ui.module.css'
 import { M } from '../messages'
-import { BIO_MAX, countChars, DISPLAY_NAME_MAX, ICON_TYPES, isAcceptableIcon, isValidDisplayName, limitBio } from '../validation'
+import {
+  BIO_MAX, countChars, DISPLAY_NAME_MAX, ICON_TYPES, isAcceptableIcon, isValidDisplayName, limitBio, limitChars,
+} from '../validation'
 import head from './PostPage.module.css'
 import styles from './EditProfilePage.module.css'
 
@@ -167,11 +169,12 @@ export default function EditProfilePage() {
 
         <div className={styles.field}>
           <label htmlFor="displayName">表示名</label>
-          <input ref={nameRef} id="displayName" type="text" maxLength={DISPLAY_NAME_MAX}
+          <input ref={nameRef} id="displayName" type="text"
             value={displayName} aria-invalid={nameError ? true : undefined}
             aria-describedby={nameError ? 'displayName-error' : undefined}
             onChange={(e) => {
-              setDisplayName(e.target.value)
+              // 31 文字目（コードポイント）は入力できない（PF-6）
+              setDisplayName(limitChars(e.target.value, DISPLAY_NAME_MAX))
               setNameError(null)
             }} />
           {nameError && <p className={styles.error} id="displayName-error">{nameError}</p>}
