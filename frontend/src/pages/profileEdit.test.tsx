@@ -113,6 +113,20 @@ describe('表示名・自己紹介（PF-5〜PF-7）', () => {
     expect(fetch.keys().filter((k) => k.includes('/api/me/icon'))).toEqual([])
   })
 
+  it('表示名は 30 文字（コードポイント）まで。絵文字だけでも 30 文字入れて保存できる', async () => {
+    const fetch = renderAt('/settings/profile', {
+      'PATCH /api/me/profile': () => json(200, profile({ displayName: '😀'.repeat(30) })),
+    })
+    await opened()
+    await user().clear(nameInput())
+    await user().paste('😀'.repeat(31))
+    expect(Array.from(nameInput().value)).toHaveLength(30)
+    await user().click(save())
+    await waitFor(() => expect(fetch.keys()).toContain('PATCH /api/me/profile'))
+    const patch = fetch.calls.find((c) => c.key === 'PATCH /api/me/profile')
+    expect(sent(patch?.init)).toMatchObject({ displayName: '😀'.repeat(30) })
+  })
+
   it('自己紹介は 160 文字まで。161 文字目は入力できない', async () => {
     renderAt('/settings/profile', { 'GET /api/users/taro_y': () => json(200, profile({ bio: '' })) })
     await opened()

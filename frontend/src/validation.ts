@@ -22,9 +22,16 @@ export function isValidPassword(password: string): boolean {
   return /^[\x20-\x7E]{8,64}$/.test(password) && /[A-Za-z]/.test(password) && /\d/.test(password)
 }
 
+// text を max 文字（コードポイント）までにし、超えた分は入力できないようにする。
+// 入力欄の maxLength は UTF-16 の長さで数える（絵文字 1 文字を 2 と数える）ので使わない
+export function limitChars(text: string, max: number): string {
+  return countChars(text) > max ? Array.from(text).slice(0, max).join('') : text
+}
+
 // トリムした後の値を渡す。1〜30 文字
 export function isValidDisplayName(displayName: string): boolean {
-  return displayName.length >= 1 && displayName.length <= DISPLAY_NAME_MAX
+  const length = countChars(displayName)
+  return length >= 1 && length <= DISPLAY_NAME_MAX
 }
 
 // 投稿の本文の残りの文字数（W-2）。トリムした後で数える。負の数なら送れない
@@ -56,7 +63,7 @@ export function isAcceptableIcon(file: File): boolean {
 
 // 自己紹介を 160 文字（コードポイント）までにする。161 文字目以降は入力できない（PF-6）
 export function limitBio(bio: string): string {
-  return countChars(bio) > BIO_MAX ? Array.from(bio).slice(0, BIO_MAX).join('') : bio
+  return limitChars(bio, BIO_MAX)
 }
 
 // 選んだ画像を今の画像の後ろに足す。添えられない画像は外し（M-13）、合わせて 5 枚以上なら先の 4 枚だけにする（M-12）

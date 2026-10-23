@@ -29,9 +29,11 @@ describe('SearchBox', () => {
     expect(location()).toHaveTextContent('/users/hanako')
   })
 
-  it('30 文字までしか入力できない', async () => {
+  it('30 文字（コードポイント）までしか入力できず、絵文字も 1 文字と数える', async () => {
     renderComponent(<SearchBox initialQuery="" autoFocus={false} className="" />)
-    expect(input()).toHaveAttribute('maxLength', '30')
+    await userEvent.click(input())
+    await userEvent.paste('😀'.repeat(31))
+    expect(Array.from((input() as HTMLInputElement).value)).toHaveLength(30)
   })
 
   it('G-9 では検索した文字を入れておき、指定されたら入力欄にカーソルを置く', () => {
