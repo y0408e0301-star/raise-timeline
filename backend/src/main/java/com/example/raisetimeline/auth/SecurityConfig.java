@@ -29,6 +29,7 @@ import org.springframework.web.util.WebUtils;
 
 import com.example.raisetimeline.common.ErrorCode;
 import com.example.raisetimeline.common.ErrorResponse;
+import com.example.raisetimeline.web.RequestLogFilter;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -70,6 +71,8 @@ class SecurityConfig {
 			// spa() は Cookie を出すのをトークンが使われるまで遅らせる。画面が最初の GET で受け取れるよう、毎回出す
 			.addFilterAfter(SecurityConfig::loadCsrfToken, CsrfFilter.class)
 			.addFilter(accessTokenFilter(jwtDecoder, unauthorized))
+			// リクエストのログにログインした人の ID を付ける（基本設計書 2.3）
+			.addFilterAfter(RequestLogFilter::recordUser, BearerTokenAuthenticationFilter.class)
 			.exceptionHandling((exceptions) -> exceptions.authenticationEntryPoint(unauthorized)
 				// CSRF トークンがない・合わないときなど
 				.accessDeniedHandler((request, response, ex) -> writeError(response, jsonMapper, ErrorCode.FORBIDDEN)));

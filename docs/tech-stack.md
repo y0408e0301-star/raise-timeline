@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-TECH |
-| 版数 | 0.9 |
+| 版数 | 0.10 |
 | 作成日 | 2026-10-16 |
 | 最終更新日 | 2026-10-24 |
 | 作成者 | （氏名） |
@@ -23,6 +23,7 @@
 | 0.7 | 2026-10-23 | 画面を通したテスト（Playwright 1.63.0）を入れ、ブラウザはパソコンの Microsoft Edge を使うことにした（3.5） | （氏名） |
 | 0.8 | 2026-10-24 | API のテストに、Controller・Service・Repository を 1 つずつ確かめる単体テストを足した。Mockito と、Spring Boot のテスト用の部品（@WebMvcTest・@DataJpaTest）を使う（3.5）。テスト用の DB は今までどおり Testcontainers の PostgreSQL とし、H2 は使わない | （氏名） |
 | 0.9 | 2026-10-24 | API の仕様書（OpenAPI）をコードから作る springdoc-openapi（3.1.1）を 3.1 に、画面の型を作る openapi-typescript（7.13.0）と、配布用の HTML を作る Redocly CLI（2.62.1）を 3.5 に追加した（基本設計書 2.1.1） | （氏名） |
+| 0.10 | 2026-10-24 | ログを構造化ログ（JSON。ECS 形式）にする Spring Boot の標準の機能を 3.1 に追加し、3.4 の CloudWatch の用途を書いた（基本設計書 2.3） | （氏名） |
 
 ## 承認
 
@@ -98,6 +99,7 @@
 | JWT の作成・確認 | Spring Boot Starter Security OAuth2 Resource Server（spring-boot-starter-security-oauth2-resource-server。中で Nimbus JOSE + JWT を使う） | 同上 | 新 | JWT（HS256）の署名・期限の確認と、ログインのときの JWT の作成（JwtEncoder）。Cookie から JWT を読むところだけを自分で書く（機能定義書 3.2）。JWT を作るライブラリ（jjwt など）を別に足さなくてよい |
 | 稼働の確認 | Spring Boot Starter Actuator | 同上 | 新 | 公開した後の稼働の確認（/actuator/health。反映・起動のスクリプトが CloudFront の URL で確かめる） |
 | API の仕様書 | springdoc-openapi（springdoc-openapi-starter-webmvc-ui） | 3.1.1（pom.xml の springdoc.version） | 新 | Controller・record から OpenAPI 3.1 の仕様書を作り、開発中は Swagger UI で見る（基本設計書 2.1.1）。3.x が Spring Boot 4 に対応している。公開先では出さない |
+| ログ | Spring Boot の構造化ログ（Logback。ECS 形式） | Spring Boot 4.1.1 に含まれる | 新 | 公開先ではログを 1 行 1 つの JSON で出し、CloudWatch Logs Insights で項目ごとに探す（基本設計書 2.3）。Spring Boot の標準の機能なので、ライブラリ（logstash-logback-encoder など）を足さなくてよい |
 | S3 の操作 | AWS SDK for Java 2.x（s3） | 2.56.0（BOM の software.amazon.awssdk:bom で固定し、pom.xml の aws-sdk.version に書く） | 新 | 画像の保存・削除と署名付き URL（条件 3）。接続先を変えれば MinIO にも使える |
 | ビルド | Maven | 3.9.16（Maven Wrapper 3.3.4） | ○ | mvnw をリポジトリに入れる |
 
@@ -140,7 +142,7 @@ kadai で使っている dnd-kit（ドラッグ＆ドロップ）は、本アプ
 | 画像の保存先 | Amazon S3 | | 新 | P-2 |
 | 秘密の値 | AWS Systems Manager Parameter Store | | 新 | N-16。kadai は AMI を探すのにだけ使っている |
 | サーバーの操作 | AWS Systems Manager Session Manager | | 新 | SSH を開けずに EC2 を操作する |
-| ログ・監視 | Amazon CloudWatch | | 新 | |
+| ログ・監視 | Amazon CloudWatch | | 新 | API のログ（JSON）を CloudWatch Logs に集め、Logs Insights で探す（基本設計書 2.3）。EC2・RDS のアラーム |
 | 費用の通知 | AWS Budgets | | 新 | R-1 |
 | AWS の構築 | Terraform | 1.16.5（required_version = ">= 1.9"） | ○ | 消して作り直すことが多いため（インフラ設計書 8 章） |
 | Terraform の AWS プロバイダー | hashicorp/aws | 6.68.0（version = "~> 6.0"） | ○ | |

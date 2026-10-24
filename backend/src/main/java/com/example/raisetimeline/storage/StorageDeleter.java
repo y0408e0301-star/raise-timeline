@@ -33,7 +33,7 @@ public class StorageDeleter {
 				this.storage.delete(key);
 			}
 			catch (RuntimeException ex) {
-				log.warn("S3 のファイル {} を消せなかったので、あとで消し直します", key, ex);
+				log.atWarn().addKeyValue("storage.key", key).setCause(ex).log("S3 のファイル {} を消せなかったので、あとで消し直します", key);
 				if (!this.deletions.existsByStorageKey(key)) {
 					this.deletions.save(new StorageDeletion(key, this.clock.instant()));
 				}
@@ -52,10 +52,13 @@ public class StorageDeleter {
 				deleted++;
 			}
 			catch (RuntimeException ex) {
-				log.warn("S3 のファイル {} をまた消せませんでした", deletion.getStorageKey(), ex);
+				log.atWarn()
+					.addKeyValue("storage.key", deletion.getStorageKey())
+					.setCause(ex)
+					.log("S3 のファイル {} をまた消せませんでした", deletion.getStorageKey());
 			}
 		}
-		log.info("S3 から消せていなかったファイルを {} 件消しました", deleted);
+		log.atInfo().addKeyValue("deleted.count", deleted).log("S3 から消せていなかったファイルを {} 件消しました", deleted);
 	}
 
 }

@@ -3,9 +3,9 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-BD-INFRA |
-| 版数 | 0.6 |
+| 版数 | 0.7 |
 | 作成日 | 2026-10-16 |
-| 最終更新日 | 2026-10-23 |
+| 最終更新日 | 2026-10-24 |
 | 作成者 | （氏名） |
 | 上位文書 | [基本設計書](basic-design.md)（RT-BD） |
 | 元にした文書 | [要件定義書](../requirements/requirements.md)（RT-REQ）版数 0.9 の P-2〜P-4・11 章、[技術スタック定義書](../tech-stack.md) 版数 0.6 |
@@ -21,6 +21,7 @@
 | 0.4 | 2026-10-19 | 開発中の画像の保存先を MinIO から S3 の開発用のバケットに変更し、自動のテストでは MinIO を使うことにした（6 章） | （氏名） |
 | 0.5 | 2026-10-23 | ALB をなくし、CloudFront → EC2 の構成に変更した（1〜8 章）。EC2 は 1 台で振り分けが要らず、ALB は止められないのに月 約 3,000 円かかるため。独自ドメインは取らず、CloudFront の URL で公開することにした（9 章 No.1）。Route 53・ACM をなくし、セキュリティグループの番号を振り直した（SG-1 が EC2、SG-2 が RDS）。費用の目安を 約 8,700 円から 約 5,600 円に直した（7 章） | （氏名） |
 | 0.6 | 2026-10-23 | 画面を jar に入れる方法（Maven のプロファイル with-frontend）、画面の URL の振り分け、キャッシュの決まりを書いた（5.2・5.3） | （氏名） |
+| 0.7 | 2026-10-24 | CloudWatch Logs に送る API のログを、1 行 1 つの JSON（ECS 形式）にしたことを書いた（3.3。基本設計書 2.3） | （氏名） |
 
 本書は基本設計書の一部である。承認は[基本設計書](basic-design.md)で一括して行う。表記のルールは基本設計書 1.3 のとおり。
 
@@ -112,7 +113,7 @@ flowchart LR
 | --- | --- | --- |
 | IAM ロール（EC2） | rt-app-role | S3：rt-images-{アカウント ID}/posts/*・icons/* への PutObject・GetObject・DeleteObject と、rt-deploy-{アカウント ID}/app/* の GetObject のみ。Systems Manager：AmazonSSMManagedInstanceCore。Parameter Store：/rt/ の下の読み取り。CloudWatch：ログの書き込み |
 | Parameter Store | /rt/db/password、/rt/jwt/secret など | データベースのパスワード、JWT の署名に使う秘密の値（32 バイト以上の乱数。N-16・R-7）。SecureString（暗号化）で置く。JWT の秘密の値を変えると、全員のアクセストークンが使えなくなる |
-| CloudWatch Logs | /rt/app | Spring Boot のログ。30 日で消す |
+| CloudWatch Logs | /rt/app | Spring Boot のログ。標準出力に 1 行 1 つの JSON（ECS 形式）で出したものを送り、Logs Insights で項目（ステータス・リクエスト ID・ユーザー ID など）ごとに探す（基本設計書 2.3）。30 日で消す |
 | CloudWatch アラーム | | EC2 のステータスチェックの失敗、RDS の空き容量 2GB 未満で、メールを送る |
 | AWS Budgets | rt-budget | 月の費用が予算（R-1）を超えそうなときにメールを送る |
 

@@ -28,7 +28,7 @@ class RefreshTokenCleanup {
 	@Transactional
 	public void deleteExpired() {
 		int deleted = this.refreshTokens.deleteExpired(this.clock.instant());
-		log.info("期限切れのリフレッシュトークンを {} 件消しました", deleted);
+		log.atInfo().addKeyValue("deleted.count", deleted).log("期限切れのリフレッシュトークンを {} 件消しました", deleted);
 	}
 
 }
