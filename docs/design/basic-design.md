@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-BD |
-| 版数 | 0.10 |
+| 版数 | 0.11 |
 | 作成日 | 2026-10-16 |
 | 最終更新日 | 2026-10-24 |
 | 作成者 | （氏名） |
@@ -24,6 +24,7 @@
 | 0.8 | 2026-10-23 | ユーザー検索の実装に合わせ、データ設計書を 0.5 にした | （氏名） |
 | 0.9 | 2026-10-23 | 画面を jar に入れて配る方法に合わせ、インフラ設計書を 0.6 にした | （氏名） |
 | 0.10 | 2026-10-24 | 2.1 の「入力・出力の項目の一覧」を、OpenAPI の形式でコードから自動で作ることに決めた（2.1.1） | （氏名） |
+| 0.11 | 2026-10-24 | ログの形式（JSON。ECS 形式）・リクエストのログの項目・出さないもの・閾値を決めた（2.3）。インフラ設計書を 0.7 にした | （氏名） |
 
 ## 承認
 
@@ -113,6 +114,50 @@ flowchart LR
 | 定期の処理 | 期限切れのリフレッシュトークンの削除（BR-9）と、S3 から消せなかったファイルの削除（BR-5・BR-10）を 1 日 1 回動かす方法 |
 | 費用の確認 | 月 1 回の確認手順と AWS Budgets の設定（R-1） |
 | 障害時の対応 | 障害に気づく方法（CloudWatch）、利用者への連絡、復旧後の確認 |
+
+### 2.3 ログ
+
+API のログは、公開先では 1 行 1 つの JSON（構造化ログ）で標準出力に出す。CloudWatch Logs（インフラ設計書 3.3）で、文の中を探すのではなく、項目（ステータス・ユーザー・リクエスト ID など）で絞り込めるようにするためである。
+
+| 項目 | 決めたこと |
+| --- | --- |
+| 形式 | ECS（Elastic Common Schema）。Spring Boot の標準の機能（`logging.structured.format.console=ecs`）で出し、ライブラリは足さない。項目の名前が決まっているので、ほかのツールでもそのまま読める |
+| 出し方の切り替え | 既定（公開先の `java -jar`）は JSON。開発中（`mvnw spring-boot:run`。dev プロファイル）は、読みやすいテキストで出す |
+| リクエストのログ | `/api/` のリクエストごとに 1 行出す（RequestLogFilter）。画面のファイルと `/actuator/health`（死活の確認で何度も呼ばれる）は出さない。401・403 も記録するため、Spring Security より前で動かす |
+| リクエスト ID | リクエストごとに UUID を作り、そのリクエストの間に出るログすべてに `http.request.id` として付ける。応答のヘッダー `X-Request-Id` でも返し、利用者からの問い合わせのときにログを探せるようにする |
+| 出さないもの | パスワード・JWT・Cookie・リクエストの本文・クエリ文字列（検索語など）。要件定義書 N-12 |
+
+リクエストのログの項目（ECS の項目名）：
+
+| 項目 | 内容 | 例 |
+| --- | --- | --- |
+| `message` | 人が読むための 1 行 | `GET /api/auth/me 200 42ms` |
+| `log.level` | ログのレベル（下の閾値） | `INFO` |
+| `http.request.id` | リクエスト ID | `5af00ed4-6c7d-42a8-a476-ea9bda3369ea` |
+| `http.request.method` | メソッド | `GET` |
+| `url.path` | パス（クエリ文字列を除く） | `/api/auth/me` |
+| `http.response.status_code` | ステータス | `200` |
+| `event.duration` | 処理にかかった時間（ECS の決まりでナノ秒） | `42880100` |
+| `user.id` | ログインした人の ID（users.id）。ログインしていないとき、JWT を確かめる前に止めたとき（CSRF の 403）は付けない | `66` |
+
+このほか、すべての行に `@timestamp`・`log.logger`・`service.name`（raise-timeline）・`service.version`・`process.thread.name`・`ecs.version` が付く。例外は `error.type`・`error.message`・`error.stack_trace` に入る。定期の処理のログは、件数を `deleted.count`、S3 のファイルを `storage.key` として出す。
+
+閾値（一般的な値から始め、運用しながら見直す。値は application.properties）：
+
+| 閾値 | 値 | 理由 |
+| --- | --- | --- |
+| ログのレベル（公開先） | ライブラリも本アプリも INFO 以上 | DEBUG は量が多く、CloudWatch Logs の費用が増えるため |
+| ログのレベル（開発中） | 本アプリは DEBUG 以上、ライブラリは INFO 以上 | 開発中は細かく見たいため |
+| リクエストのログのレベル | 5xx は ERROR、遅いリクエストは WARN、それ以外（4xx を含む）は INFO | 4xx は入力の誤り・ログインの切れなど利用者側の理由で起き、障害ではないため |
+| 遅いリクエスト | 1 秒以上（`app.logging.slow-request-threshold`） | 利用者が待たされていると感じ始める目安。画像の送信は 1 秒を超えることがあるので、WARN が多ければ見直す |
+
+CloudWatch Logs Insights での探し方の例：
+
+```
+fields @timestamp, message, user.id
+| filter http.response.status_code >= 500 or log.level = "WARN"
+| sort @timestamp desc
+```
 
 ---
 

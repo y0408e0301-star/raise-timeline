@@ -369,6 +369,15 @@ API を変えたときは、次の順に作り直してコミットします。
 - 仕様書と Swagger UI は、公開環境では出しません（`mvnw spring-boot:run` で起動したときの dev プロファイルだけで出します）
 - record の項目は、`@Nullable` がなければ必須、あれば null になることがある、として仕様書に書きます。リクエストの項目の条件は `@Schema` で書きます
 
+### ログ
+
+API サーバーのログは、公開用の jar（`java -jar`）では 1 行 1 つの JSON（ECS 形式）で、開発中（`mvnw spring-boot:run`）は読みやすいテキストで出ます（[基本設計書 2.3](docs/design/basic-design.md#23-ログ)）。
+
+- `/api/` のリクエストごとに `GET /api/auth/me 200 42ms` のような 1 行を出し、JSON ではリクエスト ID・ステータス・処理時間・ログインした人の ID を項目として持ちます
+- リクエスト ID は応答のヘッダー `X-Request-Id` でも返します。不具合を調べるときは、ブラウザの開発者ツールでこの値を見て、ログを探します
+- 5xx は ERROR、1 秒以上かかったリクエストは WARN で出します（閾値は `application.properties` の `app.logging.slow-request-threshold`）
+- パスワード・JWT・Cookie・リクエストの本文・クエリ文字列は出しません
+
 ## データベース
 
 `users`・`refresh_tokens` は作りました（`backend/src/main/resources/db/migration/`）。それ以外は予定です。テーブル定義・索引・データのルールは[データ設計書](docs/design/data-design.md)にあります。テーブルは Flyway で作ります（`V1__....sql` から順に。既存の SQL は書き換えず、新しいファイルを足します）。
