@@ -9,6 +9,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,6 +27,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 // ユーザー登録・ログインの API（機能定義書 FN-01 6 章）
 @Tag(name = "FN-01 ユーザー登録・ログイン")
@@ -37,9 +40,12 @@ class AuthController {
 
 	private final AuthCookies cookies;
 
-	AuthController(AuthService authService, AuthCookies cookies) {
+	private final CsrfTokenRepository csrfTokenRepository;
+
+	AuthController(AuthService authService, AuthCookies cookies, CsrfTokenRepository csrfTokenRepository) {
 		this.authService = authService;
 		this.cookies = cookies;
+		this.csrfTokenRepository = csrfTokenRepository;
 	}
 
 	// ユーザー ID の入力欄から離れたときに、使えるかどうかを確かめる
@@ -54,19 +60,22 @@ class AuthController {
 	@ApiResponse(responseCode = "201", description = "登録した")
 	@SecurityRequirements
 	@PostMapping("/signup")
-	ResponseEntity<AuthService.Me> signup(@RequestBody SignupRequest request) {
+	ResponseEntity<AuthService.Me> signup(@RequestBody SignupRequest request, HttpServletRequest httpRequest,
+			HttpServletResponse httpResponse) {
 		AuthService.LoginResult result = this.authService.signup(request.username(), request.displayName(),
 				request.password());
-		return withCookies(ResponseEntity.status(HttpStatus.CREATED), this.cookies.issue(result.tokens()))
-			.body(result.me());
+		signedIn(result, httpRequest, httpResponse);
+		return ResponseEntity.status(HttpStatus.CREATED).body(result.me());
 	}
 
 	@Operation(summary = "ログイン", description = "access_token・refresh_token の Cookie を返す。続けて失敗すると 15 分ロックする（423）")
 	@SecurityRequirements
 	@PostMapping("/login")
-	ResponseEntity<AuthService.Me> login(@RequestBody LoginRequest request) {
+	ResponseEntity<AuthService.Me> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest,
+			HttpServletResponse httpResponse) {
 		AuthService.LoginResult result = this.authService.login(request.username(), request.password());
-		return withCookies(ResponseEntity.ok(), this.cookies.issue(result.tokens())).body(result.me());
+		signedIn(result, httpRequest, httpResponse);
+		return ResponseEntity.ok(result.me());
 	}
 
 	// 取り直しに失敗したときは、使えなくなった Cookie を消してから 401 を返す
@@ -100,6 +109,17 @@ class AuthController {
 	@GetMapping("/me")
 	AuthService.Me me(@AuthenticationPrincipal Jwt jwt) {
 		return this.authService.me(userId(jwt));
+	}
+
+	// ログインした（登録した）ときの Cookie。access_token・refresh_token を出し、CSRF トークンも新しくする。
+	// 新しくするのは、ログインの前に他人が Cookie に仕込んだトークンを、ログインした後も使い続けさせないため
+	// （Spring Security の CsrfAuthenticationStrategy と同じ考え。SecurityConfig）。
+	// CSRF トークンの Cookie はサーブレットの応答に書かれ、ResponseEntity の Set-Cookie はそれを上書きするので、
+	// ここではすべての Cookie をサーブレットの応答に足す
+	private void signedIn(AuthService.LoginResult result, HttpServletRequest request, HttpServletResponse response) {
+		this.cookies.issue(result.tokens())
+			.forEach((cookie) -> response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString()));
+		this.csrfTokenRepository.saveToken(this.csrfTokenRepository.generateToken(request), request, response);
 	}
 
 	// JWT の sub にはユーザーの ID（users.id）が入っている（TokenService）

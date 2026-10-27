@@ -7,6 +7,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -46,6 +47,61 @@ class CsrfCookieTests {
 
 		assertThat(signup("csrf_ok", token, token).statusCode()).isEqualTo(201);
 		assertThat(signup("csrf_ng", token, "wrong").statusCode()).isEqualTo(403);
+	}
+
+	@Test
+	void ログインした状態のAPIではXSRF_TOKENを入れ替えず_登録とログインのときだけ入れ替える() throws Exception {
+		String token = xsrfToken(send(HttpRequest.newBuilder(uri("/api/auth/me")).GET())).orElseThrow();
+
+		// 登録した応答で新しいトークンに入れ替わる（ログインの前に仕込まれたトークンを使い続けさせない）
+		HttpResponse<String> signup = signup("csrf_keep", token, token);
+		assertThat(signup.statusCode()).isEqualTo(201);
+		String afterSignup = xsrfToken(signup).orElseThrow();
+		assertThat(afterSignup).isNotEqualTo(token);
+		String accessToken = cookie(signup, AuthCookies.ACCESS_TOKEN);
+		String cookies = "XSRF-TOKEN=" + afterSignup + "; access_token=" + accessToken;
+
+		// ログインした状態の GET では入れ替わらない。入れ替わると、読み込みの途中で送った POST が 403 になる（#63）
+		for (int i = 0; i < 3; i++) {
+			HttpResponse<String> me = send(HttpRequest.newBuilder(uri("/api/auth/me")).header("Cookie", cookies).GET());
+			assertThat(me.statusCode()).isEqualTo(200);
+			assertThat(xsrfToken(me)).isEmpty();
+		}
+
+		// 同じトークンで、続けて書き込める
+		HttpResponse<String> edit = send(HttpRequest.newBuilder(uri("/api/me/profile"))
+			.headers("Cookie", cookies, "X-XSRF-TOKEN", afterSignup, "Content-Type", "application/json")
+			.method("PATCH", HttpRequest.BodyPublishers.ofString("{\"displayName\":\"新しい名前\",\"bio\":\"\"}")));
+		assertThat(edit.statusCode()).isEqualTo(200);
+		assertThat(xsrfToken(edit)).isEmpty();
+
+		// ログインした応答でも入れ替わる
+		HttpResponse<String> login = send(HttpRequest.newBuilder(uri("/api/auth/login"))
+			.headers("Content-Type", "application/json", "Cookie", "XSRF-TOKEN=" + afterSignup, "X-XSRF-TOKEN",
+					afterSignup)
+			.POST(HttpRequest.BodyPublishers.ofString("{\"username\":\"csrf_keep\",\"password\":\"password1\"}")));
+		assertThat(login.statusCode()).isEqualTo(200);
+		assertThat(xsrfToken(login)).hasValueSatisfying((value) -> assertThat(value).isNotEqualTo(afterSignup));
+	}
+
+	// 応答で受け取った XSRF-TOKEN の Cookie の値。消す Cookie（空の値）は除く
+	private static Optional<String> xsrfToken(HttpResponse<String> response) {
+		return response.headers()
+			.allValues("Set-Cookie")
+			.stream()
+			.filter((value) -> value.startsWith("XSRF-TOKEN=") && !value.startsWith("XSRF-TOKEN=;"))
+			.map((value) -> value.substring("XSRF-TOKEN=".length(), value.indexOf(';')))
+			.reduce((first, last) -> last);
+	}
+
+	private static String cookie(HttpResponse<String> response, String name) {
+		return response.headers()
+			.allValues("Set-Cookie")
+			.stream()
+			.filter((value) -> value.startsWith(name + "="))
+			.map((value) -> value.substring(name.length() + 1, value.indexOf(';')))
+			.findFirst()
+			.orElseThrow();
 	}
 
 	private HttpResponse<String> signup(String username, String cookieToken, String headerToken)
