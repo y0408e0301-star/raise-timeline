@@ -12,8 +12,8 @@ const USAGE = `使い方：npm run perf -- <コマンド>
   clean  データと S3 の画像を消す
   api    API を 1 人で測る（k6。N-2・N-3・N-5）
   load   API を 30 人の同時アクセスで測る（k6。約 6 分半）
-  ui     画面で測る（Playwright。N-1・N-3・N-4、LCP・CLS、JS・CSS の大きさ）
-  mixed  k6 で 30 人の負荷をかけながら、画面で N-1・N-3 を測る
+  ui     画面で測る（Playwright。N-1〜N-5、LCP・CLS、JS・CSS の大きさ）
+  mixed  k6 で 30 人の負荷をかけながら、画面で N-1・N-2・N-3・N-5 を測る
   report perf/results/ の結果を 1 つの表（summary.md）にまとめる
   all    api → load → ui → mixed → report の順にすべて動かす`
 
@@ -124,7 +124,7 @@ async function mixed(): Promise<boolean> {
   const loadEnded = new Promise((resolve) => load.on('exit', resolve))
   console.log('30 人まで増えるのを待ちます（70 秒）')
   await sleep(70_000)
-  const ok = playwright({ PERF_UNDER_LOAD: '1' }, ['--grep', 'N-1|N-3'])
+  const ok = playwright({ PERF_UNDER_LOAD: '1' }, ['--grep', 'N-1|N-2|N-3|N-5'])
   spawnSync('docker', ['kill', '--signal=SIGINT', name], { stdio: 'ignore' })
   await loadEnded
   return ok

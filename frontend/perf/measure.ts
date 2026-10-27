@@ -12,7 +12,7 @@ export const RUNS = Number(process.env.PERF_RUNS ?? 20)
 // k6 で負荷をかけながら測っているか（npm run perf -- mixed）
 export const UNDER_LOAD = process.env.PERF_UNDER_LOAD === '1'
 
-// perf/seed.sql で入れたユーザー。k6 は 1〜30 番を使うので、画面の測定は 41〜43 番を使う
+// perf/seed.sql で入れたユーザー。k6 は 1〜30 番を使うので、画面の測定は 41〜44 番を使う
 export const PASSWORD = 'perf-pass1'
 export const username = (n: number) => `perf_${String(n).padStart(4, '0')}`
 
