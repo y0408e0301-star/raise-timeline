@@ -82,7 +82,9 @@ class AuthApiTests {
 		assertThat(refresh.isHttpOnly()).isTrue();
 		assertThat(refresh.getPath()).isEqualTo("/api/auth");
 		assertThat(refresh.getMaxAge()).isEqualTo(14 * 24 * 60 * 60);
-		assertThat(response.getHeaders("Set-Cookie")).allMatch((header) -> header.contains("SameSite=Lax"));
+		assertThat(response.getHeaders("Set-Cookie")).filteredOn((header) -> !header.startsWith("XSRF-TOKEN="))
+			.hasSize(2)
+			.allMatch((header) -> header.contains("SameSite=Lax"));
 
 		assertThat(this.mvc.get().uri("/api/auth/me").cookie(access)).hasStatusOk()
 			.bodyJson()
