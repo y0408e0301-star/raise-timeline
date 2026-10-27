@@ -3,9 +3,9 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-TECH |
-| 版数 | 0.11 |
+| 版数 | 0.12 |
 | 作成日 | 2026-10-16 |
-| 最終更新日 | 2026-10-27 |
+| 最終更新日 | 2026-10-28 |
 | 作成者 | （氏名） |
 | 元にした文書 | [要件定義書](requirements/requirements.md) 版数 0.6、[基本設計書](design/basic-design.md) 版数 0.4 |
 | 状態 | 承認待ち |
@@ -25,6 +25,7 @@
 | 0.9 | 2026-10-24 | API の仕様書（OpenAPI）をコードから作る springdoc-openapi（3.1.1）を 3.1 に、画面の型を作る openapi-typescript（7.13.0）と、配布用の HTML を作る Redocly CLI（2.62.1）を 3.5 に追加した（基本設計書 2.1.1） | （氏名） |
 | 0.10 | 2026-10-24 | ログを構造化ログ（JSON。ECS 形式）にする Spring Boot の標準の機能を 3.1 に追加し、3.4 の CloudWatch の用途を書いた（基本設計書 2.3） | （氏名） |
 | 0.11 | 2026-10-27 | 性能テスト（基本設計書 2.4）の道具として、k6（2.2.0。Docker のイメージ）を 3.5 に追加した。画面の性能は、今まで使っている Playwright で測る | （氏名） |
+| 0.12 | 2026-10-28 | E2E のアクセシビリティの検査に @axe-core/playwright（4.13.0）を 3.5 に追加した。Playwright の行に、E2E で確かめる範囲と CI で動かすことを書き足した | （氏名） |
 
 ## 承認
 
@@ -161,7 +162,8 @@ kadai で使っている dnd-kit（ドラッグ＆ドロップ）は、本アプ
 | 画面のテスト | Vitest | 5.0.3 | ○ | |
 | 画面の部品のテスト | Testing Library（@testing-library/react・@testing-library/user-event・@testing-library/jest-dom） | 16.3.3・14.6.8・7.0.1 | 新 | 画面が増えるため、部品を表示して確かめる。user-event で入力・クリックをまね、jest-dom で「押せない」「フォーカスがある」などを確かめる |
 | テストの中のブラウザ | jsdom | 30.1.3 | 新 | Vitest の中で画面の部品を表示するため（Node.js にはブラウザの DOM がない） |
-| 画面を通したテスト | Playwright（@playwright/test） | 1.63.0 | ○ | 主な流れ（登録 → 投稿 → いいね → フォロー → 検索）を確かめる。ブラウザはパソコンの Microsoft Edge（kadai と同じ。ブラウザのダウンロードは要らない）。画面の性能テスト（基本設計書 2.4）にも使う |
+| 画面を通したテスト | Playwright（@playwright/test） | 1.63.0 | ○ | 主な流れと各機能のシナリオ、権限・ログインの続き、375px の横幅を確かめる。Pull Request ごとに CI でも動かす（ランナーの中で jar を起動）。ブラウザはパソコンの Microsoft Edge（kadai と同じ。ブラウザのダウンロードは要らない。GitHub のランナーにも入っている）。複数のブラウザで別々のユーザーを同時に操作でき、画面の性能テスト（基本設計書 2.4）にも使えるため、Cypress・Selenium より合う |
+| 画面のアクセシビリティの検査 | @axe-core/playwright | 4.13.0 | 新 | E2E の中で、すべての画面に WCAG 2.1 の A・AA の違反（N-18 のコントラスト比など）がないかを axe-core で確かめる。4.14.0 は公開から 2 週間たっていないため使わない |
 | API の性能テスト | k6（Docker のイメージ grafana/k6） | 2.2.0 | 新 | 1 人・30 人で API を呼び、P95 が要件定義書 11.1 の目標以内かを確かめる（基本設計書 2.4）。JavaScript でシナリオを書け、目標を外すと失敗で終わる。Docker で動かすので、package.json・pom.xml には入れない。JMeter（画面と XML が中心で差分を見にくい）・Gatling（Maven の設定が重い）より軽い |
 | Java の書式 | spring-javaformat | 0.0.48 | ○ | |
 | Java の静的解析 | SpotBugs（spotbugs-maven-plugin） | 4.10.4.1 | ○ | |

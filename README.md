@@ -263,11 +263,11 @@ API サーバーと画面の行は使えます（公開環境の行は予定で�
 | 画面 | `npm run lint` | oxlint でコードをチェック。警告が 1 つでもあれば失敗する |
 | 画面 | `npm test` | Vitest・Testing Library のテスト。サーバーは要らない |
 | 画面 | `npm run build` | 型チェックと本番用のビルド |
-| 画面 | `npm run test:e2e` | Playwright で、登録 → 投稿 → 検索 → フォロー → いいね・コメントの流れを画面から確かめる（下の「画面を通したテスト」） |
+| 画面 | `npm run test:e2e` | Playwright で、主な流れ・各機能のシナリオ・権限・ログインの続き・全画面のアクセシビリティと横幅を画面から確かめる（下の「画面を通したテスト」） |
 | 画面 | `npm run perf -- <コマンド>` | 性能テスト。k6 と Playwright で、要件定義書 11.1 の目標の時間に収まるかを測る（下の「性能テスト」） |
 | 公開環境 | `deploy/terraform` で `terraform fmt -check -recursive`・`terraform validate`・`tflint` | Terraform の書式・構文・書き方。AWS には接続しない |
 
-Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）が自動で実行します。いまは API サーバーの `mvnw verify` と、画面の `npm run gen:api`（作り直した型がコミットしたものと同じか）・`npm run lint`・`npm test`・`npm run build`、API の仕様書の HTML（成果物 `api-spec`）の作成です。公開環境のチェックは作ったときに足します（E2E テストと性能テストは自動では実行しません）。
+Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）が自動で実行します。いまは API サーバーの `mvnw verify` と、画面の `npm run gen:api`（作り直した型がコミットしたものと同じか）・`npm run lint`・`npm test`・`npm run build`、API の仕様書の HTML（成果物 `api-spec`）の作成、E2E テスト（ランナーの中で DB・MinIO・公開用の jar を起動して実行）です。公開環境のチェックは作ったときに足します（性能テストは自動では実行しません）。
 
 ### API サーバーのテストの種類
 
@@ -301,16 +301,27 @@ Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml]
 
 ### 画面を通したテスト（E2E テスト）
 
-[frontend/e2e](frontend/e2e) のテストは、Playwright でブラウザ（パソコンに入っている Microsoft Edge）を動かし、2 人のユーザーを別々のブラウザで操作して、次のことを確かめます。
+[frontend/e2e](frontend/e2e) のテストは、Playwright でブラウザ（パソコンに入っている Microsoft Edge）を動かし、本物の API と DB につないで、利用者の操作の流れ（シナリオ）を確かめます。何人かのユーザーを別々のブラウザで操作し、操作の後に API で読んだ DB の中身と、相手の画面・読み直した画面も確かめます。
 
-- 登録 → 投稿 → ヘッダーの検索欄で相手を探す → フォロー → 「フォロー中」タブに相手の投稿が出る → いいね・コメント
-- 操作の後に、API で読んだ DB の中身が操作どおりになっていること。読み直したときと、相手の画面にも同じものが出ること
-- ログアウトとログインし直し（パスワードが違えばログインできない）
+| ファイル | 確かめること |
+| --- | --- |
+| `main-flow.spec.ts` | 主な流れ（登録 → 投稿 → 検索 → フォロー → いいね・コメント）、ログアウトとログインし直し |
+| `posts.spec.ts` | 投稿の編集・削除と確認ダイアログ（G-11）、280 文字の上限、画像 4 枚の投稿と拡大（G-10）・削除で画像も消える、コメントの削除 |
+| `timeline.spec.ts` | 「フォロー中」「すべて」のタブ、一番下まで見たときの続きの読み込み、フォロー解除 |
+| `profile.spec.ts` | プロフィールの編集（表示名・自己紹介・アイコン）、フォロー中・フォロワーの一覧 |
+| `security.spec.ts` | ログインしていないと使えない（N-10）、他人のものを画面からも API からも変えられない（N-11）、本文の HTML が文字のまま出る（N-15）、5 回の失敗でロック（N-13） |
+| `session.spec.ts` | JWT が切れてもリフレッシュトークンで使い続けられる、ログアウト後・使い回したリフレッシュトークンは使えない（A-8・N-25） |
+| `screens.spec.ts` | すべての画面（G-1〜G-11）に、アクセシビリティの違反（axe-core。WCAG 2.1 の A・AA、N-18 のコントラスト比を含む）と横のスクロール（N-20）がない |
+
+画面の幅は 2 通りで動かします（[playwright.config.ts](frontend/playwright.config.ts) の projects）。`pc`（1280px）ではすべてを、`mobile`（375px）では `main-flow.spec.ts` と `screens.spec.ts` を動かします。
 
 使い方：
 
-- 3 つのサーバー（DB・API・画面）を「起動方法」のとおりに起動してから、`frontend` で `npm run test:e2e` を実行します
-- テストは開発用の DB にユーザーを作ります。ユーザー ID は `e2e_` で始まり、テストを始める前と終わった後に `docker compose exec` で DB から消します（投稿・いいね・フォローも一緒に消えます）。画像は添えないので、S3 には何も残りません
+- 3 つのサーバー（DB・API・画面）を「起動方法」のとおりに起動してから、`frontend` で `npm run test:e2e` を実行します（1 分ほど）。1 つのファイルだけなら `npm run test:e2e -- posts`、片方の幅だけなら `-- --project=pc`
+- 行き先は既定で画面の Vite（5173）です。環境変数 `E2E_BASE_URL` で変えられます（CI は jar の 8080）
+- テストは開発用の DB にユーザーを作ります。ユーザー ID は `e2e_` で始まり、テストを始める前と終わった後に `docker compose exec` で DB から消します（投稿・いいね・フォローも一緒に消えます）
+- 画像を使うテストは S3 の開発用のバケットに画像を置き、テストの中で投稿を消す・アイコンを外して消します。テストが途中で失敗すると、画像が残ることがあります
+- 落ちたテストは `frontend/test-results/` にトレースが残ります。`npx playwright show-trace <trace.zip のパス>` で、操作ごとの画面を見られます
 
 ### 性能テスト
 
