@@ -27,6 +27,8 @@ docs/
 │   └── infra-design.md                … インフラ設計書（AWS の構成図）
 ├── api/
 │   └── openapi.yaml                   … API の仕様書（OpenAPI。コードから自動で作る。手で直さない）
+├── test/
+│   └── performance-test-report.md     … 性能テスト報告書（要件定義書 11.1 の測定の結果）
 ├── tech-stack.md                      … 技術スタック定義書
 └── development-plan.md                … 開発計画書（作る順番と進み具合）
 ```
@@ -43,6 +45,7 @@ docs/
 | [データ設計書](design/data-design.md) | RT-BD-DATA | ER 図、テーブル定義、データのルール、CRUD 表 | 〃 |
 | [インフラ設計書](design/infra-design.md) | RT-BD-INFRA | AWS の構成図、ネットワーク、通信の許可、費用の目安 | 〃 |
 | [API の仕様書](api/openapi.yaml) | | API ごとの入力・出力の項目（型・必須・条件）とエラーの一覧。API のコードから自動で作る（基本設計書 2.1.1） | 承認しない（コードが正本） |
+| [性能テスト報告書](test/performance-test-report.md) | RT-TEST-PERF | 性能（要件定義書 11.1、N-1〜N-5）を測った条件・結果・分かったこと。測り方は基本設計書 2.4 | 本書で行う |
 | [技術スタック定義書](tech-stack.md) | RT-TECH | 使う言語・フレームワーク・サービス・開発ツールと選んだ理由 | 本書で行う |
 | [開発計画書](development-plan.md) | RT-PLAN | 作る順番（段階と Pull Request の単位）、段階ごとの完了条件、どこまでできたか | 本書で行う |
 

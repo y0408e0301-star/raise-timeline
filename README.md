@@ -180,6 +180,7 @@ raise-timeline/
 │   ├── functions/              機能定義書（本体・FN-01〜FN-09）
 │   ├── design/                 基本設計書（本体・画面・データ・インフラ）
 │   ├── api/openapi.yaml        API の仕様書（コードから自動で作る）
+│   ├── test/                   性能テスト報告書
 │   ├── tech-stack.md           技術スタック定義書
 │   └── development-plan.md     開発計画書（作る順番と進み具合）
 ├── perf/                       性能テストのデータ（seed.sql）と API のシナリオ（k6/）。画面の測定は frontend/perf/
