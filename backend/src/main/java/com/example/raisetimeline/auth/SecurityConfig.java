@@ -20,8 +20,11 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
@@ -53,7 +56,8 @@ class SecurityConfig {
 			PathPatternRequestMatcher.pathPattern(HttpMethod.GET, "/api/auth/username-availability"));
 
 	@Bean
-	SecurityFilterChain securityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder, JsonMapper jsonMapper) {
+	SecurityFilterChain securityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder, JsonMapper jsonMapper,
+			CsrfTokenRepository csrfTokenRepository) {
 		AuthenticationEntryPoint unauthorized = (request, response, ex) -> writeError(response, jsonMapper,
 				unauthorized(ex));
 		http.authorizeHttpRequests((authorize) -> authorize.requestMatchers(PUBLIC_API)
@@ -66,8 +70,13 @@ class SecurityConfig {
 			.sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.requestCache((cache) -> cache.disable())
 			// Cookie は自動で送られるため CSRF 対策は続ける。XSRF-TOKEN の Cookie の値を、
-			// 画面が X-XSRF-TOKEN ヘッダーで送り返す（GET 以外のすべての API で確かめる）
-			.csrf((csrf) -> csrf.spa())
+			// 画面が X-XSRF-TOKEN ヘッダーで送り返す（GET 以外のすべての API で確かめる）。
+			// 既定ではログインした状態のリクエストのたびにトークンを作り直す（STATELESS なので、毎回「ログインした」と
+			// みなされる）。読み込みの途中に送った POST が 403 になるので作り直さず、登録・ログインのときだけ
+			// AuthController が作り直す（#63）
+			.csrf((csrf) -> csrf.spa()
+				.csrfTokenRepository(csrfTokenRepository)
+				.sessionAuthenticationStrategy(new NullAuthenticatedSessionStrategy()))
 			// spa() は Cookie を出すのをトークンが使われるまで遅らせる。画面が最初の GET で受け取れるよう、毎回出す
 			.addFilterAfter(SecurityConfig::loadCsrfToken, CsrfFilter.class)
 			.addFilter(accessTokenFilter(jwtDecoder, unauthorized))
@@ -77,6 +86,12 @@ class SecurityConfig {
 				// CSRF トークンがない・合わないときなど
 				.accessDeniedHandler((request, response, ex) -> writeError(response, jsonMapper, ErrorCode.FORBIDDEN)));
 		return http.build();
+	}
+
+	// XSRF-TOKEN の Cookie（spa() の既定と同じく、画面の JavaScript が読めるよう HttpOnly を付けない）
+	@Bean
+	CsrfTokenRepository csrfTokenRepository() {
+		return CookieCsrfTokenRepository.withHttpOnlyFalse();
 	}
 
 	@Bean

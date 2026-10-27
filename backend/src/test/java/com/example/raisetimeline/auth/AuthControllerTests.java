@@ -47,7 +47,7 @@ class AuthControllerTests {
 	}
 
 	@Test
-	void 登録すると201で自分の情報を返し2つのCookieを渡す() {
+	void 登録すると201で自分の情報を返し3つのCookieを渡す() {
 		when(this.authService.signup("taro_y", "たろう", "password1")).thenReturn(RESULT);
 
 		MvcTestResult result = post("/api/auth/signup",
@@ -56,9 +56,11 @@ class AuthControllerTests {
 		assertThat(result).hasStatus(HttpStatus.CREATED)
 			.bodyJson()
 			.isStrictlyEqualTo("{\"username\":\"taro_y\",\"displayName\":\"たろう\",\"iconUrl\":null}");
-		assertThat(setCookies(result)).hasSize(2)
+		// ログインの Cookie と、新しくした CSRF トークン（画面の JavaScript が読むので HttpOnly なし。#63）
+		assertThat(setCookies(result)).hasSize(3)
 			.anySatisfy((cookie) -> assertThat(cookie).startsWith("access_token=new-access;").contains("HttpOnly"))
-			.anySatisfy((cookie) -> assertThat(cookie).startsWith("refresh_token=new-refresh;").contains("HttpOnly"));
+			.anySatisfy((cookie) -> assertThat(cookie).startsWith("refresh_token=new-refresh;").contains("HttpOnly"))
+			.anySatisfy((cookie) -> assertThat(cookie).startsWith("XSRF-TOKEN=").doesNotContain("HttpOnly"));
 	}
 
 	@Test
@@ -80,13 +82,13 @@ class AuthControllerTests {
 	}
 
 	@Test
-	void ログインすると200で2つのCookieを渡す() {
+	void ログインすると200で3つのCookieを渡す() {
 		when(this.authService.login("taro_y", "password1")).thenReturn(RESULT);
 
 		MvcTestResult result = post("/api/auth/login", "{\"username\":\"taro_y\",\"password\":\"password1\"}");
 
 		assertThat(result).hasStatusOk().bodyJson().extractingPath("$.username").isEqualTo("taro_y");
-		assertThat(setCookies(result)).hasSize(2);
+		assertThat(setCookies(result)).hasSize(3).anySatisfy((cookie) -> assertThat(cookie).startsWith("XSRF-TOKEN="));
 	}
 
 	@Test
