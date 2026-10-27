@@ -224,3 +224,88 @@ test('N-4 画像 4 枚（合計 20MB）を投稿してからタイムライン�
   record(info, 'n4-images', '参考', '画像 4 枚（20MB）の投稿 → 画像まで', images)
   expect.soft(result.p95, `N-4 の P95（${result.samples.join(', ')}）`).toBeLessThanOrEqual(10_000)
 })
+
+// タブ（tabpanel）の中に、投稿のカードが count 件以上出るまで待つ
+async function waitForTabCards(page: Page, label: string, count: number): Promise<void> {
+  await page.waitForFunction((arg) =>
+    document.querySelectorAll(`[role="tabpanel"][aria-label="${arg.label}"] article`).length >= arg.count,
+  { label, count }, { polling: 'raf', timeout: 30_000 })
+}
+
+test('N-2 タブを切り替えてから 20 件が出るまで、一番下まで見てから続きの 20 件が出るまで', async ({ browser }, info) => {
+  const context = await newContext(browser, info)
+  const page = await context.newPage()
+  await throttle(page, info)
+  await fillLogin(page, 44)
+  await page.getByRole('button', { name: 'ログイン' }).click()
+  await page.getByRole('link', { name: '自分のプロフィール' }).waitFor()
+  // 最後に開いたタブは覚えられるので、「フォロー中」から始める
+  await page.goto('/?tab=following')
+  await waitForTabCards(page, 'フォロー中', 20)
+
+  // 「すべて」⇔「フォロー中」を交互に押す。切り替えるとすぐタブの名前は変わるが、一覧は API の応答で入れ替わるので、
+  // 応答が届いた後に 20 件そろうまでを測る（応答を待つ前の古い 20 件で止めない）
+  const tabs = { すべて: [] as number[], フォロー中: [] as number[] }
+  for (let i = 0; i < RUNS * 2; i++) {
+    const label = i % 2 === 0 ? 'すべて' : 'フォロー中'
+    const responded = page.waitForResponse((r) => r.url().includes('/api/timeline?') && !r.url().includes('cursor='))
+    const start = now()
+    await page.getByRole('tab', { name: label }).click()
+    expect((await responded).ok()).toBe(true)
+    await waitForTabCards(page, label, 20)
+    tabs[label].push(now() - start)
+  }
+
+  // 続きの読み込み（T-2）。毎回読み直して最初の 20 件にしてから（測らない）、一番下まで動かす
+  const more: number[] = []
+  for (let i = 0; i < RUNS; i++) {
+    await page.goto('/?tab=following')
+    await waitForTabCards(page, 'フォロー中', 20)
+    const start = now()
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+    await waitForTabCards(page, 'フォロー中', 40)
+    more.push(now() - start)
+  }
+  await context.close()
+
+  const results = [
+    record(info, 'n2-tab-all', 'N-2', 'タブ：「すべて」を押す → 20 件', tabs.すべて, { target: 1000 }),
+    record(info, 'n2-tab-following', 'N-2', 'タブ：「フォロー中」を押す → 20 件', tabs.フォロー中, { target: 1000 }),
+    record(info, 'n2-more', 'N-2', '一番下まで見る → 続きの 20 件', more, { target: 1000 }),
+  ]
+  for (const r of results) {
+    expect.soft(r.p95, `${r.label} の P95（${r.samples.join(', ')}）`).toBeLessThanOrEqual(1000)
+  }
+})
+
+test('N-5 ユーザー検索で Enter を押してから結果が出るまで', async ({ browser }, info) => {
+  const context = await newContext(browser, info)
+  const page = await context.newPage()
+  await throttle(page, info)
+  await fillLogin(page, 44)
+  await page.getByRole('button', { name: 'ログイン' }).click()
+  // ヘッダーが出てから（600px 未満の虫めがねのボタンが見えるかを確かめるため）
+  await page.getByRole('link', { name: '自分のプロフィール' }).waitFor()
+
+  const shown: number[] = []
+  for (let i = 0; i < RUNS; i++) {
+    // 毎回違う文字で探す（perf_050〜perf_069。どれも 10 人が一致する）
+    const q = `perf_0${50 + i}`
+    // 600px 未満では、検索欄は虫めがねのボタンで開く（測らない）
+    const toggle = page.getByRole('button', { name: 'ユーザーを検索' })
+    if (await toggle.isVisible()) await toggle.click()
+    const search = page.getByRole('searchbox', { name: 'ユーザーを検索する文字' })
+    await search.fill(q)
+    const responded = page.waitForResponse((r) => r.url().includes(`/api/search/users?q=${q}`))
+    const start = now()
+    await search.press('Enter')
+    expect((await responded).ok()).toBe(true)
+    await page.getByRole('heading', { name: `「${q}」の検索結果` }).waitFor()
+    await expect(page.getByRole('list', { name: '検索結果' }).getByRole('listitem')).toHaveCount(10)
+    shown.push(now() - start)
+  }
+  await context.close()
+
+  const result = record(info, 'n5', 'N-5', '検索：Enter → 結果の一覧', shown, { target: 1000 })
+  expect.soft(result.p95, `N-5 の P95（${result.samples.join(', ')}）`).toBeLessThanOrEqual(1000)
+})

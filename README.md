@@ -332,8 +332,8 @@ Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml]
 | `npm run perf -- seed` | 性能テスト用の DB `raise_timeline_perf` にデータを入れ、タイムラインの画像 100 枚を S3 に置く。何回流しても同じデータになる | 約 1 分 |
 | `npm run perf -- api` | k6 で、1 人で各 API を 50 回ずつ呼ぶ（N-2・N-3・N-5） | 約 30 秒 |
 | `npm run perf -- load` | k6 で、30 人が同時に使う | 約 6 分半 |
-| `npm run perf -- ui` | Playwright（Edge）で、パソコンとスマートフォンの幅で N-1・N-3 を 20 回ずつ測る。回線は下り 10Mbps・上り 30Mbps | 約 3 分 |
-| `npm run perf -- mixed` | k6 で 30 人の負荷をかけながら、画面で N-1・N-3 を測る | 約 3 分 |
+| `npm run perf -- ui` | Playwright（Edge）で、パソコンとスマートフォンの幅で N-1・N-2・N-3・N-5 を 20 回ずつ測る。回線は下り 10Mbps・上り 30Mbps | 約 4 分 |
+| `npm run perf -- mixed` | k6 で 30 人の負荷をかけながら、画面で N-1・N-2・N-3・N-5 を測る | 約 3 分 |
 | `npm run perf -- all` | 上の 4 つを順にすべて動かし、結果を `perf/results/summary.md` にまとめる | 約 15 分 |
 | `npm run perf -- clean` | データと S3 の画像を消す | 数秒 |
 
