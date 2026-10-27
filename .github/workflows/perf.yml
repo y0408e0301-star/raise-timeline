@@ -54,29 +54,13 @@ jobs:
       - run: npm ci
         working-directory: frontend
 
-      - name: DB・MinIO を起動する
+      - name: DB・MinIO・jar（perf プロファイル）を起動する
         if: inputs.base_url == ''
-        run: |
-          docker compose up -d db
-          # 初回は DB を作る間、TCP では受け付けない一時のサーバーで動くので、TCP でつながるまで待つ
-          timeout 60 sh -c 'until docker compose exec -T db pg_isready -q -h 127.0.0.1 -U raise_timeline; do sleep 1; done'
-          docker compose exec -T db createdb -h 127.0.0.1 -U raise_timeline raise_timeline_perf
-          # 自動テストと同じ MinIO（TestcontainersConfiguration と同じダイジェスト）
-          docker run -d --name minio -p 9000:9000 \
-            -e MINIO_ROOT_USER="$S3_ACCESS_KEY" -e MINIO_ROOT_PASSWORD="$S3_SECRET_KEY" \
-            chainguard/minio@sha256:709099319add48dfb44aa596a7070d3ddd8dd04d7ae881765719aec29df9e510 server /data
-          timeout 60 sh -c 'until curl -sf http://localhost:9000/minio/health/live; do sleep 1; done'
-          aws s3 mb "s3://$S3_BUCKET" --endpoint-url "$S3_ENDPOINT"
-
-      - name: 公開用の jar を作って、perf プロファイルで起動する
-        if: inputs.base_url == ''
-        run: |
-          (cd frontend && npm run build)
-          (cd backend && ./mvnw -B -q package -Pwith-frontend -DskipTests)
-          # EC2 と同じヒープの上限（技術スタック定義書 3.4）
-          nohup java -Xmx384m -jar backend/target/backend-0.0.1-SNAPSHOT.jar --spring.profiles.active=perf \
-            > perf/api.log 2>&1 &
-          timeout 120 sh -c 'until curl -sf http://localhost:8080/actuator/health; do sleep 2; done'
+        uses: ./.github/actions/start-app
+        with:
+          profile: perf
+          database: raise_timeline_perf
+          log: perf/api.log
 
       - name: データを入れる
         if: inputs.base_url == ''
