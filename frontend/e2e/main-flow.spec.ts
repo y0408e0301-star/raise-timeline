@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
-import type { Browser, Page } from '@playwright/test'
+import { api, PASSWORD, postCard, runId, searchUsers, signup, submitLogin, user } from './helpers.ts'
+import type { PostView, Profile } from './helpers.ts'
 
 // 主な流れ（登録 → 投稿 → 検索 → フォロー → いいね・コメント）を、本物の API と DB につないで確かめる（開発計画書 3-1、N-24）。
 // 2 人のユーザーをそれぞれ別のブラウザ（コンテキスト）で操作し、操作の後は
@@ -7,44 +8,10 @@ import type { Browser, Page } from '@playwright/test'
 // (2) 読み直しても同じ表示になること、相手の画面にも出ること
 // を確かめる。作ったユーザーは e2e/cleanup.ts が消す
 
-type User = { username: string, displayName: string }
-
-// 前の実行の消し残しと重ならないように、時刻を付ける（ユーザー ID は 15 文字まで）
-const run = Date.now().toString(36).slice(-6)
-const PASSWORD = 'e2e-pass1'
-const user = (suffix: string, name: string): User => ({ username: `e2e_${run}${suffix}`, displayName: `E2E ${name} ${run}` })
-
-// 新しいブラウザ（Cookie を分ける）で G-2 から登録し、ログインした状態のページを返す
-async function signup(browser: Browser, { username, displayName }: User): Promise<Page> {
-  const { baseURL, viewport, locale, timezoneId } = test.info().project.use
-  const context = await browser.newContext({ baseURL, viewport, locale, timezoneId })
-  const page = await context.newPage()
-  await page.goto('/signup')
-  await page.getByLabel('ユーザー ID').fill(username)
-  await page.getByLabel('表示名').fill(displayName)
-  await page.getByLabel('パスワード', { exact: true }).fill(PASSWORD)
-  await page.getByLabel('パスワード（確認）').fill(PASSWORD)
-  await page.getByRole('button', { name: '登録する' }).click()
-  await expect(page.getByRole('link', { name: '自分のプロフィール' })).toBeVisible()
-  return page
-}
-
-// API を呼ぶ（そのページのログインの Cookie を使う。読むだけなので CSRF のトークンは要らない）
-async function api<T>(page: Page, path: string): Promise<T> {
-  const res = await page.request.get(path)
-  expect(res.ok(), `${path} → ${res.status()}`).toBe(true)
-  return (await res.json()) as T
-}
-
-type PostView = { id: number, body: string, likeCount: number, commentCount: number, likedByMe: boolean }
-type Profile = { followerCount: number, followingCount: number, postCount: number, followedByMe: boolean }
-
-const postCard = (page: Page, author: User) => page.getByRole('article', { name: `${author.displayName}の投稿` })
-
 test('登録 → 投稿 → 検索 → フォロー → いいね・コメントが、相手の画面と DB に反映される', async ({ browser }) => {
   const taro = user('t', 'たろう')
   const hana = user('h', 'はなこ')
-  const body = `はじめての投稿です ${run}`
+  const body = `はじめての投稿です ${runId()}`
 
   const taroPage = await signup(browser, taro)
   let postId = 0
@@ -64,9 +31,7 @@ test('登録 → 投稿 → 検索 → フォロー → いいね・コメント
   const hanaPage = await signup(browser, hana)
 
   await test.step('はなこがヘッダーの検索欄でたろうを探してフォローする', async () => {
-    const search = hanaPage.getByRole('searchbox', { name: 'ユーザーを検索する文字' })
-    await search.fill(`@${taro.username}`)
-    await search.press('Enter')
+    await searchUsers(hanaPage, `@${taro.username}`)
     await expect(hanaPage.getByRole('heading', { name: `「@${taro.username}」の検索結果` })).toBeVisible()
     const results = hanaPage.getByRole('list', { name: '検索結果' })
     const row = results.getByRole('listitem', { name: taro.displayName })
@@ -80,9 +45,8 @@ test('登録 → 投稿 → 検索 → フォロー → いいね・コメント
   })
 
   await test.step('自分も検索結果に出て、自分の行にはフォローボタンがない', async () => {
-    const search = hanaPage.getByRole('searchbox', { name: 'ユーザーを検索する文字' })
-    await search.fill(run)
-    await search.press('Enter')
+    // runId はこの実行・この画面の幅で作った 2 人にだけ入っている
+    await searchUsers(hanaPage, runId())
     const results = hanaPage.getByRole('list', { name: '検索結果' })
     await expect(results.getByRole('listitem')).toHaveCount(2)
     await expect(results.getByRole('listitem', { name: hana.displayName }).getByRole('button')).toHaveCount(0)
@@ -138,13 +102,10 @@ test('ログアウトして、ログインし直せる。パスワードが違�
   await page.goto('/')
   await expect(page).toHaveURL(/\/login$/)
 
-  await page.getByLabel('ユーザー ID').fill(jiro.username)
-  await page.getByLabel('パスワード').fill('wrong-pass1')
-  await page.getByRole('button', { name: 'ログイン' }).click()
+  await submitLogin(page, jiro.username, 'wrong-pass1')
   await expect(page.getByRole('alert')).toContainText('ユーザー ID かパスワードが違います。')
 
-  await page.getByLabel('パスワード').fill(PASSWORD)
-  await page.getByRole('button', { name: 'ログイン' }).click()
+  await submitLogin(page, jiro.username, PASSWORD)
   await expect(page.getByRole('link', { name: '自分のプロフィール' })).toHaveAttribute('title',
     `${jiro.displayName}（@${jiro.username}）`)
 })
