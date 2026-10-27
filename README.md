@@ -182,6 +182,7 @@ raise-timeline/
 │   ├── api/openapi.yaml        API の仕様書（コードから自動で作る）
 │   ├── tech-stack.md           技術スタック定義書
 │   └── development-plan.md     開発計画書（作る順番と進み具合）
+├── perf/                       性能テストのデータ（seed.sql）と API のシナリオ（k6/）。画面の測定は frontend/perf/
 ├── mock/                       画面のモック（HTML・CSS・JavaScript だけ。index.html を開く）
 ├── .claude/skills/             Claude Code のスキル（サーバーの起動・品質チェック）
 ├── .githooks/                  main へのコミットなどを止める git フック
@@ -262,9 +263,10 @@ API サーバーと画面の行は使えます（公開環境の行は予定で�
 | 画面 | `npm test` | Vitest・Testing Library のテスト。サーバーは要らない |
 | 画面 | `npm run build` | 型チェックと本番用のビルド |
 | 画面 | `npm run test:e2e` | Playwright で、登録 → 投稿 → 検索 → フォロー → いいね・コメントの流れを画面から確かめる（下の「画面を通したテスト」） |
+| 画面 | `npm run perf -- <コマンド>` | 性能テスト。k6 と Playwright で、要件定義書 11.1 の目標の時間に収まるかを測る（下の「性能テスト」） |
 | 公開環境 | `deploy/terraform` で `terraform fmt -check -recursive`・`terraform validate`・`tflint` | Terraform の書式・構文・書き方。AWS には接続しない |
 
-Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）が自動で実行します。いまは API サーバーの `mvnw verify` と、画面の `npm run gen:api`（作り直した型がコミットしたものと同じか）・`npm run lint`・`npm test`・`npm run build`、API の仕様書の HTML（成果物 `api-spec`）の作成です。公開環境のチェックは作ったときに足します（E2E テストは自動では実行しません）。
+Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）が自動で実行します。いまは API サーバーの `mvnw verify` と、画面の `npm run gen:api`（作り直した型がコミットしたものと同じか）・`npm run lint`・`npm test`・`npm run build`、API の仕様書の HTML（成果物 `api-spec`）の作成です。公開環境のチェックは作ったときに足します（E2E テストと性能テストは自動では実行しません）。
 
 ### API サーバーのテストの種類
 
@@ -308,6 +310,35 @@ Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml]
 
 - 3 つのサーバー（DB・API・画面）を「起動方法」のとおりに起動してから、`frontend` で `npm run test:e2e` を実行します
 - テストは開発用の DB にユーザーを作ります。ユーザー ID は `e2e_` で始まり、テストを始める前と終わった後に `docker compose exec` で DB から消します（投稿・いいね・フォローも一緒に消えます）。画像は添えないので、S3 には何も残りません
+
+### 性能テスト
+
+要件定義書 11.1 の性能（N-1〜N-5）を、要件の量のデータ（ユーザー 1,000 人・投稿 1 万件など）を入れて測ります。方針は[基本設計書 2.4](docs/design/basic-design.md#24-性能テスト)にあります。P95（小さい順に並べて 95% の位置の値）が目標以内なら合格です。時間がかかるので、Pull Request では動かしません。
+
+| コマンド（`frontend` で実行） | 内容 | かかる時間 |
+| --- | --- | --- |
+| `npm run perf -- seed` | 性能テスト用の DB `raise_timeline_perf` にデータを入れ、タイムラインの画像 100 枚を S3 に置く。何回流しても同じデータになる | 約 1 分 |
+| `npm run perf -- api` | k6 で、1 人で各 API を 50 回ずつ呼ぶ（N-2・N-3・N-5） | 約 30 秒 |
+| `npm run perf -- load` | k6 で、30 人が同時に使う | 約 6 分半 |
+| `npm run perf -- ui` | Playwright（Edge）で、パソコンとスマートフォンの幅で N-1・N-3 を 20 回ずつ測る。回線は下り 10Mbps・上り 30Mbps | 約 10 分 |
+| `npm run perf -- mixed` | k6 で 30 人の負荷をかけながら、画面で N-1・N-3 を測る | 約 10 分 |
+| `npm run perf -- all` | 上の 4 つを順にすべて動かし、結果を `perf/results/summary.md` にまとめる | 約 30 分 |
+| `npm run perf -- clean` | データと S3 の画像を消す | 数秒 |
+
+手元で動かす手順：
+
+1. Docker Desktop を起動し、リポジトリのフォルダで `docker compose up -d`
+2. 「公開用の jar を作る」の 1・2 で jar を作る
+3. 8080 の API サーバー（`mvnw spring-boot:run`）が動いていれば止め、リポジトリのフォルダで `java -Xmx384m -jar backend\target\backend-0.0.1-SNAPSHOT.jar --spring.profiles.active=perf` を実行する（perf プロファイルは、開発用の DB ではなく `raise_timeline_perf` につなぐ。ポートは 8080 のまま）
+4. `frontend` で `npm run perf -- seed`（初回は DB を作って止まるので、3 の API を起動し直してから、もう一度実行する。表は API の起動のときに Flyway が作る）
+5. `npm run perf -- all`（または `api`・`ui` など 1 つずつ）
+
+- k6 は Docker のイメージ（`grafana/k6:2.2.0`）で動くので、入れる必要はありません。Playwright はパソコンの Edge を使います
+- 画像 4 枚（20MB）の投稿（N-4）は、`PERF_UPLOAD=1` を付けたときだけ測ります。手元では API から S3 への送信が家の回線を通るので、公開先とは条件が違うためです
+- 測る回数は `PERF_RUNS`（既定 20）、測る先は `PERF_BASE_URL`（既定 `http://localhost:8080`）で変えられます
+- 手元とランナーの数値は参考です。合否は公開先（AWS）で測った値で決めます
+
+GitHub Actions で動かす：Actions の画面で「性能テスト」を選び、「Run workflow」を押します（[.github/workflows/perf.yml](.github/workflows/perf.yml)）。測る先を空にすると、ランナーの中で DB・MinIO（S3 の代わり）・jar を起動してデータを入れ、N-4 を含めてすべて測ります。公開先の URL を入れると、そこを測ります（先に公開先の DB に `perf/seed.sql` のデータを入れておき、終わったら `perf_` で始まるユーザーを消します）。結果は実行結果の画面の Summary と、成果物 `perf-results` で見られます。
 
 ## API
 
