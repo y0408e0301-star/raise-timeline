@@ -7,9 +7,6 @@
 name: 性能テスト
 
 on:
-  # 一時的：PR の前にワークフローを確かめるため（確かめたら消す）
-  push:
-    branches: [feat/60-performance-tests]
   workflow_dispatch:
     inputs:
       base_url:
