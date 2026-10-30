@@ -12,6 +12,12 @@ source deploy/lib.sh
 db_id=$(tf_output db_instance_id)
 status=$(db_status)
 echo "== RDS（$db_id）: $status"
+# 止めている途中は起動を受け付けないので、止まりきるのを待つ（stop.sh の直後に実行したとき）
+if [[ "$status" == stopping ]]; then
+  echo "止まりきるのを待っています"
+  aws rds wait db-instance-stopped --db-instance-identifier "$db_id"
+  status=stopped
+fi
 if [[ "$status" == stopped ]]; then
   aws rds start-db-instance --db-instance-identifier "$db_id" >/dev/null
 fi
