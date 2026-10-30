@@ -3,9 +3,9 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-TECH |
-| 版数 | 0.12 |
+| 版数 | 0.13 |
 | 作成日 | 2026-10-16 |
-| 最終更新日 | 2026-10-28 |
+| 最終更新日 | 2026-10-30 |
 | 作成者 | （氏名） |
 | 元にした文書 | [要件定義書](requirements/requirements.md) 版数 0.6、[基本設計書](design/basic-design.md) 版数 0.4 |
 | 状態 | 承認待ち |
@@ -26,6 +26,7 @@
 | 0.10 | 2026-10-24 | ログを構造化ログ（JSON。ECS 形式）にする Spring Boot の標準の機能を 3.1 に追加し、3.4 の CloudWatch の用途を書いた（基本設計書 2.3） | （氏名） |
 | 0.11 | 2026-10-27 | 性能テスト（基本設計書 2.4）の道具として、k6（2.2.0。Docker のイメージ）を 3.5 に追加した。画面の性能は、今まで使っている Playwright で測る | （氏名） |
 | 0.12 | 2026-10-28 | E2E のアクセシビリティの検査に @axe-core/playwright（4.13.0）を 3.5 に追加した。Playwright の行に、E2E で確かめる範囲と CI で動かすことを書き足した | （氏名） |
+| 0.13 | 2026-10-30 | 公開の構成の変更（インフラ設計書 0.8）に合わせ、3.4 の EC2・Corretto（EC2 に入れるもの）・Session Manager を、ECS Fargate・API のイメージ（Docker・ECR）・ALB・CloudFront Functions に置き換えた。4 章の公開の構成を直した | （氏名） |
 
 ## 承認
 
@@ -137,17 +138,18 @@ kadai で使っている dnd-kit（ドラッグ＆ドロップ）は、本アプ
 
 | 区分 | 使うもの | バージョン・種類 | kadai | 用途・理由 |
 | --- | --- | --- | --- | --- |
-| サーバー | Amazon EC2 | t4g.micro（ARM・メモリ 1GB）、Amazon Linux 2023（arm64） | ○ | Spring Boot の jar を systemd で動かす |
-| サーバーの Java | Amazon Corretto | 21（java-21-amazon-corretto-headless） | ○ | ヒープの上限は kadai と同じ -Xmx384m から始める |
+| API の実行 | Amazon ECS（Fargate） | ARM64（Graviton）、0.5 vCPU・メモリ 1GB、タスク 1 つ | 新 | サーバー（EC2）を持たずにコンテナで動かす。反映に失敗したら前のものに戻る（インフラ設計書 方針 3） |
+| API のイメージ | Docker（backend/Dockerfile）、Amazon ECR | ベースは amazoncorretto:21-al2023-headless（ダイジェストで固定） | 新 | 手元で作った jar を入れるだけ。ヒープの上限はメモリの 75%（-XX:MaxRAMPercentage=75） |
 | データベース | Amazon RDS for PostgreSQL | 17、db.t4g.micro | ○ | |
-| 入口・HTTPS | Amazon CloudFront | PriceClass_200 | ○ | HTTPS の終端（*.cloudfront.net の証明書。独自ドメインは取らない）。EC2 は 1 台なので ALB は置かない（インフラ設計書 方針 2） |
-| 画像の保存先 | Amazon S3 | | 新 | P-2 |
+| 入口・HTTPS | Amazon CloudFront、CloudFront Functions | PriceClass_200、cloudfront-js-2.0 | ○ | HTTPS の終端（*.cloudfront.net の証明書。独自ドメインは取らない）。画面を S3 から配り、画面の URL を index.html に書き換える |
+| ロードバランサー | Application Load Balancer | HTTP 80 | 新 | 作り直すたびに IP が変わる Fargate のタスクに、ヘルスチェックに通ったものだけ送る。止めている間は消す（インフラ設計書 方針 4・10） |
+| 画像・画面の保存先 | Amazon S3 | | 新 | P-2。画面のビルドしたファイルも置く |
 | 秘密の値 | AWS Systems Manager Parameter Store | | 新 | N-16。kadai は AMI を探すのにだけ使っている |
-| サーバーの操作 | AWS Systems Manager Session Manager | | 新 | SSH を開けずに EC2 を操作する |
-| ログ・監視 | Amazon CloudWatch | | 新 | API のログ（JSON）を CloudWatch Logs に集め、Logs Insights で探す（基本設計書 2.3）。EC2・RDS のアラーム |
+| ログ・監視 | Amazon CloudWatch | | 新 | API のログ（JSON）を CloudWatch Logs に集め、Logs Insights で探す（基本設計書 2.3）。ALB・RDS のアラーム |
 | 費用の通知 | AWS Budgets | | 新 | R-1 |
 | AWS の構築 | Terraform | 1.16.5（required_version = ">= 1.9"） | ○ | 消して作り直すことが多いため（インフラ設計書 8 章） |
 | Terraform の AWS プロバイダー | hashicorp/aws | 6.68.0（version = "~> 6.0"） | ○ | |
+| Terraform の乱数のプロバイダー | hashicorp/random | 3.9.1（version = "~> 3.6"） | 新 | DB のパスワード・JWT の秘密の値・CloudFront と ALB の間の秘密のヘッダーを作る |
 | Terraform の lint | TFLint ＋ tflint-ruleset-aws | ruleset 0.49.0 | ○ | |
 
 ### 3.5 開発ツール
@@ -180,7 +182,7 @@ kadai で使っている dnd-kit（ドラッグ＆ドロップ）は、本アプ
 | --- | --- | --- | --- |
 | ログイン | なし | Spring Security（JWT 認証・BCrypt） | 複数のユーザーが使うため（FN-01） |
 | 画面の数 | 1 画面 | 11 画面（React Router） | G-1〜G-11 |
-| 公開の入口 | CloudFront → EC2 の nginx | CloudFront → EC2 の Spring Boot | 画面も Spring Boot から配るので nginx は使わない |
+| 公開の構成 | CloudFront → EC2 の nginx | 画面は CloudFront → S3、API は CloudFront → ALB → ECS Fargate | 利用者の希望で、コンテナとロードバランサーを使う構成を学ぶ（インフラ設計書 0.8） |
 | 画像 | なし | S3（テストでは MinIO）、AWS SDK for Java | FN-04 |
 | 稼働の確認 | なし | Spring Boot Actuator | 反映・起動のスクリプトが、アプリが動き出したことを確かめるため |
 | ドラッグ＆ドロップ | dnd-kit | 使わない | 本アプリに並べ替えの機能がないため |

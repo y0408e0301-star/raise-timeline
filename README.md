@@ -2,9 +2,9 @@
 
 X（Twitter）のようなタイムライン形式のテキスト SNS です。ユーザー登録した人どうしでフォローし合い、文章と画像を投稿し、いいね・コメントで反応できます。**インプレッション数を出さないこと、リツイートがないこと**が特徴で、数字や拡散を気にせず投稿できるようにします。
 
-学習用に、要件定義から設計・実装・テスト・AWS への公開までを一通り行います。画面は React、API は Spring Boot、データは PostgreSQL、画像は AWS S3 に保存し、AWS（CloudFront・EC2・RDS・S3）で公開します。
+学習用に、要件定義から設計・実装・テスト・AWS への公開までを一通り行います。画面は React、API は Spring Boot、データは PostgreSQL、画像は AWS S3 に保存し、AWS（CloudFront・ALB・ECS Fargate・RDS・S3）で公開します。
 
-> **いまの状況（2026-10-23）**：要件定義書・機能定義書・基本設計書・技術スタック定義書を書き終え、承認待ちです。画面の動きを確かめる[モック](#画面のモックmock)（`mock/`）を作りました。実装は、**機能ごとに API とそれを使う画面を作る**順番で進めています（[開発計画書](docs/development-plan.md)）。第 1 版の機能（FN-01〜FN-09）と、第 2 版のプロフィールの編集の API（`backend/`）と画面（`frontend/`）ができました。公開環境（`deploy/`）はまだありません。この README で「予定」と書いているものは、文書で決めた内容で、まだ作っていません。
+> **いまの状況（2026-10-30）**：要件定義書・機能定義書・基本設計書・技術スタック定義書を書き終え、承認待ちです。画面の動きを確かめる[モック](#画面のモックmock)（`mock/`）を作りました。実装は、**機能ごとに API とそれを使う画面を作る**順番で進めています（[開発計画書](docs/development-plan.md)）。第 1 版の機能（FN-01〜FN-09）と、第 2 版のプロフィールの編集の API（`backend/`）と画面（`frontend/`）ができました。公開環境を作る Terraform（`deploy/terraform/`）ができました（まだ公開していません）。この README で「予定」と書いているものは、文書で決めた内容で、まだ作っていません。
 
 ## 目次
 
@@ -94,15 +94,17 @@ flowchart LR
 
     subgraph aws["AWS 東京リージョン"]
         cf["CloudFront<br/>HTTPS"]
-        subgraph ec2["EC2 t4g.micro"]
-            app["Spring Boot 8080<br/>API ＋ 画面（React のビルド）"]
-        end
+        web[("S3<br/>画面（React のビルド）")]
+        alb["ALB"]
+        app["ECS Fargate<br/>Spring Boot 8080（API）"]
         rds[("RDS<br/>PostgreSQL 17")]
         s3[("S3<br/>投稿の画像・アイコン（非公開）")]
         ssm["Parameter Store<br/>秘密の値"]
     end
 
-    user -- "画面・API" --> cf --> app
+    user -- "画面・API" --> cf
+    cf -- "画面" --> web
+    cf -- "/api/*" --> alb --> app
     app --> rds
     app -- "画像の保存・削除" --> s3
     user -- "署名付き URL で画像を表示" --> s3
@@ -115,21 +117,21 @@ flowchart LR
 | API サーバー | Java 21・Spring Boot 4（Web MVC・Data JPA・Validation・Security・Actuator）、テーブルは Flyway で作成 |
 | データベース | PostgreSQL 17（開発は Docker、公開環境は RDS）。ユーザー検索は pg_trgm の索引で速くする |
 | 画像 | S3（自動テストは MinIO）、AWS SDK for Java 2.x |
-| 公開環境 | AWS（CloudFront・EC2・RDS・S3・Parameter Store・CloudWatch）を Terraform で作成 |
+| 公開環境 | AWS（CloudFront・ALB・ECS Fargate・ECR・RDS・S3・Parameter Store・CloudWatch）を Terraform で作成 |
 | CI | GitHub Actions（PR ごとに画面・API・Terraform のチェックとテスト） |
 
-画面も API と同じ Spring Boot から配るので、JWT を入れる Cookie と CSRF 対策が簡単になり、CORS の設定も要りません。
+画面（S3）と API（ALB）を同じ CloudFront の URL から配る（/api/* だけを ALB に送る）ので、JWT を入れる Cookie と CSRF 対策が簡単になり、CORS の設定も要りません。
 
 ## 工夫した点
 
 設計の段階で決めたことです。
 
 - **JWT を JavaScript から読めなくする**：JWT（15 分）とリフレッシュトークン（14 日）を HttpOnly の Cookie に入れ、XSS で盗まれないようにします。リフレッシュトークンはデータベースにハッシュだけを持ち、使うたびに新しくして、古いものが使われたら盗まれたとみなしてその人のログインを全部切ります（[機能定義書 3.2](docs/functions/function-definition.md#32-ログインjwt-認証と-csrf-対策)、[データ設計書 7 章](docs/design/data-design.md#7-データのルール) BR-9）
-- **画像を EC2 を通さずに配る**：S3 のバケットは非公開にし、API が発行した署名付き URL（15 分）で、ブラウザが S3 から直接読みます。EC2 の負荷と通信量を抑えられます（[インフラ設計書 5.1](docs/design/infra-design.md#51-画像つきの投稿と表示)）
+- **画像を API を通さずに配る**：S3 のバケットは非公開にし、API が発行した署名付き URL（15 分）で、ブラウザが S3 から直接読みます。API の負荷と通信量を抑えられます（[インフラ設計書 5.1](docs/design/infra-design.md#51-画像つきの投稿と表示)）
 - **投稿と画像の保存を食い違わせない**：S3 への保存に失敗したら投稿を作らず、データベースへの保存に失敗したら S3 に置いた画像を消します。削除は データベース → S3 の順にし、S3 で消せなかったものは記録してあとで消します（[データ設計書 7 章](docs/design/data-design.md#7-データのルール) BR-4・BR-5）
 - **部分一致の検索を索引で速くする**：ユーザー ID・表示名に pg_trgm の GIN 索引を張り、`LIKE '%…%'` でも全件を調べずに済むようにします。並びは「ID の完全一致 → 前方一致 → 表示名の前方一致 → それ以外」、同じならフォロワーの多い順です（[データ設計書 8 章](docs/design/data-design.md#8-ユーザー検索の実装)）
 - **接続先だけを切り替える**：開発中はデータベースを Docker で動かし、画像は S3 の開発用のバケットに置きます。自動テストは Testcontainers で PostgreSQL と MinIO（S3 の代わり）を起動するので、AWS の鍵は要りません。接続先は環境変数で切り替え、開発環境と AWS でコードを変えません（[インフラ設計書 6 章](docs/design/infra-design.md#6-開発環境との対応)）
-- **費用を抑える**：EC2 は 1 台でパブリックサブネットに置き、CloudFront からの通信しか受け付けないようにして、NAT ゲートウェイ（月 7,000 円ほど）を使わずに済ませます。振り分けが要らないのでロードバランサー（ALB。止められず月 3,000 円ほど）は置かず、HTTPS は CloudFront で受けます。使わない間は EC2・RDS を止めます
+- **費用を抑える**：Fargate のタスクはパブリックサブネットに置き、ALB からの通信しか受け付けないようにして、NAT ゲートウェイ（月 7,000 円ほど）を使わずに済ませます。ALB は止められず置いておくだけで月 3,500 円ほどかかるので、使わない間は ECS のサービスと ALB を Terraform で消し、RDS を止めます。CloudFront は残すので URL は変わりません
 - **文書を GitHub で読めるようにする**：文書はすべて Markdown で、図は Mermaid で書いています。差分を PR で確かめられます
 
 ## 開発の進め方
@@ -165,14 +167,14 @@ flowchart LR
 | 画面 | Node.js 24、React 19 + TypeScript 6 + Vite 8、React Router 7、CSS Modules、コードチェックは oxlint、テストは Vitest・Testing Library、E2E テストは Playwright |
 | API サーバー | Java 21 + Spring Boot 4.1（Web MVC・Data JPA・Validation・Security・OAuth2 Resource Server（JWT）・Actuator）、AWS SDK for Java 2.x（S3）、ビルドは Maven（`mvnw` 同梱）、コードチェックは spring-javaformat・SpotBugs、テストは JUnit 5・Testcontainers |
 | データベース・画像 | PostgreSQL 17（開発は Docker Compose）、テーブルは Flyway で作成。画像は S3（開発用のバケット） |
-| 公開環境 | AWS（CloudFront・EC2 t4g.micro・RDS db.t4g.micro・S3・Parameter Store・Session Manager・CloudWatch・Budgets）、環境は Terraform 1.16 で作成 |
+| 公開環境 | AWS（CloudFront・ALB・ECS Fargate（ARM・0.5 vCPU）・ECR・RDS db.t4g.micro・S3・Parameter Store・CloudWatch・Budgets）、環境は Terraform 1.16 で作成 |
 | CI | GitHub Actions |
 
 ## フォルダ構成
 
 ```
 raise-timeline/
-├── backend/                    API サーバー（Spring Boot）
+├── backend/                    API サーバー（Spring Boot）。Dockerfile は公開先（ECS Fargate）のイメージ
 ├── frontend/                   画面（React + Vite）
 ├── docs/                       文書（最初に docs/README.md を読む）
 │   ├── README.md               文書一覧・読む順番・ID の一覧
@@ -184,6 +186,7 @@ raise-timeline/
 │   ├── tech-stack.md           技術スタック定義書
 │   └── development-plan.md     開発計画書（作る順番と進み具合）
 ├── perf/                       性能テストのデータ（seed.sql）と API のシナリオ（k6/）。画面の測定は frontend/perf/
+├── deploy/terraform/           AWS の環境（Terraform）。止めている間のページは deploy/maintenance/
 ├── mock/                       画面のモック（HTML・CSS・JavaScript だけ。index.html を開く）
 ├── .claude/skills/             Claude Code のスキル（サーバーの起動・品質チェック）
 ├── .githooks/                  main へのコミットなどを止める git フック
@@ -191,13 +194,6 @@ raise-timeline/
 ├── compose.yaml                開発用の PostgreSQL
 ├── CONTRIBUTING.md             開発ルール
 └── CLAUDE.md                   Claude Code への指示
-```
-
-作る予定のもの：
-
-```
-├── frontend/e2e/               E2E テスト（Playwright）
-└── deploy/terraform/           AWS の環境（Terraform）
 ```
 
 ## 起動方法
@@ -267,7 +263,7 @@ API サーバーと画面の行は使えます（公開環境の行は予定で�
 | 画面 | `npm run perf -- <コマンド>` | 性能テスト。k6 と Playwright で、要件定義書 11.1 の目標の時間に収まるかを測る（下の「性能テスト」） |
 | 公開環境 | `deploy/terraform` で `terraform fmt -check -recursive`・`terraform validate`・`tflint` | Terraform の書式・構文・書き方。AWS には接続しない |
 
-Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）が自動で実行します。いまは API サーバーの `mvnw verify` と、画面の `npm run gen:api`（作り直した型がコミットしたものと同じか）・`npm run lint`・`npm test`・`npm run build`、API の仕様書の HTML（成果物 `api-spec`）の作成、E2E テスト（ランナーの中で DB・MinIO・公開用の jar を起動して実行）です。公開環境のチェックは作ったときに足します（性能テストは自動では実行しません）。
+Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）が自動で実行します。いまは API サーバーの `mvnw verify` と、画面の `npm run gen:api`（作り直した型がコミットしたものと同じか）・`npm run lint`・`npm test`・`npm run build`、API の仕様書の HTML（成果物 `api-spec`）の作成、E2E テスト（ランナーの中で DB・MinIO・公開用の jar を起動して実行）、公開先のイメージのビルド（`docker build`。push はしない）、Terraform の `fmt -check`・`validate`・`tflint` です（性能テストは自動では実行しません）。
 
 ### API サーバーのテストの種類
 
@@ -440,7 +436,8 @@ API サーバーのログは、公開用の jar（`java -jar`）では 1 行 1 �
 予定です。構成・セキュリティグループ・費用は[インフラ設計書](docs/design/infra-design.md)にあります。
 
 - AWS のリソースは Terraform（`deploy/terraform/`）で作ります。消して作り直すことが多いため、手作業では作りません
-- 常に動かすと月 5,600 円ほどかかるため、使わない間は EC2・RDS を止めます。止めている間は「止めています」のページを出します。起動と停止はスクリプトにします
+- 常に動かすと月 11,000 円ほどかかり予算（月 10,000 円）を超えるため、使う時間だけ動かします。使わない間は ECS のサービスと ALB を消し、RDS を止めて、「止めています」のページを出します。起動と停止はスクリプトにします（3-2c）
+- API は `backend/Dockerfile` のイメージ（ARM）を ECR に置いて動かし、画面はビルドしたファイルを S3 に置きます
 - 公開の URL は CloudFront のもの（https://〜.cloudfront.net）で、独自ドメインは取りません。公開の時期は未決です（要件定義書 17 章 U-2）
 
 ## 困ったとき
