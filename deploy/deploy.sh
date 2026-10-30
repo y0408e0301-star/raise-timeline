@@ -35,11 +35,14 @@ else
   docker buildx build --platform linux/arm64 --provenance=false -t "$repo:$tag" --push backend
 fi
 
-# Terraform は ECR に最後に push したイメージを使う（ecr.tf）。タグは上書きできないので、古いコミットには戻せない
+# Terraform は ECR に最後に push したイメージを使う（ecr.tf）。タグは上書きできないので、古いコミットには戻せない。
+# 中身が前と同じなら、ECR は同じイメージにタグを足すだけなので、タグではなくダイジェストで比べる
+digest=$(aws ecr describe-images --repository-name "$repo_name" --image-ids "imageTag=$tag" \
+  --query "imageDetails[0].imageDigest" --output text)
 latest=$(aws ecr describe-images --repository-name "$repo_name" \
-  --query "sort_by(imageDetails, &imagePushedAt)[-1].imageTags[0]" --output text)
-if [[ "$latest" != "$tag" ]]; then
-  echo "ECR の最新のイメージ（$latest）がこのコミット（$tag）ではありません。戻すときは git revert して新しいコミットで反映してください" >&2
+  --query "sort_by(imageDetails, &imagePushedAt)[-1].imageDigest" --output text)
+if [[ "$latest" != "$digest" ]]; then
+  echo "ECR の最新のイメージがこのコミット（$tag）のものではありません。戻すときは git revert して新しいコミットで反映してください" >&2
   exit 1
 fi
 
