@@ -26,8 +26,8 @@ resource "aws_db_instance" "main" {
   publicly_accessible    = false
   multi_az               = false
 
-  # 要件定義書 N-7
-  backup_retention_period = 7
+  # 要件定義書 N-7。無料プランでは 1 日より長くできない（FreeTierRestrictionError）。有料プランにしたら 7 にする
+  backup_retention_period = 1
   # 誤って消したときのために、削除の前にスナップショットを取る
   skip_final_snapshot       = false
   final_snapshot_identifier = "rt-db-final"
