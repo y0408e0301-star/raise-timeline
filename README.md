@@ -433,10 +433,16 @@ API サーバーのログは、公開用の jar（`java -jar`）では 1 行 1 �
 
 ## 公開環境
 
-予定です。構成・セキュリティグループ・費用は[インフラ設計書](docs/design/infra-design.md)にあります。
+構成・セキュリティグループ・費用は[インフラ設計書](docs/design/infra-design.md)、手順は[基本設計書 2.2.1](docs/design/basic-design.md#221-公開環境の手順)にあります。
+
+| コマンド（Git Bash） | すること |
+| --- | --- |
+| `bash deploy/deploy.sh` | 今のコミットの API（ECR）と画面（S3）を反映する。止めていれば起動もする |
+| `bash deploy/start.sh` | RDS を起動し、ECS のサービスと ALB を作り直す |
+| `bash deploy/stop.sh` | 「止めています」のページにして、ECS のサービスと ALB を消し、RDS を止める |
 
 - AWS のリソースは Terraform（`deploy/terraform/`）で作ります。消して作り直すことが多いため、手作業では作りません
-- 常に動かすと月 11,000 円ほどかかり予算（月 10,000 円）を超えるため、使う時間だけ動かします。使わない間は ECS のサービスと ALB を消し、RDS を止めて、「止めています」のページを出します。起動と停止はスクリプトにします（3-2c）
+- 常に動かすと月 11,000 円ほどかかり予算（月 10,000 円）を超えるため、使う時間だけ動かします。AWS は無料プランのクレジットで動かしています
 - API は `backend/Dockerfile` のイメージ（ARM）を ECR に置いて動かし、画面はビルドしたファイルを S3 に置きます
 - 公開の URL は CloudFront のもの（https://〜.cloudfront.net）で、独自ドメインは取りません。公開の時期は未決です（要件定義書 17 章 U-2）
 
