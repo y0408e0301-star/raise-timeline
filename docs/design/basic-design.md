@@ -154,6 +154,7 @@ flowchart LR
 | RDS が勝手に起動している | 止めてから 7 日たつと AWS が起動する。もう一度 stop.sh を実行する |
 | deploy.sh の `npm ci` が EPERM（operation not permitted）で止まる | 開発用の Vite（5173）などが frontend/node_modules のファイルを使っている。止めてから deploy.sh をもう一度実行する（イメージの push と apply は済んでいれば飛ばされる） |
 | 反映の直後に /api/* が 502 になる | CloudFront の設定の反映中。数分待つ |
+| apply が `Unrecognized remote plugin message` で途中で止まる | Windows で、.terraform の中の random プロバイダーの exe が消えていることがある（原因は確かめていない）。deploy/terraform で `terraform init` をして入れ直し、同じスクリプトをもう一度実行する（途中まで済んだ分は state に残っている） |
 
 **費用の確認**
 
