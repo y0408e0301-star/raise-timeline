@@ -4,7 +4,7 @@ X（Twitter）のようなタイムライン形式のテキスト SNS です。�
 
 学習用に、要件定義から設計・実装・テスト・AWS への公開までを一通り行います。画面は React、API は Spring Boot、データは PostgreSQL、画像は AWS S3 に保存し、AWS（CloudFront・ALB・ECS Fargate・RDS・S3）で公開します。
 
-> **いまの状況（2026-11-01）**：要件定義書・機能定義書・基本設計書・技術スタック定義書を書き終え、承認待ちです。画面の動きを確かめる[モック](#画面のモックmock)（`mock/`）を作りました。実装は、**機能ごとに API とそれを使う画面を作る**順番で進めています（[開発計画書](docs/development-plan.md)）。第 1 版の機能（FN-01〜FN-09）と、第 2 版のプロフィールの編集の API（`backend/`）と画面（`frontend/`）ができました。AWS に公開して主な流れを確かめた後、費用をかけないよう Terraform で環境をすべて消しました（2026-10-31）。使うときは[基本設計書 2.2.1](docs/design/basic-design.md#221-公開環境の手順)の「初めて作るとき」から作り直します（公開の URL は作るたびに変わります）。この README で「予定」と書いているものは、文書で決めた内容で、まだ作っていません。
+> **いまの状況（2026-11-01、検収）**：要件定義書・機能定義書・基本設計書・技術スタック定義書を書き終え、承認待ちです。画面の動きを確かめる[モック](#画面のモックmock)（`mock/`）を作りました。実装は、**機能ごとに API とそれを使う画面を作る**順番で進めています（[開発計画書](docs/development-plan.md)）。第 1 版の機能（FN-01〜FN-09）と、第 2 版のプロフィールの編集の API（`backend/`）と画面（`frontend/`）ができました。AWS に公開して主な流れを確かめた後、費用をかけないよう Terraform で環境をすべて消しました（2026-10-31）。使うときは[基本設計書 2.2.1](docs/design/basic-design.md#221-公開環境の手順)の「初めて作るとき」から作り直します（公開の URL は作るたびに変わります）。この README で「予定」と書いているものは、文書で決めた内容で、まだ作っていません。
 
 ## 目次
 
@@ -347,7 +347,8 @@ Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml]
 - k6 は Docker のイメージ（`grafana/k6:2.2.0`）で動くので、入れる必要はありません。Playwright はパソコンの Edge を使います
 - 画像 4 枚（20MB）の投稿（N-4）は、`PERF_UPLOAD=1` を付けたときだけ測ります。手元では API から S3 への送信が家の回線を通るので、公開先とは条件が違うためです
 - 測る回数は `PERF_RUNS`（既定 20）、測る先は `PERF_BASE_URL`（既定 `http://localhost:8080`）で変えられます
-- 手元とランナーの数値は参考です。合否は公開先（AWS）で測った値で決めます
+- 手元とランナーの数値は参考です。合否は公開先（AWS）で測った値で決めます（2026-11-01 に測り、すべて合格。[性能テスト報告書](docs/test/performance-test-report.md)）
+- 公開先で測るとき：公開して（「公開環境」）、`frontend` で `PERF_DB=aws npm run perf -- seed`（PowerShell では `$env:PERF_DB='aws'; npm run perf -- seed`）で公開先の DB にデータを入れ、Actions の「性能テスト」を測る先に公開先の URL を入れて動かします。終わったら `PERF_DB=aws npm run perf -- clean` で消します
 
 GitHub Actions で動かす：Actions の画面で「性能テスト」を選び、「Run workflow」を押します（[.github/workflows/perf.yml](.github/workflows/perf.yml)）。測る先を空にすると、ランナーの中で DB・MinIO（S3 の代わり）・jar を起動してデータを入れ、N-4 を含めてすべて測ります。公開先の URL を入れると、そこを測ります（先に公開先の DB に `perf/seed.sql` のデータを入れておき、終わったら `perf_` で始まるユーザーを消します）。結果は実行結果の画面の Summary と、成果物 `perf-results` で見られます。
 

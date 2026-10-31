@@ -30,7 +30,8 @@ docs/
 ├── test/
 │   ├── test-specification.md          … テスト仕様書（テストの方針・要件 ID とテストの対応・結果）
 │   ├── requirement-coverage.md        … 要件 ID とテストの対応表（スクリプトで作る）
-│   └── performance-test-report.md     … 性能テスト報告書（要件定義書 11.1 の測定の結果）
+│   ├── performance-test-report.md     … 性能テスト報告書（要件定義書 11.1 の測定の結果）
+│   └── acceptance-report.md           … 検収書（要件定義書 13 章の合格の条件の確認と署名）
 ├── manual/
 │   └── operation-manual.md            … 操作マニュアル（アプリを使う人向け）
 ├── tech-stack.md                      … 技術スタック定義書
@@ -52,6 +53,7 @@ docs/
 | [テスト仕様書](test/test-specification.md) | RT-TEST | テストの方針、テストに要件 ID を書く決まり、要件 ID とテストの対応（[対応表](test/requirement-coverage.md) はスクリプトで作る）、テストの観点、環境ごとの結果（要件定義書 13 章） | 本書で行う |
 | [性能テスト報告書](test/performance-test-report.md) | RT-TEST-PERF | 性能（要件定義書 11.1、N-1〜N-5）を測った条件・結果・分かったこと。測り方は基本設計書 2.4 | 本書で行う |
 | [操作マニュアル](manual/operation-manual.md) | RT-MAN | アプリを使う人向けの、画面ごとの操作・決まり・メッセージが出たときにすること（要件定義書 14 章 No.9） | 本書で行う |
+| [検収書](test/acceptance-report.md) | RT-TEST-ACC | 要件定義書 13.4 の合格の条件ごとの確認、見つけて直した不具合、納品物、署名 | 検収者・承認者が署名する |
 | [技術スタック定義書](tech-stack.md) | RT-TECH | 使う言語・フレームワーク・サービス・開発ツールと選んだ理由 | 本書で行う |
 | [開発計画書](development-plan.md) | RT-PLAN | 作る順番（段階と Pull Request の単位）、段階ごとの完了条件、どこまでできたか | 本書で行う |
 
