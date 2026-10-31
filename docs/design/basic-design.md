@@ -3,9 +3,9 @@
 | 項目 | 内容 |
 | --- | --- |
 | 文書番号 | RT-BD |
-| 版数 | 0.15 |
+| 版数 | 0.16 |
 | 作成日 | 2026-10-16 |
-| 最終更新日 | 2026-10-30 |
+| 最終更新日 | 2026-10-31 |
 | 作成者 | （氏名） |
 | 元にした文書 | [要件定義書](../requirements/requirements.md)（RT-REQ）版数 0.12、[機能定義書](../functions/function-definition.md)（RT-FD）版数 0.3 |
 | 状態 | 承認待ち |
@@ -29,6 +29,7 @@
 | 0.13 | 2026-10-28 | 画面の性能テストに N-2（タブの切り替え・続きの読み込み）と N-5（検索）を足した（2.4）。API だけでなく、利用者が押してから画面に出るまでも確かめるため | （氏名） |
 | 0.14 | 2026-10-30 | 利用者の決定で公開の構成を変えた（インフラ設計書 0.8）。画面は S3 ＋ CloudFront、API は ALB の後ろの ECS Fargate にした。2.2 の公開の手順と、2.4 の性能テストの比べる先を直した | （氏名） |
 | 0.15 | 2026-10-30 | インフラ設計書 0.9（無料プランのため RDS の自動バックアップを 1 日にした） | （氏名） |
+| 0.16 | 2026-10-31 | 2.2.1 に公開環境の手順（初めて作るとき、deploy.sh・start.sh・stop.sh、反映のきまり、困ったとき、費用の確認）を書いた | （氏名） |
 
 ## 承認
 
@@ -111,13 +112,62 @@ flowchart LR
 | --- | --- |
 | 環境の作り方 | 開発環境（Docker Compose）と AWS の構築手順。AWS は Terraform で作る（インフラ設計書 8 章） |
 | 表の変更の管理 | Flyway のマイグレーションの書き方と履歴の残し方 |
-| 公開の手順 | API のイメージ（ECR）と画面（S3）の反映、止め方・起動し直し方（要件定義書 P-4） |
+| 公開の手順 | API のイメージ（ECR）と画面（S3）の反映、止め方・起動し直し方（要件定義書 P-4）。2.2.1 に書いた |
 | データベースのバックアップと復旧 | RDS の自動バックアップからの戻し方（N-7） |
 | 不適切な投稿の削除 | データベースと S3 から消す手順（R-2）。不適切なアイコン画像も同じ |
 | JWT の秘密の値の変え方 | 秘密の値が漏れた・漏れた疑いがあるときに、Parameter Store の値を変え、refresh_tokens を全部無効にして全員をログアウトさせる手順（R-7） |
 | 定期の処理 | 期限切れのリフレッシュトークンの削除（BR-9）と、S3 から消せなかったファイルの削除（BR-5・BR-10）を 1 日 1 回動かす方法 |
 | 費用の確認 | 月 1 回の確認手順と AWS Budgets の設定（R-1） |
 | 障害時の対応 | 障害に気づく方法（CloudWatch）、利用者への連絡、復旧後の確認 |
+
+#### 2.2.1 公開環境の手順
+
+構成はインフラ設計書のとおり。スクリプトはリポジトリのフォルダで Git Bash から実行する。どれも先に terraform plan を出し、「この内容で反映しますか？」に y と答えたときだけ反映する（`-y` を付けると確かめずに反映する）。
+
+| スクリプト | すること | かかる時間 |
+| --- | --- | --- |
+| `bash deploy/deploy.sh` | 今のコミットを反映する。jar を作り、API のイメージ（arm64）をコミット ID のタグで ECR に push し、`terraform apply -var running=true` で新しいタスクに入れ替える。画面をビルドして S3 に置き（assets/ は 1 年、ほかは no-cache）、CloudFront のキャッシュを消して、公開 URL の /actuator/health が UP になるのを待つ。コミットしていない変更があれば止まる | 10〜15 分 |
+| `bash deploy/start.sh` | RDS を起動して待ち、`running=true` で ECS のサービスと ALB を作り直す。イメージと画面は前に反映したものを使う | 10〜20 分 |
+| `bash deploy/stop.sh` | `running=false` で CloudFront を止めている間のページにし、ECS のサービスと ALB を消して、RDS を止める。データと URL はそのまま | 5〜10 分 |
+
+**初めて作るとき**
+
+1. 手元に AWS CLI（~/.aws の鍵）・Terraform・Docker Desktop を用意する（技術スタック定義書 3.4）
+2. deploy/terraform/terraform.tfvars に `alert_email = "通知を受け取るメールアドレス"` を書く（リポジトリには入れない）
+3. deploy/terraform で `terraform init` → `terraform plan` で中身を確かめ → `terraform apply`（running は既定の false。CloudFront・RDS などを作る。15〜20 分）
+4. 届いたメール（AWS Notification）の「Confirm subscription」を押す
+5. `bash deploy/deploy.sh` で最初のイメージと画面を反映する（ECR にイメージがないうちは running=true にできないため、start.sh ではなく deploy.sh を使う）
+
+**すべて消すとき**
+
+元に戻せない。公開の URL も変わる（作り直すと別の URL になる）。
+
+1. deploy/terraform で `terraform apply -var rds_deletion_protection=false` で RDS の削除保護を外す（RDS が止まっていると、変更の後の待ち合わせで失敗と出るが、削除保護は外れる。`aws rds describe-db-instances` の DeletionProtection で確かめる）
+2. S3 の画面と画像のバケット（`aws s3 rm s3://<バケット> --recursive`）と ECR（`aws ecr batch-delete-image`）を空にする。中身があると Terraform は消せない
+3. `terraform plan -destroy -var rds_deletion_protection=false` で中身を確かめてから、`terraform destroy -var rds_deletion_protection=false`（CloudFront の削除に 20 分ほどかかる）
+4. 消す前に取った最後のスナップショット（rt-db-final）が要らなければ、`aws rds delete-db-snapshot --db-snapshot-identifier rt-db-final` で消す
+
+**反映のきまり**
+
+- イメージのタグは上書きできず、Terraform は ECR に最後に push したイメージを使う。前のコミットに戻すときは、`git revert` で新しいコミットを作ってから反映する
+- 新しいタスクが起動しなければ、ECS が前のタスク定義に戻す（デプロイのサーキットブレーカー）。このとき terraform apply は失敗で終わる
+- 画面の古い assets/ は消さない（反映の前から開いている人が、古い画面のファイルを読めるように）
+
+**困ったとき**
+
+| 症状 | 調べるところ・対処 |
+| --- | --- |
+| deploy.sh・start.sh の apply がタスクの起動で止まる・失敗する | CloudWatch Logs の /rt/app で API のログを見る（起動の失敗・DB に接続できないなど）。ECS のコンソールのサービスの「イベント」で、イメージが取れない・ヘルスチェックに通らないなどを見る |
+| start.sh の plan が ECR のイメージを読めずに失敗する | ECR にイメージがない（初めてのとき）。deploy.sh で反映する |
+| 公開 URL が「止めています」のページのまま | CloudFront の反映（5〜10 分）を待つ。続くなら `terraform output` と CloudFront のコンソールで、/api/* のビヘイビアがあるかを見る |
+| RDS が勝手に起動している | 止めてから 7 日たつと AWS が起動する。もう一度 stop.sh を実行する |
+| deploy.sh の `npm ci` が EPERM（operation not permitted）で止まる | 開発用の Vite（5173）などが frontend/node_modules のファイルを使っている。止めてから deploy.sh をもう一度実行する（イメージの push と apply は済んでいれば飛ばされる） |
+| 反映の直後に /api/* が 502 になる | CloudFront の設定の反映中。数分待つ |
+| apply が `Unrecognized remote plugin message` で途中で止まる | Windows で、.terraform の中の random プロバイダーの exe が消えていることがある（原因は確かめていない）。deploy/terraform で `terraform init` をして入れ直し、同じスクリプトをもう一度実行する（途中まで済んだ分は state に残っている） |
+
+**費用の確認**
+
+月 1 回、請求のコンソールで費用とクレジットの残りを確かめる。AWS Budgets（rt-budget）は、実際の費用が予算の 80% を超えたときと、月末の予測が予算を超えそうなときにメールを送る（R-1）。無料プランの間は、クレジットの残りと期限にも気を付ける（インフラ設計書 7 章）。
 
 ### 2.3 ログ
 
