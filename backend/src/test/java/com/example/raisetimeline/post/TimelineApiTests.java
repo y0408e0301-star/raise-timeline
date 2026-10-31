@@ -62,6 +62,7 @@ class TimelineApiTests {
 
 	// ---- どの投稿を出すか（T-1）----
 
+	// TC-02-1
 	@Test
 	void フォロー中には自分とフォローしている人の投稿だけが新しい順に出る() {
 		follow(1, 2);
@@ -75,6 +76,7 @@ class TimelineApiTests {
 		assertThat(result).bodyJson().extractingPath("$.followingCount").isEqualTo(1);
 	}
 
+	// TC-02-2
 	@Test
 	void すべてには全員の投稿が新しい順にPostViewの形で出る() {
 		long first = id(create(this.taro, "たろう"));
@@ -97,6 +99,7 @@ class TimelineApiTests {
 		assertThat(result).bodyJson().doesNotHavePath("$.followingCount");
 	}
 
+	// TC-02-6
 	@Test
 	void 誰もフォローしておらず自分の投稿もないとフォロー中は空でフォロー数は0() {
 		create(this.hanako, "はなこ");
@@ -118,6 +121,7 @@ class TimelineApiTests {
 
 	// ---- 20 件ずつ（T-2・T-7）----
 
+	// TC-02-3
 	@Test
 	void 投稿41件は20件と20件と1件で読めて最後のnextCursorはnull() {
 		List<Long> created = createMany(this.hanako, 41);
@@ -148,6 +152,7 @@ class TimelineApiTests {
 		assertThat(result).bodyJson().extractingPath("$.nextCursor").isNull();
 	}
 
+	// TC-02-4
 	@Test
 	void 最初の20件を読んだ後にほかの人が投稿しても続きに重複も抜けもない() {
 		List<Long> created = createMany(this.hanako, 25);

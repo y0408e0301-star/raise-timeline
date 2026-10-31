@@ -196,6 +196,7 @@ class ProfileServiceTests {
 			verifyNoInteractions(ProfileServiceTests.this.deleter);
 		}
 
+		// TC-09-10
 		@Test
 		void S3に置けなければICON_UPLOAD_FAILEDでアイコンは変えない() {
 			doThrow(SdkClientException.create("S3 につながらない")).when(ProfileServiceTests.this.storage)

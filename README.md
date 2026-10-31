@@ -316,6 +316,7 @@ Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml]
 
 - 3 つのサーバー（DB・API・画面）を「起動方法」のとおりに起動してから、`frontend` で `npm run test:e2e` を実行します（1 分ほど）。1 つのファイルだけなら `npm run test:e2e -- posts`、片方の幅だけなら `-- --project=pc`
 - 行き先は既定で画面の Vite（5173）です。環境変数 `E2E_BASE_URL` で変えられます（CI は jar の 8080）
+- 環境変数 `E2E_BROWSERS=all` を付けると、Edge に加えて Chrome・Firefox・WebKit（Safari の代わり）・iPhone と Android のエミュレーションでも流します（[テスト仕様書](docs/test/test-specification.md) 3 章。Firefox と WebKit は先に `npx playwright install firefox webkit`）
 - テストは開発用の DB にユーザーを作ります。ユーザー ID は `e2e_` で始まり、テストを始める前と終わった後に `docker compose exec` で DB から消します（投稿・いいね・フォローも一緒に消えます）
 - 画像を使うテストは S3 の開発用のバケットに画像を置き、テストの中で投稿を消す・アイコンを外して消します。テストが途中で失敗すると、画像が残ることがあります
 - 落ちたテストは `frontend/test-results/` にトレースが残ります。`npx playwright show-trace <trace.zip のパス>` で、操作ごとの画面を見られます

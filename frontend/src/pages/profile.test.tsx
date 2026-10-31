@@ -90,6 +90,7 @@ describe('プロフィール（G-6、PF-1・PF-3・PF-4）', () => {
     expect(section).toHaveTextContent('30 投稿')
   })
 
+  // TC-09-2
   it('ほかの人にはフォローボタンを出し、押すとすぐにフォロワー数を 1 増やし、返ってきた数に合わせる', async () => {
     const put = deferred()
     renderAt('/users/taro_y', {
@@ -117,6 +118,7 @@ describe('プロフィール（G-6、PF-1・PF-3・PF-4）', () => {
     expect(followerLink()).toHaveAccessibleName('8 フォロワー')
   })
 
+  // TC-07-2・TC-09-2
   it('自分のプロフィールにはフォローボタンを出さない', async () => {
     renderAt('/users/hana', {
       'GET /api/users/hana': () => json(200, profile({ username: 'hana', displayName: 'はなこ', me: true })),
@@ -126,6 +128,7 @@ describe('プロフィール（G-6、PF-1・PF-3・PF-4）', () => {
     expect(within(screen.getByRole('region', { name: 'プロフィール' })).queryByRole('button')).not.toBeInTheDocument()
   })
 
+  // TC-09-4
   it('いないユーザー ID なら M-17 を出す', async () => {
     renderAt('/users/nobody', { 'GET /api/users/nobody': notFound, 'GET /api/users/nobody/posts': notFound })
     expect(await screen.findByText('このユーザーは見つかりません。')).toBeInTheDocument()
@@ -207,6 +210,7 @@ describe('G-6 への移動', () => {
     expect(await screen.findByRole('heading', { name: 'はなこ' })).toBeInTheDocument()
   })
 
+  // TC-07-6
   it('G-5 でフォローしてから行を押して G-6 を開くと「フォロー中」になっている', async () => {
     renderAt('/posts/1/likes', {
       'GET /api/posts/1/likes': () => json(200, { items: [summary()], nextCursor: null, totalCount: 1 }),

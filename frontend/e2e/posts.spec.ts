@@ -3,8 +3,10 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { noisePng } from '../perf/png.ts'
-import { api, postCard, runId, signup, user } from './helpers.ts'
+import { api, closeContexts, postCard, runId, signup, user } from './helpers.ts'
 import type { PostView } from './helpers.ts'
+
+test.afterEach(closeContexts)
 
 // 投稿の編集・削除（FN-03）、画像（FN-04）、コメントの削除（FN-05）を、画面を通して確かめる。
 // 削除の前の確認ダイアログ（G-11、N-19）は「キャンセル」で何も消えないことも確かめる
@@ -63,6 +65,7 @@ test('自分の投稿を編集し、確認ダイアログを通して削除で�
   })
 })
 
+// TC-03-1
 test('本文は 280 文字まで。281 文字では投稿できない', async ({ browser }) => {
   const page = await signup(browser, user('pl', 'ながい'))
   const textbox = page.getByRole('textbox', { name: '投稿の本文' })

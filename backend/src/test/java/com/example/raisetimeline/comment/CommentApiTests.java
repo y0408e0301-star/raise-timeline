@@ -92,6 +92,7 @@ class CommentApiTests {
 		assertThat(result).bodyJson().extractingPath("$.body").isEqualTo("一行目\n二行目");
 	}
 
+	// TC-05-1
 	@Test
 	void 本文280文字はコメントできて281文字と空白だけは400() {
 		assertThat(comment(this.hanako, this.postId, "あ".repeat(280))).hasStatus(HttpStatus.CREATED);
@@ -140,6 +141,7 @@ class CommentApiTests {
 
 	// ---- 一覧（C-3・C-4・C-6）----
 
+	// TC-05-2
 	@Test
 	void コメント51件は古い順に50件と1件で読めて最後のnextCursorはnull() {
 		List<Long> created = IntStream.range(0, 51)
@@ -169,6 +171,7 @@ class CommentApiTests {
 		assertThat(page2).hasSize(2).endsWith(added).doesNotContainAnyElementsOf(ids(page1));
 	}
 
+	// TC-05-5
 	@Test
 	void 第三者もコメントの中身と件数を見られてmineは自分のコメントだけtrue() {
 		comment(this.hanako, this.postId, "はなこのコメント");
@@ -223,6 +226,7 @@ class CommentApiTests {
 	}
 
 	// BR-7
+	// TC-05-3
 	@Test
 	void 投稿者でもほかの人のコメントを削除しようとすると403で消えない() {
 		long commentId = id(comment(this.hanako, this.postId, "はなこのコメント"));
@@ -232,6 +236,7 @@ class CommentApiTests {
 		assertThat(commentRows()).isEqualTo(1);
 	}
 
+	// TC-03-8・TC-05-4
 	@Test
 	void 投稿を削除するとコメントもすべて消える() {
 		comment(this.hanako, this.postId, "1");

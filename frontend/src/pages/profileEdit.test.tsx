@@ -232,6 +232,7 @@ describe('アイコン画像（PF-8〜PF-10）', () => {
     expect(screen.getByRole('button', { name: 'アイコンを外す' })).toBeInTheDocument()
   })
 
+  // TC-09-10
   it('アイコンの保存に失敗したら M-18 を出し、表示名・自己紹介は送らない', async () => {
     const fetch = renderAt('/settings/profile', {
       'PUT /api/me/icon': () => json(500, { code: 'ICON_UPLOAD_FAILED', message: M[18] }),

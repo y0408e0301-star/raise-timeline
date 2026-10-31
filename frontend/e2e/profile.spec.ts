@@ -3,8 +3,10 @@
 import { expect, test } from '@playwright/test'
 import type { Locator } from '@playwright/test'
 import { noisePng } from '../perf/png.ts'
-import { api, runId, send, signup, user } from './helpers.ts'
+import { api, closeContexts, runId, searchUsers, send, signup, user } from './helpers.ts'
 import type { Profile } from './helpers.ts'
+
+test.afterEach(closeContexts)
 
 // プロフィールの編集（G-7、FN-09 第 2 版）と、フォロー中・フォロワーの一覧（G-8、FN-07）を確かめる
 
@@ -13,6 +15,7 @@ async function expectLoaded(img: Locator): Promise<void> {
   await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true)
 }
 
+// TC-09-5・TC-09-8
 test('表示名・自己紹介・アイコンを変えると、ヘッダーとプロフィールに出る。アイコンは外せる', async ({ browser }) => {
   const taro = user('ft', 'たろう')
   const page = await signup(browser, taro)
@@ -90,7 +93,8 @@ test('フォロー中・フォロワーの一覧をタブで切り替え、一�
     const jiroRow = followers.getByRole('listitem', { name: jiro.displayName })
     await jiroRow.getByRole('button', { name: 'フォローする' }).click()
     await expect(jiroRow.getByRole('button', { name: 'フォロー中' })).toBeVisible()
-    expect((await api<Profile>(taroPage, `/api/users/${taro.username}`)).followingCount).toBe(2)
+    // 画面は応答を待たずに「フォロー中」にする（楽観的な表示）ので、DB に入るまで待つ
+    await expect.poll(async () => (await api<Profile>(taroPage, `/api/users/${taro.username}`)).followingCount).toBe(2)
   })
 
   await test.step('「フォロー中」のタブに切り替えると URL も変わり、2 人が出る', async () => {
@@ -107,4 +111,22 @@ test('フォロー中・フォロワーの一覧をタブで切り替え、一�
     await expect(taroPage.getByRole('region', { name: 'プロフィール' }).getByRole('button', { name: 'フォロー中' }))
       .toBeVisible()
   })
+})
+
+// TC-08-7
+test('検索結果からプロフィールを開いて戻ると、同じ結果が出る', async ({ browser }) => {
+  const target = user('sr', 'しろう')
+  await (await signup(browser, target)).context().close()
+  const page = await signup(browser, user('sv', 'さぶろう'))
+
+  await searchUsers(page, target.username)
+  const rows = page.getByRole('list', { name: '検索結果' }).getByRole('listitem')
+  await expect(rows).toHaveCount(1)
+  await rows.getByRole('link').first().click()
+  await expect(page.getByRole('heading', { level: 1, name: target.displayName })).toBeVisible()
+
+  await page.goBack()
+  await expect(page.getByRole('heading', { name: `「${target.username}」の検索結果` })).toBeVisible()
+  await expect(rows).toHaveCount(1)
+  await expect(rows).toContainText(`@${target.username}`)
 })

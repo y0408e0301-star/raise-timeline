@@ -106,6 +106,7 @@ describe('いいね・取り消し（L-1・L-2・L-6）', () => {
     expect(count()).toHaveTextContent('0')
   })
 
+  // TC-06-1
   it('10 回素早く押しても、送っている間に押した分はまとめ、最後に押した状態だけを送る', async () => {
     const put = deferred()
     const fetch = renderTimeline([post()], {
@@ -127,6 +128,7 @@ describe('いいね・取り消し（L-1・L-2・L-6）', () => {
     expect(button).toHaveTextContent('♡')
   })
 
+  // TC-06-5
   it('失敗したら「♡」と数を元に戻して M-18 を出す', async () => {
     renderTimeline([post()], { 'PUT /api/posts/1/like': () => json(500, { code: 'INTERNAL_ERROR', message: '…' }) })
     await userEvent.click(await heart())
@@ -135,6 +137,7 @@ describe('いいね・取り消し（L-1・L-2・L-6）', () => {
     expect(count()).toHaveAccessibleName('いいね 12 件')
   })
 
+  // TC-06-5
   it('API につながらないときも元に戻して M-18 を出す', async () => {
     renderTimeline([post()], { 'PUT /api/posts/1/like': () => Promise.reject(new TypeError('Failed to fetch')) })
     await userEvent.click(await heart())
@@ -180,6 +183,7 @@ describe('いいねした人の一覧（G-5、L-5）', () => {
     expect(await screen.findByRole('article')).toBeInTheDocument()
   })
 
+  // TC-06-4
   it('21 人いるとき、20 人を出し、一番下まで見ると残りの 1 人を出す', async () => {
     const fetch = renderAt('/posts/1/likes', {
       'GET /api/posts/1/likes': likers(Array.from({ length: 20 }, (_, i) => user(21 - i)), 'c20', 21),

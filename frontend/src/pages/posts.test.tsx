@@ -82,6 +82,7 @@ describe('投稿フォーム（W-1〜W-3）', () => {
     expect((sent as FormData).get('body')).toBe('1 つ目')
   })
 
+  // TC-03-1
   it('残りの文字数を出し、280 文字を超えたら負の数にして押せなくする', async () => {
     renderAt('/')
     await userEvent.click(await textbox())
@@ -94,6 +95,7 @@ describe('投稿フォーム（W-1〜W-3）', () => {
     expect(submitButton()).toBeDisabled()
   })
 
+  // TC-03-2
   it('絵文字はコードポイントで数え、前後の空白は数えない', async () => {
     renderAt('/')
     await userEvent.click(await textbox())
@@ -102,6 +104,7 @@ describe('投稿フォーム（W-1〜W-3）', () => {
     expect(screen.getByText('残り 276')).toBeInTheDocument()
   })
 
+  // TC-03-4
   it('本文が空・空白だけのときは押せない', async () => {
     renderAt('/')
     await textbox()
@@ -110,6 +113,7 @@ describe('投稿フォーム（W-1〜W-3）', () => {
     expect(submitButton()).toBeDisabled()
   })
 
+  // TC-03-6
   it('素早く 2 回押しても 1 つだけ投稿し、送信中は「投稿中…」にする', async () => {
     let finish: ((res: Response) => void) | undefined
     const fetch = renderAt('/', { 'POST /api/posts': () => new Promise<Response>((resolve) => { finish = resolve }) })
@@ -139,6 +143,7 @@ describe('投稿フォーム（W-1〜W-3）', () => {
 })
 
 describe('投稿カード（W-4・W-5・W-11）', () => {
+  // TC-03-5
   it('HTML の記号はそのまま文字で出し、改行もそのまま出す', async () => {
     renderAt('/posts/1', { 'GET /api/posts/1': () => json(200, post({ body: '<script>alert(1)</script>\n2 行目' })) })
     const card = await screen.findByRole('article')
@@ -154,6 +159,7 @@ describe('投稿カード（W-4・W-5・W-11）', () => {
     expect(screen.getByText(/10月16日/)).toHaveAttribute('title', '2026/10/16 15:00')
   })
 
+  // TC-03-7
   it('他人の投稿には「…」を出さない', async () => {
     renderAt('/posts/1', { 'GET /api/posts/1': () => json(200, post({ mine: false })) })
     await screen.findByRole('article')
@@ -162,6 +168,7 @@ describe('投稿カード（W-4・W-5・W-11）', () => {
 })
 
 describe('編集（W-9・W-10）', () => {
+  // TC-03-10
   it('今の本文を入れた入力欄にし、変えていないときは「保存する」を押せない', async () => {
     renderAt('/posts/1', { 'GET /api/posts/1': () => json(200, post({ body: '前の本文' })) })
     const editor = await startEdit()
@@ -175,6 +182,7 @@ describe('編集（W-9・W-10）', () => {
     expect(save).toBeDisabled()
   })
 
+  // TC-03-12
   it('保存すると本文を変えて「（編集済み）」を出す', async () => {
     const fetch = renderAt('/posts/1', {
       'GET /api/posts/1': () => json(200, post({ body: '前の本文' })),
@@ -191,6 +199,24 @@ describe('編集（W-9・W-10）', () => {
     expect(JSON.parse(sent?.init?.body as string)).toEqual({ body: '新しい本文' })
   })
 
+  // TC-03-15
+  it('編集した本文の HTML の記号も、そのまま文字で出してスクリプトを動かさない', async () => {
+    const html = '<img src=x onerror="alert(1)"><b>太字</b>'
+    renderAt('/posts/1', {
+      'GET /api/posts/1': () => json(200, post({ body: '前の本文' })),
+      'PATCH /api/posts/1': () => json(200, post({ body: html, editedAt: new Date().toISOString() })),
+    })
+    const editor = await startEdit()
+    await userEvent.clear(editor)
+    await userEvent.type(editor, html)
+    await userEvent.click(screen.getByRole('button', { name: '保存する' }))
+
+    const card = await screen.findByRole('article')
+    expect(await within(card).findByText(html)).toBeInTheDocument()
+    expect(card.querySelector('img[src="x"], b')).toBeNull()
+  })
+
+  // TC-03-10
   it('画像のない投稿は本文を空にできず、281 文字では押せない', async () => {
     renderAt('/posts/1', { 'GET /api/posts/1': () => json(200, post()) })
     const editor = await startEdit()
@@ -202,6 +228,7 @@ describe('編集（W-9・W-10）', () => {
     expect(save).toBeDisabled()
   })
 
+  // TC-03-13
   it('「キャンセル」・Esc キーで入力した内容を捨てて元に戻す', async () => {
     renderAt('/posts/1', { 'GET /api/posts/1': () => json(200, post({ body: '元の本文' })) })
     await userEvent.type(await startEdit(), '追加')
@@ -301,6 +328,7 @@ describe('投稿の詳細（G-4、W-6・W-8）', () => {
     expect(await textbox()).toBeInTheDocument()
   })
 
+  // TC-03-9
   it('削除された投稿を開いたら M-11 を出す', async () => {
     renderAt('/posts/9', {
       'GET /api/posts/9': () => json(404, { code: 'POST_NOT_FOUND', message: 'この投稿は削除されました。' }),

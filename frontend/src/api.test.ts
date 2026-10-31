@@ -229,6 +229,7 @@ describe('API の呼び出し方', () => {
 })
 
 describe('JWT の取り直し', () => {
+  // TC-01-10
   it('401 なら取り直して 1 回だけやり直す', async () => {
     const fetch = mockFetch({
       'GET /api/auth/me': [expired, () => json(200, me)],
@@ -247,6 +248,7 @@ describe('JWT の取り直し', () => {
     expect(fetch.keys()).toContain('POST /api/auth/refresh')
   })
 
+  // TC-01-10
   it('同時に 401 になっても、取り直しは 1 回だけ', async () => {
     const fetch = mockFetch({
       'GET /api/auth/me': [expired, expired, () => json(200, me)],

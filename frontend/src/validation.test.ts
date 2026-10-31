@@ -87,6 +87,7 @@ function file(name: string, type: string, size = 10): File {
 }
 
 describe('isAcceptableImage', () => {
+  // TC-04-2
   it('JPEG・PNG・GIF・WebP で 5MB までなら添えられる', () => {
     expect(isAcceptableImage(file('a.jpg', 'image/jpeg'))).toBe(true)
     expect(isAcceptableImage(file('a.JPEG', 'image/jpeg'))).toBe(true)
@@ -95,6 +96,7 @@ describe('isAcceptableImage', () => {
     expect(isAcceptableImage(file('a.webp', 'image/webp'))).toBe(true)
   })
 
+  // TC-04-2
   it('5MB を超える・形式や拡張子が違うものは添えられない', () => {
     expect(isAcceptableImage(file('a.png', 'image/png', 5 * 1024 * 1024 + 1))).toBe(false)
     expect(isAcceptableImage(file('a.bmp', 'image/bmp'))).toBe(false)
@@ -111,6 +113,7 @@ describe('addImages', () => {
     expect(addImages([a], [b, c])).toEqual({ images: [a, b, c], error: null })
   })
 
+  // TC-04-1
   it('合わせて 5 枚以上なら先の 4 枚だけにして M-12', () => {
     const files = [1, 2, 3, 4, 5].map(png)
     expect(addImages(files.slice(0, 3), files.slice(3))).toEqual({ images: files.slice(0, 4), error: 'M12' })

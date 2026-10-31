@@ -2,7 +2,9 @@ import { AxeBuilder } from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import type { Locator, Page } from '@playwright/test'
 import { noisePng } from '../perf/png.ts'
-import { createPostByApi, newContext, postCard, runId, send, signup, user } from './helpers.ts'
+import { closeContexts, createPostByApi, newContext, postCard, runId, send, signup, user } from './helpers.ts'
+
+test.afterEach(closeContexts)
 
 // すべての画面（G-1〜G-11）を、データを入れた状態で開いて確かめる。pc（1280px）と mobile（375px）の両方で動かす。
 // (1) アクセシビリティ：axe-core で WCAG 2.1 の A・AA に違反がない（N-18 のコントラスト比を含む）

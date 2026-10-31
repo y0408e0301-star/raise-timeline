@@ -16,6 +16,7 @@ class AuthCookiesTests {
 	private final AuthCookies cookies = new AuthCookies(new AuthProperties(SECRET, false));
 
 	// N-25
+	// TC-01-8
 	@Test
 	void 二つのCookieはHttpOnlyでSameSiteはLax() {
 		List<ResponseCookie> issued = this.cookies.issue(new TokenService.IssuedTokens("access", "refresh"));

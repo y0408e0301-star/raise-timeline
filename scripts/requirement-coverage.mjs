@@ -34,6 +34,14 @@ const OTHER = {
   'N-24': '.github/workflows/ci.yml で、Pull Request ごとに書式・lint・テスト・E2E を動かしている',
 }
 
+// 機能定義書 10 章のテストの観点の ID（TC-03-1 など）。「TC-03-1〜3」のように範囲でも書ける
+const TC = /\bTC-(\d\d)-(\d+)(?:〜(?:TC-\1-)?(\d+))?\b/g
+
+// テストではなく、目で見て確かめる観点（テスト仕様書の手動の項目）
+const OTHER_TC = {
+  'TC-04-11': '画面設計書 3.7 の並べ方（1〜4 枚）を目で見る。E2E の全画面の確認（screens.spec.ts）で 1〜4 枚の投稿を出し、手動で見る',
+}
+
 function walk(dir, match, out = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (entry.name === 'node_modules' || entry.name === 'target' || entry.name === 'results') continue
@@ -53,6 +61,11 @@ function ids(text) {
     const last = to ? Number(to) : Number(from)
     for (let n = Number(from); n <= last; n++) found.add(`${prefix}-${n}`)
   }
+  for (const m of text.matchAll(TC)) {
+    const [, fn, from, to] = m
+    const last = to ? Number(to) : Number(from)
+    for (let n = Number(from); n <= last; n++) found.add(`TC-${fn}-${n}`)
+  }
   return found
 }
 
@@ -65,6 +78,16 @@ for (const file of walk(join(root, 'docs'), (p) => p.endsWith('.md'))) {
     const m = line.match(/^\| ([A-Z]+-\d+) \| ([^|]*)\|/)
     if (!m || !TESTED.includes(m[1].split('-')[0]) || defined.has(m[1])) continue
     defined.set(m[1], { doc: posix(file).replace(/^docs\//, ''), text: m[2].trim() })
+  }
+}
+
+// ---- テストの観点：機能定義書 FN-01〜FN-09 の 10 章の「- TC-03-1：…」の行 ----
+
+const viewpoints = new Map()
+for (const file of walk(join(root, 'docs', 'functions'), (p) => /fn\d\d-.*\.md$/.test(p))) {
+  for (const line of readFileSync(file, 'utf8').split('\n')) {
+    const m = line.match(/^- (TC-\d\d-\d+)：(.*)/)
+    if (m) viewpoints.set(m[1], { doc: posix(file).replace(/^docs\//, ''), text: m[2].trim() })
   }
 }
 
@@ -119,7 +142,7 @@ for (const file of walk(join(root, 'perf', 'k6'), (p) => p.endsWith('.js'))) {
   if (ids(header).size) tests.push({ kind: '性能', file: posix(file), name: 'k6 のシナリオ', text: [header] })
 }
 
-const coverage = new Map([...defined.keys()].map((id) => [id, []]))
+const coverage = new Map([...defined.keys(), ...viewpoints.keys()].map((id) => [id, []]))
 for (const test of tests) {
   for (const id of ids(test.text.join('\n'))) coverage.get(id)?.push(test)
 }
@@ -131,45 +154,67 @@ const order = (a, b) => {
   const [pb, nb] = b.split('-')
   return TESTED.indexOf(pa) - TESTED.indexOf(pb) || Number(na) - Number(nb)
 }
+const tcOrder = (a, b) => a.localeCompare(b, 'en', { numeric: true })
 const cell = (s) => s.replaceAll('|', '／').replace(/\s+/g, ' ')
 const short = (s) => (s.length > 60 ? `${s.slice(0, 60)}…` : s)
 
-const missing = []
-const rows = []
-for (const id of [...defined.keys()].sort(order)) {
-  const { doc, text } = defined.get(id)
-  const found = coverage.get(id)
-  let how
-  if (OTHER[id]) {
-    how = `（テスト以外）${OTHER[id]}`
-  } else if (found.length === 0) {
-    missing.push(id)
-    how = '**テストなし**'
-  } else {
-    const byKind = Map.groupBy(found, (t) => t.kind)
-    how = [...byKind].map(([kind, list]) => `${kind} ${list.length}：${list.map((t) => `${t.file.split('/').pop()} › ${t.name}`).join('、')}`).join('<br>')
+// ID ごとに、確かめるテスト（なければ「テストなし」）の行を作る。テストのない ID は missing に入れる
+function table(definitions, other, sort, missing) {
+  const rows = []
+  for (const id of [...definitions.keys()].sort(sort)) {
+    const { doc, text } = definitions.get(id)
+    const found = coverage.get(id)
+    let how
+    if (other[id]) {
+      how = `（テスト以外）${other[id]}`
+    } else if (found.length === 0) {
+      missing.push(id)
+      how = '**テストなし**'
+    } else {
+      const byKind = Map.groupBy(found, (t) => t.kind)
+      how = [...byKind].map(([kind, list]) => `${kind} ${list.length}：${list.map((t) => `${t.file.split('/').pop()} › ${t.name}`).join('、')}`).join('<br>')
+    }
+    rows.push(`| ${id} | ${cell(short(text))} | ${doc} | ${cell(how)} |`)
   }
-  rows.push(`| ${id} | ${cell(short(text))} | ${doc} | ${cell(how)} |`)
+  return rows.join('\n')
 }
 
+const missing = []
+const missingTc = []
+const idRows = table(defined, OTHER, order, missing)
+const tcRows = table(viewpoints, OTHER_TC, tcOrder, missingTc)
+
 const counted = [...defined.keys()].filter((id) => !OTHER[id])
+const countedTc = [...viewpoints.keys()].filter((id) => !OTHER_TC[id])
 const markdown = `# 要件 ID とテストの対応表
 
-このファイルは \`node scripts/requirement-coverage.mjs\` で作る。手で直さない。テストに要件 ID を書く決まりは [テスト仕様書](test-specification.md) 2 章。
+このファイルは \`node scripts/requirement-coverage.mjs\` で作る。手で直さない。テストに要件 ID・観点の ID を書く決まりは [テスト仕様書](test-specification.md) 2 章。
 
-- テストで確かめる要件 ID：${counted.length} 個（うちテストのないもの ${missing.length} 個）
-- テスト以外で確かめる要件 ID：${Object.keys(OTHER).length} 個
+- テストで確かめる要件 ID：${counted.length} 個（うちテストのないもの ${missing.length} 個）。テスト以外で確かめる要件 ID：${Object.keys(OTHER).length} 個
+- テストで確かめる観点（機能定義書 10 章）：${countedTc.length} 件（うちテストのないもの ${missingTc.length} 件）。目で見て確かめる観点：${Object.keys(OTHER_TC).length} 件
 - 読んだテスト：${tests.length} 件（API ${tests.filter((t) => t.kind === 'API').length}、画面 ${tests.filter((t) => t.kind === '画面').length}、E2E ${tests.filter((t) => t.kind === 'E2E').length}、性能 ${tests.filter((t) => t.kind === '性能').length}）
+
+## 1. 要件 ID
 
 | ID | 要件 | 定めている文書 | 確かめるテスト（種類 件数：ファイル › テスト名） |
 | --- | --- | --- | --- |
-${rows.join('\n')}
+${idRows}
+
+## 2. テストの観点（機能定義書 10 章）
+
+| ID | 観点 | 定めている文書 | 確かめるテスト（種類 件数：ファイル › テスト名） |
+| --- | --- | --- | --- |
+${tcRows}
 `
 
 if (process.argv.includes('--check')) {
   let failed = false
   if (missing.length) {
     console.error(`テストのない要件 ID があります：${missing.join('、')}`)
+    failed = true
+  }
+  if (missingTc.length) {
+    console.error(`テストのない観点があります：${missingTc.join('、')}`)
     failed = true
   }
   let current = ''
@@ -179,8 +224,8 @@ if (process.argv.includes('--check')) {
     failed = true
   }
   if (failed) process.exit(1)
-  console.log(`OK：${counted.length} 個の要件 ID すべてにテストがあります`)
+  console.log(`OK：${counted.length} 個の要件 ID と ${countedTc.length} 件の観点のすべてにテストがあります`)
 } else {
   writeFileSync(output, markdown)
-  console.log(`${posix(output)} を書き出しました（テストのない ID：${missing.length ? missing.join('、') : 'なし'}）`)
+  console.log(`${posix(output)} を書き出しました（テストのない ID：${[...missing, ...missingTc].join('、') || 'なし'}）`)
 }

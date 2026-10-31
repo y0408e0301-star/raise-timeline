@@ -90,6 +90,7 @@ class FollowApiTests {
 		assertThat(followRows()).isZero();
 	}
 
+	// TC-07-3
 	@Test
 	void 素早く10回押しても行は最後に押した状態と合う() {
 		for (int i = 0; i < 10; i++) {
@@ -114,6 +115,7 @@ class FollowApiTests {
 		assertThat(followRows()).isEqualTo(1);
 	}
 
+	// TC-07-2
 	@Test
 	void 自分はフォローできない() {
 		assertError(follow(this.taro, "taro_y"), HttpStatus.BAD_REQUEST, "CANNOT_FOLLOW_SELF");
@@ -146,6 +148,7 @@ class FollowApiTests {
 
 	// ---- タイムラインの「フォロー中」（FN-02 との関係、F-7）----
 
+	// TC-07-1
 	@Test
 	void フォローすると相手の投稿がフォロー中に出て外すと出なくなる() {
 		long postId = createPost(this.taro, "たろうの投稿");
@@ -158,6 +161,7 @@ class FollowApiTests {
 		assertThat(followingTimeline(this.hanako)).isEmpty();
 	}
 
+	// TC-07-5
 	@Test
 	void フォローを外してもいいねとコメントは残る() {
 		long postId = createPost(this.taro, "たろうの投稿");
@@ -179,6 +183,7 @@ class FollowApiTests {
 
 	// ---- フォロー中・フォロワーの一覧（F-6）----
 
+	// TC-07-4
 	@Test
 	void フォロー中とフォロワーを第三者が見られる() {
 		this.jdbc.update("UPDATE users SET bio = ? WHERE id = 2", "1 行目\n2 行目");

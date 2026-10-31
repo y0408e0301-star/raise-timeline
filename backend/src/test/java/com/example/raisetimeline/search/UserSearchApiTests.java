@@ -50,6 +50,7 @@ class UserSearchApiTests {
 
 	// ---- 一致の判定と並び順（S-4・S-6、5.1）----
 
+	// TC-08-1
 	@Test
 	void 完全一致と前方一致と表示名の前方一致とそれ以外の順に並ぶ() {
 		addUser("yamada_taro", "山田");
@@ -64,6 +65,7 @@ class UserSearchApiTests {
 				"yamada_taro");
 	}
 
+	// TC-08-2
 	@Test
 	void 同じ順位ではフォロワーの多い人が先でそれも同じならユーザーIDの順() {
 		addUser("taro_c", "たろう");
@@ -78,6 +80,7 @@ class UserSearchApiTests {
 		assertThat(usernames(search("taro"))).containsExactly("taro_c", "taro_b", "taro_a");
 	}
 
+	// TC-08-3
 	@Test
 	void 先頭のアットマークを取り大文字小文字を区別しない() {
 		addUser("Taro_Y", "たろう");
@@ -88,6 +91,7 @@ class UserSearchApiTests {
 		assertThat(usernames(search("  TARO  "))).isEqualTo(expected);
 	}
 
+	// TC-08-4
 	@Test
 	void パーセントとアンダースコアとバックスラッシュは文字として探す() {
 		addUser("taro_y", "たろう");
@@ -107,6 +111,7 @@ class UserSearchApiTests {
 		assertThat(usernames(search("たろ"))).containsExactly("taro");
 	}
 
+	// TC-08-5
 	@Test
 	void 一文字と二文字の検索語でも結果が出る() {
 		addUser("taro", "たろう");
@@ -116,6 +121,7 @@ class UserSearchApiTests {
 		assertThat(usernames(search("ar"))).containsExactly("taro");
 	}
 
+	// TC-08-6
 	@Test
 	void 自分も結果に出てmeがtrueでフォローしている人はfollowedByMeがtrue() {
 		addUser("viewer_friend", "友だち");
@@ -204,6 +210,7 @@ class UserSearchApiTests {
 
 	// ---- 速さ（N-5）----
 
+	// TC-08-8
 	@Test
 	void ユーザー千人で一秒以内に結果が出る() {
 		List<Object[]> rows = new ArrayList<>();

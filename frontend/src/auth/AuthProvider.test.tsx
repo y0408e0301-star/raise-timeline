@@ -83,6 +83,7 @@ describe('AuthProvider', () => {
     expect(fetch.keys()).toContain('POST /api/auth/logout')
   })
 
+  // TC-01-13
   it('操作の途中で取り直しに失敗したら、M-19 を出して G-1 に移す', async () => {
     renderProvider({
       'GET /api/auth/me': () => json(200, me),
