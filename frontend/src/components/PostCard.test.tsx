@@ -131,6 +131,7 @@ describe('編集', () => {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 
+  // TC-03-11
   it('画像がなければ本文を空にして保存できない', async () => {
     renderCard(post({ body: '前の本文' }))
     await openMenu('編集')
@@ -138,6 +139,7 @@ describe('編集', () => {
     expect(save()).toBeDisabled()
   })
 
+  // TC-03-11
   it('画像のある投稿は本文を空にして保存できる', async () => {
     renderCard(post({ body: '前の本文', images: [{ id: 1, url: 'https://s3/a.png', expiresAt: '2999-01-01T00:00:00Z' }] }))
     await openMenu('編集')

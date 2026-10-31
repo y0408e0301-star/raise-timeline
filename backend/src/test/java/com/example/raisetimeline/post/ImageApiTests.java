@@ -121,6 +121,7 @@ public class ImageApiTests {
 		assertThat(got.body()).isEqualTo(png(200));
 	}
 
+	// TC-04-4
 	@Test
 	void 画像だけの投稿ができる() {
 		MvcTestResult result = create(this.taro, "", List.of(image("a.png", png(10))));
@@ -128,6 +129,7 @@ public class ImageApiTests {
 	}
 
 	// N-14
+	// TC-04-7
 	@Test
 	void バケットのURLを署名なしで開いても画像は見られない() throws Exception {
 		create(this.taro, "本文", List.of(image("a.png", png(10))));
@@ -141,6 +143,7 @@ public class ImageApiTests {
 	// ---- 入力の確認（4 章）----
 
 	// BR-3
+	// TC-04-1
 	@Test
 	void 画像5枚は400のTOO_MANY_IMAGESで投稿も画像もできない() {
 		List<MockMultipartFile> files = List.of(image("1.png", png(1)), image("2.png", png(1)), image("3.png", png(1)),
@@ -149,6 +152,7 @@ public class ImageApiTests {
 		assertNothingSaved();
 	}
 
+	// TC-04-2
 	@Test
 	void 画像5MBちょうどは添えられ5MBより1バイト大きいと413のIMAGE_TOO_LARGE() {
 		assertThat(create(this.taro, "", List.of(image("big.jpg", jpeg(FIVE_MB - 3))))).hasStatus(HttpStatus.CREATED);
@@ -161,6 +165,7 @@ public class ImageApiTests {
 		assertNothingSaved();
 	}
 
+	// TC-04-3
 	@Test
 	void 拡張子をjpgに変えたテキストやPDFは400のIMAGE_TYPE_INVALID() {
 		byte[] text = "これはテキストです".getBytes(StandardCharsets.UTF_8);
@@ -181,6 +186,7 @@ public class ImageApiTests {
 
 	// ---- 編集・削除（FN-03 と一緒の観点）----
 
+	// TC-03-11
 	@Test
 	void 画像のある投稿は本文を0文字に編集できる() {
 		long id = id(create(this.taro, "本文", List.of(image("a.png", png(10)))));
@@ -194,6 +200,7 @@ public class ImageApiTests {
 		assertThat(edited).hasStatus(HttpStatus.OK).bodyJson().extractingPath("$.images.length()").isEqualTo(1);
 	}
 
+	// TC-03-8・TC-04-6
 	@Test
 	void 投稿を削除すると画像の行とS3のファイルも消える() {
 		long id = id(create(this.taro, "本文", List.of(image("a.png", png(10)), image("b.png", png(20)))));

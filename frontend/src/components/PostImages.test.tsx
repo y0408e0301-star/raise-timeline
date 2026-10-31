@@ -40,6 +40,7 @@ describe('PostImages', () => {
     expect(screen.getByRole('img', { name: '画像 2 / 2' })).toBeInTheDocument()
   })
 
+  // TC-04-9
   it('読み込めなければ URL を取り直し、同時にいくつ失敗しても送るのは 1 回だけ', async () => {
     const fetch = mockFetch({
       'POST /api/images/urls': () => json(200, { items: [image(1, future, 'https://s3/new/1.png'), image(2, future, 'https://s3/new/2.png')] }),
@@ -67,6 +68,7 @@ describe('PostImages', () => {
     expect(await screen.findByText('画像を読み込めませんでした')).toBeInTheDocument()
   })
 
+  // TC-04-10
   it('取り直した期限内の URL でも読み込めなければ、もう取り直さない', async () => {
     const fetch = mockFetch({ 'POST /api/images/urls': () => json(200, { items: [image(1, future, 'https://s3/new/1.png')] }) })
     renderImages([image(1)])
@@ -78,6 +80,7 @@ describe('PostImages', () => {
     expect(fetch.keys()).toHaveLength(1)
   })
 
+  // TC-04-8
   it('期限の切れた画像は、G-10 を開く前に取り直す', async () => {
     const fetch = mockFetch({ 'POST /api/images/urls': () => json(200, { items: [image(1, future, 'https://s3/new/1.png')] }) })
     renderImages([image(1, past)])

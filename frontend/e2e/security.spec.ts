@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test'
-import { api, createPostByApi, newContext, PASSWORD, postCard, send, signup, submitLogin, user, xsrfHeader } from './helpers.ts'
+import { api, closeContexts, createPostByApi, newContext, PASSWORD, postCard, send, signup, submitLogin, user, xsrfHeader } from './helpers.ts'
 import type { PostView } from './helpers.ts'
+
+test.afterEach(closeContexts)
 
 // 要件定義書 11.3 のセキュリティの要件のうち、画面を通して確かめられるものを確かめる。
 // API の層ごとの細かい確認は、API の単体テスト（3-5）で行っている
@@ -20,6 +22,7 @@ test('N-10 ログインしていないと、どの画面も G-1 に移り、API 
   await context.close()
 })
 
+// TC-03-7
 test('N-11 他人の投稿・コメントは、画面に操作が出ず、API を直接呼んでも変えられない', async ({ browser }) => {
   const taro = user('st', 'たろう')
   const hana = user('sh', 'はなこ')
@@ -46,6 +49,7 @@ test('N-11 他人の投稿・コメントは、画面に操作が出ず、API �
   expect(await api<PostView>(page, `/api/posts/${post.id}`)).toMatchObject({ body: 'たろうの投稿', commentCount: 1 })
 })
 
+// TC-03-5
 test('N-15 本文の HTML は文字のまま出て、スクリプトは動かない', async ({ browser }) => {
   const jiro = user('sx', 'じろう')
   const page = await signup(browser, jiro)

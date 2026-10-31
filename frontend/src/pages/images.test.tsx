@@ -79,6 +79,7 @@ describe('投稿フォームの画像（I-1〜I-5）', () => {
     expect(screen.getByRole('button', { name: '画像を選ぶ' })).toBeEnabled()
   })
 
+  // TC-04-1
   it('合わせて 5 枚以上選んだら、先に選んだ 4 枚だけを添えて M-12 を出す', async () => {
     renderHome([])
     await screen.findByText('まだ投稿がありません。')
@@ -98,6 +99,7 @@ describe('投稿フォームの画像（I-1〜I-5）', () => {
     expect(previews()).toHaveLength(1)
   })
 
+  // TC-04-4
   it('画像だけで投稿でき、画像は選んだ順に送る。投稿したらフォームを空にする', async () => {
     const fetch = renderHome([], { 'POST /api/posts': () => json(201, post(1, [image(1), image(2)], { body: '' })) })
     await screen.findByText('まだ投稿がありません。')
@@ -114,6 +116,7 @@ describe('投稿フォームの画像（I-1〜I-5）', () => {
     expect(await screen.findAllByRole('button', { name: /を拡大$/ })).toHaveLength(2)
   })
 
+  // TC-04-5
   it('投稿に失敗したら M-14 を出し、本文と画像を残す', async () => {
     renderHome([], { 'POST /api/posts': () => json(500, { code: 'IMAGE_UPLOAD_FAILED', message: M[14] }) })
     await screen.findByText('まだ投稿がありません。')
@@ -178,6 +181,7 @@ describe('URL の取り直し（I-8）', () => {
     expect(JSON.parse(sent as string)).toEqual({ imageIds: [11, 12] })
   })
 
+  // TC-04-9
   it('同じ投稿の画像がいくつ同時に読み込めなくても、取り直しは 1 回だけ送る', async () => {
     const fetch = renderHome([post(1, [image(11), image(12), image(13), image(14)])], {
       'POST /api/images/urls': () => json(200, { items: [11, 12, 13, 14].map((id) => image(id, { url: `https://s3.example/new-${id}` })) }),
@@ -188,6 +192,7 @@ describe('URL の取り直し（I-8）', () => {
     expect(fetch.calls.filter((c) => c.key === 'POST /api/images/urls')).toHaveLength(1)
   })
 
+  // TC-04-10
   it('取り直した URL でも読み込めなければ、もう取り直さずに「画像を読み込めませんでした」を出す', async () => {
     const fetch = renderHome([post(1, [image(11)])], {
       'POST /api/images/urls': () => json(200, { items: [image(11, { url: 'https://s3.example/new-11' })] }),
@@ -225,6 +230,7 @@ describe('URL の取り直し（I-8）', () => {
     expect(await screen.findByText('画像を読み込めませんでした')).toBeInTheDocument()
   })
 
+  // TC-04-8
   it('期限が切れていたら、G-10 を開く前に取り直す', async () => {
     const expired = new Date(Date.now() - 1000).toISOString()
     renderHome([post(1, [image(11, { expiresAt: expired })])], {

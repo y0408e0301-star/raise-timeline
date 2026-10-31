@@ -55,6 +55,7 @@ class PostApiTests {
 
 	// ---- 投稿（W-1〜W-5）----
 
+	// TC-03-1
 	@Test
 	void 投稿すると前後の空白を取り除いた本文で保存されPostViewが返る() {
 		MvcTestResult result = create(this.taro, "  \n今日は晴れ。\n川沿いを散歩してきた　\n ");
@@ -74,6 +75,7 @@ class PostApiTests {
 		assertThat(result).bodyJson().extractingPath("$.createdAt").isEqualTo(this.clock.instant().toString());
 	}
 
+	// TC-03-1
 	@Test
 	void 本文は280文字まで投稿でき281文字は投稿できない() {
 		assertThat(create(this.taro, "あ".repeat(280))).hasStatus(HttpStatus.CREATED);
@@ -81,6 +83,7 @@ class PostApiTests {
 		assertError(create(this.taro, "あ".repeat(281)), HttpStatus.BAD_REQUEST, "BODY_TOO_LONG");
 	}
 
+	// TC-03-2
 	@Test
 	void 絵文字はコードポイントで数える() {
 		// 🇯🇵（国旗）と 👍🏽（肌の色つき）は、どちらも 2 コードポイント・UTF-16 で 4 つ
@@ -92,6 +95,7 @@ class PostApiTests {
 		assertError(create(this.taro, flags + "a"), HttpStatus.BAD_REQUEST, "BODY_TOO_LONG");
 	}
 
+	// TC-03-3
 	@Test
 	void 改行はLFにそろえて1文字と数える() {
 		// ブラウザは multipart で送るときに改行を CRLF に変える。画面では改行 1 つを 1 文字と数えている
@@ -104,6 +108,7 @@ class PostApiTests {
 	}
 
 	// BR-2
+	// TC-03-4
 	@Test
 	void 本文が空で画像もないときは投稿できない() {
 		assertError(create(this.taro, ""), HttpStatus.BAD_REQUEST, "POST_EMPTY");
@@ -112,6 +117,7 @@ class PostApiTests {
 				HttpStatus.BAD_REQUEST, "POST_EMPTY");
 	}
 
+	// TC-03-5
 	@Test
 	void HTMLの記号はそのまま保存して返す() {
 		assertThat(create(this.taro, "<script>alert(1)</script> & \"x\"")).bodyJson()
@@ -145,6 +151,7 @@ class PostApiTests {
 
 	// ---- 編集（W-9〜W-11）----
 
+	// TC-03-12
 	@Test
 	void 編集すると本文と編集日時だけが変わる() {
 		MvcTestResult created = create(this.taro, "前の本文");
@@ -161,6 +168,7 @@ class PostApiTests {
 		assertThat(get(this.hanako, id)).bodyJson().extractingPath("$.body").isEqualTo("新しい本文\n2 行目");
 	}
 
+	// TC-03-10・TC-03-11
 	@Test
 	void 編集した本文も280文字までで画像のない投稿は空にできない() {
 		long id = id(create(this.taro, "本文"));
@@ -171,6 +179,7 @@ class PostApiTests {
 	}
 
 	// BR-7
+	// TC-03-14
 	@Test
 	void 他人の投稿は編集できず削除された投稿は404() {
 		long id = id(create(this.taro, "本文"));
@@ -192,6 +201,7 @@ class PostApiTests {
 	}
 
 	// BR-7
+	// TC-03-7
 	@Test
 	void 他人の投稿は削除できない() {
 		long id = id(create(this.taro, "本文"));

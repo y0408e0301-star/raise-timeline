@@ -36,6 +36,7 @@ describe('Comments', () => {
     expect(screen.getByText('読み込み中…')).toBeInTheDocument()
   })
 
+  // TC-05-3
   it('自分のコメントにだけ「削除」を出し、名前はその人の G-6 へのリンク', async () => {
     renderComments({ 'GET /api/posts/1/comments': page([comment(1), comment(2, { mine: true })]) })
     const items = await screen.findAllByRole('listitem', { name: 'はなこのコメント' })

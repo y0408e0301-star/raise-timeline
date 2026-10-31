@@ -104,6 +104,7 @@ describe('G-9 ユーザー検索の結果（S-6〜S-9）', () => {
     expect(within(rows()[0]).getByRole('link')).toHaveAttribute('href', '/users/taro')
   })
 
+  // TC-08-6
   it('一致するユーザーがいないときは M-16 を出す', async () => {
     renderAt('/search?q=nobody', { [searchKey('nobody')]: page([]) })
     expect(await screen.findByText(m16('nobody'))).toBeInTheDocument()

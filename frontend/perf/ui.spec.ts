@@ -232,6 +232,7 @@ async function waitForTabCards(page: Page, label: string, count: number): Promis
   { label, count }, { polling: 'raf', timeout: 30_000 })
 }
 
+// TC-02-7
 test('N-2 タブを切り替えてから 20 件が出るまで、一番下まで見てから続きの 20 件が出るまで', async ({ browser }, info) => {
   const context = await newContext(browser, info)
   const page = await context.newPage()
@@ -278,6 +279,7 @@ test('N-2 タブを切り替えてから 20 件が出るまで、一番下まで
   }
 })
 
+// TC-08-8
 test('N-5 ユーザー検索で Enter を押してから結果が出るまで', async ({ browser }, info) => {
   const context = await newContext(browser, info)
   const page = await context.newPage()

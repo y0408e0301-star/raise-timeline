@@ -75,6 +75,7 @@ class ProfileEditApiTests {
 
 	// ---- 表示名・自己紹介（PF-5〜PF-7）----
 
+	// TC-09-5
 	@Test
 	void 表示名と自己紹介を変えると新しいプロフィールを返し過去の投稿とコメントにも新しい表示名が出る() {
 		long postId = createPost(this.taro, "前に書いた投稿");
@@ -103,6 +104,7 @@ class ProfileEditApiTests {
 			.isEqualTo("たろう（新）");
 	}
 
+	// TC-09-5
 	@Test
 	void 自己紹介は160文字まで保存でき161文字は400のBIO_TOO_LONG() {
 		// 絵文字は 1 文字（コードポイント）と数える
@@ -135,6 +137,7 @@ class ProfileEditApiTests {
 			.hasStatus(HttpStatus.OK);
 	}
 
+	// TC-09-6
 	@Test
 	void 変えられるのは自分のプロフィールだけ() {
 		// ユーザー ID を送っても使わない（URL にも本文にも、ほかの人を指定する入力がない）
@@ -162,6 +165,7 @@ class ProfileEditApiTests {
 	// ---- アイコン画像（PF-8〜PF-10）----
 
 	// N-8
+	// TC-09-7・TC-09-9
 	@Test
 	void 五MBちょうどのJPEGとPNGとWebPをアイコンにでき前のアイコンはS3から消える() throws Exception {
 		int head = 12;
@@ -184,6 +188,7 @@ class ProfileEditApiTests {
 		}
 	}
 
+	// TC-09-7
 	@Test
 	void 五MBを超えるアイコンは413のICON_TOO_LARGE() {
 		assertError(changeIcon(this.taro, ImageApiTests.png(ImageApiTests.FIVE_MB - 7)), HttpStatus.CONTENT_TOO_LARGE,
@@ -191,6 +196,7 @@ class ProfileEditApiTests {
 		assertNoIcon();
 	}
 
+	// TC-09-7
 	@Test
 	void GIFと拡張子を変えたテキストと空のファイルは400のICON_TYPE_INVALID() {
 		assertError(changeIcon(this.taro, ImageApiTests.gif(10)), HttpStatus.BAD_REQUEST, "ICON_TYPE_INVALID");
@@ -201,6 +207,7 @@ class ProfileEditApiTests {
 		assertNoIcon();
 	}
 
+	// TC-09-8
 	@Test
 	void アイコンを設定するとプロフィールと投稿とコメントとユーザーの行と自分の情報にURLが入る() {
 		long postId = createPost(this.taro, "投稿");
@@ -234,6 +241,7 @@ class ProfileEditApiTests {
 				"$.items[0].iconUrl", key);
 	}
 
+	// TC-09-9
 	@Test
 	void アイコンを外すと204でURLがなくなりS3のファイルも消える() {
 		changeIcon(this.taro, ImageApiTests.png(10));
@@ -252,6 +260,7 @@ class ProfileEditApiTests {
 	}
 
 	// N-14
+	// TC-09-11
 	@Test
 	void バケットのiconsのURLを署名なしで開いてもアイコンは見られない() throws Exception {
 		changeIcon(this.taro, ImageApiTests.png(10));

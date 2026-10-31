@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test'
 import type { BrowserContext, Cookie } from '@playwright/test'
-import { signup, user, xsrfHeader } from './helpers.ts'
+import { closeContexts, signup, user, xsrfHeader } from './helpers.ts'
+
+test.afterEach(closeContexts)
 
 // ログインの続き（FN-01 A-8、N-25）。JWT（access_token）は 15 分で Cookie ごと消えるので、
 // 15 分待つ代わりに Cookie を消して、リフレッシュトークン（refresh_token）で取り直せることを確かめる
@@ -9,6 +11,7 @@ const cookie = async (context: BrowserContext, name: string): Promise<Cookie | u
   (await context.cookies()).find((c) => c.name === name)
 
 // A-8・N-25
+// TC-01-5・TC-01-10
 test('JWT が切れても、リフレッシュトークンで取り直して使い続けられる', async ({ browser }) => {
   const page = await signup(browser, user('ar', 'たろう'))
   const context = page.context()
@@ -30,6 +33,7 @@ test('JWT が切れても、リフレッシュトークンで取り直して使�
 })
 
 // N-25
+// TC-01-12
 test('ログアウトした後は、前のリフレッシュトークンを使えない', async ({ browser }) => {
   const page = await signup(browser, user('ao', 'はなこ'))
   const context = page.context()
@@ -47,6 +51,7 @@ test('ログアウトした後は、前のリフレッシュトークンを使�
   await expect(page).toHaveURL(/\/login$/)
 })
 
+// TC-01-11
 test('一度使ったリフレッシュトークンをもう一度使うと、その人のトークンがすべて無効になる', async ({ browser }) => {
   const page = await signup(browser, user('aw', 'じろう'))
   const context = page.context()

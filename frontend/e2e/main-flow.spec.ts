@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test'
-import { api, PASSWORD, postCard, runId, searchUsers, signup, submitLogin, user } from './helpers.ts'
+import { api, closeContexts, PASSWORD, postCard, runId, searchUsers, signup, submitLogin, user } from './helpers.ts'
 import type { PostView, Profile } from './helpers.ts'
+
+test.afterEach(closeContexts)
 
 // 主な流れ（登録 → 投稿 → 検索 → フォロー → いいね・コメント）を、本物の API と DB につないで確かめる（開発計画書 3-1、N-24）。
 // 2 人のユーザーをそれぞれ別のブラウザ（コンテキスト）で操作し、操作の後は
@@ -40,7 +42,8 @@ test('登録 → 投稿 → 検索 → フォロー → いいね・コメント
     await row.getByRole('button', { name: 'フォローする' }).click()
     await expect(row.getByRole('button', { name: 'フォロー中' })).toBeVisible()
 
-    expect(await api<Profile>(hanaPage, `/api/users/${taro.username}`))
+    // 画面は応答を待たずに「フォロー中」にする（楽観的な表示）ので、DB に入るまで待つ
+    await expect.poll(() => api<Profile>(hanaPage, `/api/users/${taro.username}`))
       .toMatchObject({ followedByMe: true, followerCount: 1 })
   })
 
@@ -50,6 +53,8 @@ test('登録 → 投稿 → 検索 → フォロー → いいね・コメント
     const results = hanaPage.getByRole('list', { name: '検索結果' })
     await expect(results.getByRole('listitem')).toHaveCount(2)
     await expect(results.getByRole('listitem', { name: hana.displayName }).getByRole('button')).toHaveCount(0)
+    // 前に押した「フォローする」の位置にマウスが残っていると、同じ位置に来たボタンが「フォロー解除」になる（WebKit）
+    await hanaPage.mouse.move(0, 0)
     await expect(results.getByRole('listitem', { name: taro.displayName })
       .getByRole('button', { name: 'フォロー中' })).toBeVisible()
   })
@@ -68,7 +73,7 @@ test('登録 → 投稿 → 検索 → フォロー → いいね・コメント
     await hanaPage.getByRole('button', { name: 'コメントする' }).click()
     await expect(hanaPage.getByRole('listitem', { name: `${hana.displayName}のコメント` })).toContainText('フォローしました！')
 
-    expect(await api<PostView>(hanaPage, `/api/posts/${postId}`))
+    await expect.poll(() => api<PostView>(hanaPage, `/api/posts/${postId}`))
       .toMatchObject({ likeCount: 1, commentCount: 1, likedByMe: true })
   })
 
@@ -92,6 +97,7 @@ test('登録 → 投稿 → 検索 → フォロー → いいね・コメント
   })
 })
 
+// TC-01-5
 test('ログアウトして、ログインし直せる。パスワードが違えばログインできない', async ({ browser }) => {
   const jiro = user('j', 'じろう')
   const page = await signup(browser, jiro)

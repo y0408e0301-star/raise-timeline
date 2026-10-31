@@ -63,6 +63,7 @@ class AuthApiTests {
 
 	// ---- 登録（A-1〜A-4）----
 
+	// TC-01-8
 	@Test
 	void 登録するとログインした状態になり自分の情報が返る() {
 		MvcTestResult result = signup("Taro_Y", "たろう", PASSWORD);
@@ -92,6 +93,7 @@ class AuthApiTests {
 			.isEqualTo("Taro_Y");
 	}
 
+	// TC-01-1
 	@Test
 	void ユーザーIDは3から15文字の半角英数字とアンダースコアだけ() {
 		assertError(signup("ab", "名前", PASSWORD), HttpStatus.BAD_REQUEST, "USERNAME_INVALID", "username");
@@ -109,6 +111,7 @@ class AuthApiTests {
 		assertThat(signup("  hanako  ", "はなこ", PASSWORD)).bodyJson().extractingPath("$.username").isEqualTo("hanako");
 	}
 
+	// TC-01-1
 	@Test
 	void 大文字と小文字だけが違うユーザーIDは使えない() {
 		assertThat(signup("Taro", "たろう", PASSWORD)).hasStatus(HttpStatus.CREATED);
@@ -124,6 +127,7 @@ class AuthApiTests {
 				HttpStatus.BAD_REQUEST, "USERNAME_INVALID", "username");
 	}
 
+	// TC-01-2
 	@Test
 	void パスワードは英字と数字を含む8から64文字の半角文字() {
 		assertError(signup("user1", "名前", "passwo1"), HttpStatus.BAD_REQUEST, "PASSWORD_INVALID", "password");
@@ -137,6 +141,7 @@ class AuthApiTests {
 	}
 
 	// BR-1
+	// TC-01-2
 	@Test
 	void パスワードの前後の空白は取り除かずにそのまま使う() {
 		assertThat(signup("spacer", "名前", " pass1234 ")).hasStatus(HttpStatus.CREATED);
@@ -176,6 +181,7 @@ class AuthApiTests {
 		assertThat(result.getResponse().getCookie(AuthCookies.REFRESH_TOKEN)).isNotNull();
 	}
 
+	// TC-01-4
 	@Test
 	void いないユーザーIDと違うパスワードで同じ応答を返す() throws Exception {
 		signup("taro", "たろう", PASSWORD);
@@ -189,6 +195,7 @@ class AuthApiTests {
 	}
 
 	// BR-8
+	// TC-01-3
 	@Test
 	void ログインに成功すると失敗の回数が0に戻る() {
 		signup("taro", "たろう", PASSWORD);
@@ -200,6 +207,7 @@ class AuthApiTests {
 	}
 
 	// BR-8
+	// TC-01-3
 	@Test
 	void 五回続けて失敗すると15分間ログインできない() {
 		signup("taro", "たろう", PASSWORD);
@@ -228,6 +236,7 @@ class AuthApiTests {
 		assertError(this.mvc.get().uri("/api/auth/me").exchange(), HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", null);
 	}
 
+	// TC-01-7
 	@Test
 	void CSRFトークンがないPOSTは403を返す() {
 		Cookie access = signup("taro", "たろう", PASSWORD).getResponse().getCookie(AuthCookies.ACCESS_TOKEN);
@@ -240,6 +249,7 @@ class AuthApiTests {
 			.exchange(), HttpStatus.FORBIDDEN, "FORBIDDEN", null);
 	}
 
+	// TC-01-9
 	@Test
 	void 期限切れのJWTはTOKEN_EXPIREDを返す() {
 		Cookie access = signup("taro", "たろう", PASSWORD).getResponse().getCookie(AuthCookies.ACCESS_TOKEN);
@@ -262,6 +272,7 @@ class AuthApiTests {
 			.content("{\"username\":\"taro\",\"password\":\"" + PASSWORD + "\"}")).hasStatusOk();
 	}
 
+	// TC-01-9
 	@Test
 	void 書き換えたJWTと別の秘密の値で署名したJWTは401を返す() {
 		String token = signup("taro", "たろう", PASSWORD).getResponse().getCookie(AuthCookies.ACCESS_TOKEN).getValue();
@@ -296,6 +307,7 @@ class AuthApiTests {
 		assertThat(this.mvc.get().uri("/api/auth/me").cookie(newAccess)).hasStatusOk();
 	}
 
+	// TC-01-11
 	@Test
 	void 替わる前のリフレッシュトークンが使われたらその人のログインをすべて切る() {
 		signup("taro", "たろう", PASSWORD);
@@ -312,6 +324,7 @@ class AuthApiTests {
 		assertError(refresh(otherBrowser), HttpStatus.UNAUTHORIZED, "REFRESH_FAILED", null);
 	}
 
+	// TC-01-13
 	@Test
 	void 最後の操作から14日を過ぎるとログインが切れる() {
 		Cookie refresh = signup("taro", "たろう", PASSWORD).getResponse().getCookie(AuthCookies.REFRESH_TOKEN);
@@ -336,6 +349,7 @@ class AuthApiTests {
 	// ---- ログアウト（A-9）----
 
 	// N-25
+	// TC-01-12
 	@Test
 	void ログアウトするとそのブラウザのリフレッシュトークンだけが使えなくなる() {
 		signup("taro", "たろう", PASSWORD);

@@ -50,6 +50,7 @@ class BodyTextTests {
 		assertThat(BodyText.isTooLong(emoji + "a")).isTrue();
 	}
 
+	// TC-03-3
 	@Test
 	void CRLFは正規化した後で数えるので改行1つが1文字になる() {
 		// 279 文字＋改行 1 つ。CRLF のまま数えると 281 文字になってしまう

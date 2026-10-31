@@ -100,6 +100,7 @@ describe('フォローボタン（F-1〜F-4）', () => {
     expect(within(await row('はなこ')).queryByRole('button')).not.toBeInTheDocument()
   })
 
+  // TC-07-3
   it('10 回素早く押しても、送っている間に押した分はまとめ、最後に押した状態だけを送る', async () => {
     const put = deferred()
     const fetch = renderAt('/users/taro_y/followers', {

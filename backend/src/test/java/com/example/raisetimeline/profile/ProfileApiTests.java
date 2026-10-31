@@ -58,6 +58,7 @@ class ProfileApiTests {
 
 	// ---- プロフィール（PF-1・PF-3・PF-4）----
 
+	// TC-09-3
 	@Test
 	void プロフィールは件数とフォローしているかを返す() {
 		this.jdbc.update("UPDATE users SET bio = ? WHERE id = 1", "川沿いを散歩するのが好きです\n2 行目");
@@ -85,12 +86,14 @@ class ProfileApiTests {
 				""".formatted(this.clock.instant()));
 	}
 
+	// TC-09-1
 	@Test
 	void ユーザーIDの大文字小文字を変えても同じ人で登録したときの書き方で返す() {
 		assertThat(profile(this.hanako, "TARO_Y")).bodyJson().extractingPath("$.username").isEqualTo("Taro_Y");
 		assertThat(profile(this.hanako, "taro_y")).bodyJson().extractingPath("$.username").isEqualTo("Taro_Y");
 	}
 
+	// TC-09-2
 	@Test
 	void 自分のプロフィールはmeがtrueでfollowedByMeはfalse() {
 		assertThat(profile(this.taro, "taro_y")).bodyJson()
@@ -107,6 +110,7 @@ class ProfileApiTests {
 			.isLenientlyEqualTo("{\"followerCount\":0,\"followedByMe\":false}");
 	}
 
+	// TC-09-4
 	@Test
 	void いないユーザーは404() {
 		assertError(profile(this.taro, "nobody"), "USER_NOT_FOUND");

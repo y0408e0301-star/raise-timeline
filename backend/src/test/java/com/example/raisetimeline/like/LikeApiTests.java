@@ -86,11 +86,13 @@ class LikeApiTests {
 		assertThat(likeRows()).isZero();
 	}
 
+	// TC-06-3
 	@Test
 	void 自分の投稿にもいいねできる() {
 		assertResult(like(this.taro, this.postId), true, 1);
 	}
 
+	// TC-06-1
 	@Test
 	void 素早く10回押しても行は最後に押した状態と合う() {
 		for (int i = 0; i < 10; i++) {
@@ -103,6 +105,7 @@ class LikeApiTests {
 		assertThat(likeRows()).isEqualTo(1);
 	}
 
+	// TC-06-2
 	@Test
 	void 同じ人が同時にいいねしても行は1つ() throws Exception {
 		Callable<MvcTestResult> task = () -> like(this.hanako, this.postId);
@@ -131,6 +134,7 @@ class LikeApiTests {
 		assertThat(likeRows()).isZero();
 	}
 
+	// TC-03-8・TC-06-6
 	@Test
 	void いいねしてから投稿を削除するといいねの行も消える() {
 		like(this.hanako, this.postId);
@@ -162,6 +166,7 @@ class LikeApiTests {
 
 	// ---- いいねした人の一覧（L-5）----
 
+	// TC-06-4
 	@Test
 	void いいねした人21人は新しい順に20人と1人で読めて件数は21() {
 		List<String> usernames = new ArrayList<>();

@@ -83,6 +83,7 @@ describe('タブ（T-1・T-3・T-6）', () => {
     expect(fetch.keys()).toContain('GET /api/timeline?tab=all')
   })
 
+  // TC-02-5
   it('前回「すべて」を選んでいたら、?tab= のない URL で開いても「すべて」を出す', async () => {
     localStorage.setItem('rt.tab', 'all')
     renderAt('/', { 'GET /api/timeline?tab=all': page([post(1)]) })
@@ -97,6 +98,7 @@ describe('タブ（T-1・T-3・T-6）', () => {
     expect(tab('すべて')).toHaveAttribute('aria-selected', 'true')
   })
 
+  // TC-02-5
   it('localStorage が使えないブラウザでも「フォロー中」で動く', async () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('使えない') })
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('使えない') })
@@ -157,6 +159,7 @@ describe('一覧（T-2・T-4・T-8）', () => {
     expect(screen.getByText('これ以上の投稿はありません')).toBeInTheDocument()
   })
 
+  // TC-02-6
   it('「フォロー中」で、誰もフォローしておらず投稿もないときは M-8 と「すべて」タブを開くボタンを出す', async () => {
     renderAt('/', {
       'GET /api/timeline?tab=following': page([], null, 0),

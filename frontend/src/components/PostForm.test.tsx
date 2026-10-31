@@ -62,6 +62,7 @@ describe('PostForm', () => {
     expect(sentForm(fetch).get('body')).toBe('今日は晴れ')
   })
 
+  // TC-03-6
   it('素早く 2 回押しても 1 回だけ送り、送っている間は「投稿中…」で押せない', async () => {
     let release: (() => void) | undefined
     const fetch = mockFetch({
@@ -103,6 +104,7 @@ describe('PostForm', () => {
     await waitFor(() => expect(fetch.keys()).toEqual(['POST /api/posts']))
   })
 
+  // TC-03-4
   it('画像があれば本文が空でも押せ、選んだ順に送る', async () => {
     const fetch = mockFetch({ 'POST /api/posts': () => json(201, post()) })
     renderForm()

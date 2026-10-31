@@ -74,6 +74,7 @@ describe('一覧（C-3・C-4・C-6）', () => {
     expect(commentCount()).toHaveAccessibleName('コメント 2 件')
   })
 
+  // TC-05-2
   it('51 件あるとき、最初は 50 件と「さらに表示」を出し、押すと 51 件目を出して「さらに表示」を消す', async () => {
     const fetch = renderPost({
       'GET /api/posts/1/comments': page(range(1, 50), '50'),
@@ -114,6 +115,7 @@ describe('コメントする（C-1・C-2）', () => {
     expect(JSON.parse(String(sent))).toEqual({ body: 'いい天気ですね' })
   })
 
+  // TC-05-1
   it('280 文字はコメントでき、281 文字・空白だけは押せない', async () => {
     renderPost({ 'GET /api/posts/1/comments': page([]) })
     await textbox()
@@ -146,6 +148,7 @@ describe('コメントする（C-1・C-2）', () => {
     expect(shownComments().slice(-2)).toEqual(['コメント 51', '自分のコメント'])
   })
 
+  // TC-05-6
   it('コメントを書いている間に投稿が削除されたら M-11 を出し、入力した本文を残す', async () => {
     renderPost({
       'GET /api/posts/1/comments': page([]),

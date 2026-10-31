@@ -111,6 +111,7 @@ class SecurityConfigTests {
 		assertError(result, ErrorCode.FORBIDDEN);
 	}
 
+	// TC-01-7
 	@Test
 	void ログインしていてもCSRFトークンがなければ403() {
 		assertError(this.mvc.post().uri("/api/auth/logout").cookie(accessToken()).exchange(), ErrorCode.FORBIDDEN);

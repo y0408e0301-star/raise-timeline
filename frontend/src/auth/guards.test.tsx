@@ -40,6 +40,7 @@ describe('RequireAuth', () => {
     expect(screen.getByText('G-6')).toBeInTheDocument()
   })
 
+  // TC-01-6
   it('ログインしていなければ G-1 に移し、ログインした後に開こうとした画面を渡す', () => {
     renderAt('/users/hanako', null)
     expect(screen.getByText('G-1（ログインした後は /users/hanako）')).toBeInTheDocument()

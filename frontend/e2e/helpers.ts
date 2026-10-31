@@ -13,17 +13,30 @@ export const PASSWORD = 'e2e-pass1'
 // 前の実行の消し残しと重ならないように、時刻を付ける
 const run = Date.now().toString(36).slice(-6)
 
-// この実行とこの project（pc・mobile）だけを表す文字。ユーザー ID と表示名に入れ、検索して自分たちだけが出るようにする
-export const runId = () => `${run}${test.info().project.name === 'mobile' ? 'm' : 'p'}`
+// この実行とこの project だけを表す文字（project の名前の頭文字。playwright.config.ts の名前は頭文字が重ならないようにする）。
+// ユーザー ID と表示名に入れ、検索して自分たちだけが出るようにする
+export const runId = () => `${run}${test.info().project.name[0]}`
 
 // ユーザー ID は 15 文字まで（「e2e_」4 文字 ＋ runId 7 文字 ＋ suffix 4 文字まで）
 export const user = (suffix: string, name: string): User =>
   ({ username: `e2e_${runId()}${suffix}`, displayName: `E2E ${name} ${runId()}` })
 
-// project の設定（baseURL・画面の幅など）で、Cookie を分けた新しいブラウザを開く
+// テストの中で開いたブラウザ。テストが終わったら closeContexts で閉じる
+const opened = new Set<BrowserContext>()
+
+// project の設定（baseURL・画面の幅・端末のエミュレーションなど）で、Cookie を分けた新しいブラウザを開く
 export async function newContext(browser: Browser): Promise<BrowserContext> {
-  const { baseURL, viewport, locale, timezoneId, isMobile, hasTouch } = test.info().project.use
-  return browser.newContext({ baseURL, viewport, locale, timezoneId, isMobile, hasTouch })
+  const { baseURL, viewport, locale, timezoneId, isMobile, hasTouch, userAgent, deviceScaleFactor } = test.info().project.use
+  const context = await browser.newContext({ baseURL, viewport, locale, timezoneId, isMobile, hasTouch, userAgent, deviceScaleFactor })
+  opened.add(context)
+  return context
+}
+
+// テストで開いたブラウザを閉じる。各ファイルの test.afterEach で呼ぶ。
+// 閉じずに残すと、同じワーカーの後のテストで開いたままの画面がたまり、WebKit では描画が止まって操作が時間切れになる
+export async function closeContexts(): Promise<void> {
+  await Promise.all([...opened].map((context) => context.close()))
+  opened.clear()
 }
 
 // 新しいブラウザで G-2 から登録し、ログインした状態のページを返す

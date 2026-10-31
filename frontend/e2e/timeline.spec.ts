@@ -1,8 +1,11 @@
 import { expect, test } from '@playwright/test'
-import { createPostByApi, postCard, runId, signup, user } from './helpers.ts'
+import { closeContexts, createPostByApi, postCard, runId, signup, user } from './helpers.ts'
+
+test.afterEach(closeContexts)
 
 // タイムライン（FN-02）の「フォロー中」「すべて」のタブ、続きの読み込み（T-2）、フォロー解除（FN-07）を確かめる
 
+// TC-02-1
 test('フォローした人の投稿だけが「フォロー中」に出て、21 件目は一番下まで見ると読み込まれる', async ({ browser }) => {
   const taro = user('tt', 'たろう')
   const hana = user('th', 'はなこ')

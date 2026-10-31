@@ -128,6 +128,7 @@ class PostServiceTests {
 		}
 
 		// BR-4
+		// TC-04-5
 		@Test
 		void S3に置くのに失敗したらそれまでに置いた画像を消してIMAGE_UPLOAD_FAILED() {
 			List<String> put = new ArrayList<>();
