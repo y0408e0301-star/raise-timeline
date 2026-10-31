@@ -1,9 +1,10 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import type { Me } from '../api'
 import { AuthContext } from '../auth/AuthContext'
+import { M } from '../messages'
 import Layout from './Layout'
 
 // G-3〜G-9 で共通のヘッダー（画面設計書 3.6）
@@ -33,6 +34,13 @@ describe('Layout', () => {
     expect(screen.getByRole('link', { name: /Raise timeline/ })).toHaveAttribute('href', '/')
     expect(screen.getByRole('link', { name: '自分のプロフィール' })).toHaveAttribute('href', '/users/taro_y')
     expect(screen.getByText('中身')).toBeInTheDocument()
+  })
+
+  it('通信が切れたら、ヘッダーのすぐ下に M-20 を出す', () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+    renderLayout('/')
+    expect(within(screen.getByRole('banner')).getByRole('alert')).toHaveTextContent(M[20])
+    vi.restoreAllMocks()
   })
 
   it('ログアウトは確認なしで送り、送っている間は押せない', async () => {

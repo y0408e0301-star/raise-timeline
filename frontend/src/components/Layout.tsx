@@ -4,6 +4,7 @@ import { profileUrl } from '../api'
 import { useAuth } from '../auth/AuthContext'
 import Avatar from './Avatar'
 import styles from './Layout.module.css'
+import OfflineNotice from './OfflineNotice'
 import SearchBox from './SearchBox'
 import ui from './ui.module.css'
 
@@ -58,6 +59,8 @@ export default function Layout() {
             </button>
           </div>
         </div>
+        {/* お知らせ欄（M-20）。ヘッダーと一緒に画面の上に留める */}
+        <OfflineNotice />
       </header>
       <main className={styles.container}>
         <Outlet />
