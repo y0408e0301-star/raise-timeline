@@ -31,6 +31,8 @@ docs/
 │   ├── test-specification.md          … テスト仕様書（テストの方針・要件 ID とテストの対応・結果）
 │   ├── requirement-coverage.md        … 要件 ID とテストの対応表（スクリプトで作る）
 │   └── performance-test-report.md     … 性能テスト報告書（要件定義書 11.1 の測定の結果）
+├── manual/
+│   └── operation-manual.md            … 操作マニュアル（アプリを使う人向け）
 ├── tech-stack.md                      … 技術スタック定義書
 └── development-plan.md                … 開発計画書（作る順番と進み具合）
 ```
@@ -49,10 +51,9 @@ docs/
 | [API の仕様書](api/openapi.yaml) | | API ごとの入力・出力の項目（型・必須・条件）とエラーの一覧。API のコードから自動で作る（基本設計書 2.1.1） | 承認しない（コードが正本） |
 | [テスト仕様書](test/test-specification.md) | RT-TEST | テストの方針、テストに要件 ID を書く決まり、要件 ID とテストの対応（[対応表](test/requirement-coverage.md) はスクリプトで作る）、テストの観点、環境ごとの結果（要件定義書 13 章） | 本書で行う |
 | [性能テスト報告書](test/performance-test-report.md) | RT-TEST-PERF | 性能（要件定義書 11.1、N-1〜N-5）を測った条件・結果・分かったこと。測り方は基本設計書 2.4 | 本書で行う |
+| [操作マニュアル](manual/operation-manual.md) | RT-MAN | アプリを使う人向けの、画面ごとの操作・決まり・メッセージが出たときにすること（要件定義書 14 章 No.9） | 本書で行う |
 | [技術スタック定義書](tech-stack.md) | RT-TECH | 使う言語・フレームワーク・サービス・開発ツールと選んだ理由 | 本書で行う |
 | [開発計画書](development-plan.md) | RT-PLAN | 作る順番（段階と Pull Request の単位）、段階ごとの完了条件、どこまでできたか | 本書で行う |
-
-操作マニュアルは、作成した時点でここに追加する。
 
 ## 読む順番
 
