@@ -46,6 +46,7 @@ class StorageDeleterTests {
 		verify(this.deletions, never()).save(any());
 	}
 
+	// BR-5
 	@Test
 	void 消せなかったキーを記録しほかのキーは続けて消す() {
 		doThrow(SdkClientException.create("S3 につながらない")).when(this.storage).delete("posts/a.png");
@@ -67,6 +68,7 @@ class StorageDeleterTests {
 		verify(this.deletions, never()).save(any());
 	}
 
+	// BR-5
 	@Test
 	void 消し直しで消せたものは記録も消し消せなかったものは残す() {
 		StorageDeletion ok = new StorageDeletion("posts/a.png", TestEntities.NOW);

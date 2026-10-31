@@ -103,6 +103,7 @@ class AuthApiTests {
 		assertError(signup(null, "名前", PASSWORD), HttpStatus.BAD_REQUEST, "USERNAME_INVALID", "username");
 	}
 
+	// BR-1
 	@Test
 	void ユーザーIDは前後の空白を取り除いて保存する() {
 		assertThat(signup("  hanako  ", "はなこ", PASSWORD)).bodyJson().extractingPath("$.username").isEqualTo("hanako");
@@ -135,6 +136,7 @@ class AuthApiTests {
 		assertError(signup("user7", "名前", "ぱすわーど1234a"), HttpStatus.BAD_REQUEST, "PASSWORD_INVALID", "password");
 	}
 
+	// BR-1
 	@Test
 	void パスワードの前後の空白は取り除かずにそのまま使う() {
 		assertThat(signup("spacer", "名前", " pass1234 ")).hasStatus(HttpStatus.CREATED);
@@ -186,6 +188,7 @@ class AuthApiTests {
 		assertError(login("", ""), HttpStatus.UNAUTHORIZED, "LOGIN_FAILED", null);
 	}
 
+	// BR-8
 	@Test
 	void ログインに成功すると失敗の回数が0に戻る() {
 		signup("taro", "たろう", PASSWORD);
@@ -196,6 +199,7 @@ class AuthApiTests {
 		assertThat(login("taro", PASSWORD)).hasStatusOk();
 	}
 
+	// BR-8
 	@Test
 	void 五回続けて失敗すると15分間ログインできない() {
 		signup("taro", "たろう", PASSWORD);
@@ -278,6 +282,7 @@ class AuthApiTests {
 
 	// ---- 取り直し（FN-01 3.3、BR-9）----
 
+	// A-8
 	@Test
 	void 取り直すと両方のトークンが新しくなる() {
 		MockHttpServletResponse signup = signup("taro", "たろう", PASSWORD).getResponse();
@@ -330,6 +335,7 @@ class AuthApiTests {
 
 	// ---- ログアウト（A-9）----
 
+	// N-25
 	@Test
 	void ログアウトするとそのブラウザのリフレッシュトークンだけが使えなくなる() {
 		signup("taro", "たろう", PASSWORD);

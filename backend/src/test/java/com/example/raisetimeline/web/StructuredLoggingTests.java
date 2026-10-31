@@ -81,6 +81,7 @@ class StructuredLoggingTests {
 		assertThat(line.has("user")).isFalse();
 	}
 
+	// N-12
 	@Test
 	void パスワードとJWTはログに出さない(CapturedOutput output) {
 		Cookie access = signup().getResponse().getCookie(ACCESS_TOKEN);

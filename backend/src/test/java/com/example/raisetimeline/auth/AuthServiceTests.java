@@ -98,6 +98,7 @@ class AuthServiceTests {
 	@Nested
 	class 登録 {
 
+		// N-12・BR-1
 		@Test
 		void トリムした値とハッシュにしたパスワードで保存しトークンを渡す() {
 			when(AuthServiceTests.this.passwordEncoder.encode("password1")).thenReturn("hashed");

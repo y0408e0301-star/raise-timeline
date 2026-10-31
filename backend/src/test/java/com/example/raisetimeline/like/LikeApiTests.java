@@ -74,6 +74,7 @@ class LikeApiTests {
 		assertThat(likeRows()).isEqualTo(1);
 	}
 
+	// BR-6
 	@Test
 	void 重ねていいね_ない取り消しをしてもエラーにならず行は1つまで() {
 		assertResult(like(this.hanako, this.postId), true, 1);

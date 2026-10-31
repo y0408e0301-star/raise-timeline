@@ -240,6 +240,7 @@ class ProfileServiceTests {
 			verifyNoInteractions(ProfileServiceTests.this.storage);
 		}
 
+		// N-8
 		@Test
 		void 外すとアイコンを空にしてから前のアイコンを消す() {
 			ProfileServiceTests.this.taro.changeIcon("icons/old.png", TestEntities.NOW);

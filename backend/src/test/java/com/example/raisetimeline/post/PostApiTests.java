@@ -103,6 +103,7 @@ class PostApiTests {
 		assertThat(create(this.taro, "1 行目\r2 行目")).bodyJson().extractingPath("$.body").isEqualTo("1 行目\n2 行目");
 	}
 
+	// BR-2
 	@Test
 	void 本文が空で画像もないときは投稿できない() {
 		assertError(create(this.taro, ""), HttpStatus.BAD_REQUEST, "POST_EMPTY");
@@ -169,6 +170,7 @@ class PostApiTests {
 		assertError(edit(this.taro, id, null), HttpStatus.BAD_REQUEST, "POST_EMPTY");
 	}
 
+	// BR-7
 	@Test
 	void 他人の投稿は編集できず削除された投稿は404() {
 		long id = id(create(this.taro, "本文"));
@@ -189,6 +191,7 @@ class PostApiTests {
 		assertError(delete(this.taro, id), HttpStatus.NOT_FOUND, "POST_NOT_FOUND");
 	}
 
+	// BR-7
 	@Test
 	void 他人の投稿は削除できない() {
 		long id = id(create(this.taro, "本文"));

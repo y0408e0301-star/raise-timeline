@@ -15,6 +15,7 @@ class AuthCookiesTests {
 
 	private final AuthCookies cookies = new AuthCookies(new AuthProperties(SECRET, false));
 
+	// N-25
 	@Test
 	void 二つのCookieはHttpOnlyでSameSiteはLax() {
 		List<ResponseCookie> issued = this.cookies.issue(new TokenService.IssuedTokens("access", "refresh"));
@@ -34,6 +35,7 @@ class AuthCookiesTests {
 		assertThat(access.getMaxAge()).isEqualTo(Duration.ofMinutes(15));
 	}
 
+	// A-8
 	@Test
 	void リフレッシュトークンは取り直しとログアウトにだけ14日間送る() {
 		ResponseCookie refresh = this.cookies.issue(new TokenService.IssuedTokens("access", "refresh")).get(1);

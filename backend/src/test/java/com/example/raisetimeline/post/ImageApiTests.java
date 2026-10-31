@@ -127,6 +127,7 @@ public class ImageApiTests {
 		assertThat(result).hasStatus(HttpStatus.CREATED).bodyJson().extractingPath("$.body").isEqualTo("");
 	}
 
+	// N-14
 	@Test
 	void バケットのURLを署名なしで開いても画像は見られない() throws Exception {
 		create(this.taro, "本文", List.of(image("a.png", png(10))));
@@ -139,6 +140,7 @@ public class ImageApiTests {
 
 	// ---- 入力の確認（4 章）----
 
+	// BR-3
 	@Test
 	void 画像5枚は400のTOO_MANY_IMAGESで投稿も画像もできない() {
 		List<MockMultipartFile> files = List.of(image("1.png", png(1)), image("2.png", png(1)), image("3.png", png(1)),

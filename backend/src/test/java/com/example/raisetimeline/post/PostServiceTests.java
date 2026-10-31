@@ -127,6 +127,7 @@ class PostServiceTests {
 			verify(PostServiceTests.this.deleter, never()).deleteOrRecord(any());
 		}
 
+		// BR-4
 		@Test
 		void S3に置くのに失敗したらそれまでに置いた画像を消してIMAGE_UPLOAD_FAILED() {
 			List<String> put = new ArrayList<>();
@@ -143,6 +144,7 @@ class PostServiceTests {
 			verifyNoInteractions(PostServiceTests.this.posts, PostServiceTests.this.images);
 		}
 
+		// BR-4
 		@Test
 		void データベースへの保存に失敗したらS3に置いた画像を消す() {
 			when(PostServiceTests.this.posts.save(any(Post.class)))
@@ -169,6 +171,7 @@ class PostServiceTests {
 	@Nested
 	class 投稿の入力の確かめ {
 
+		// BR-2
 		@Test
 		void 画像がなく本文が空ならPOST_EMPTY() {
 			assertApiError(() -> PostServiceTests.this.service.create(1, " \r\n ", List.of()), ErrorCode.POST_EMPTY,
@@ -183,6 +186,7 @@ class PostServiceTests {
 					ErrorCode.BODY_TOO_LONG, "body");
 		}
 
+		// BR-3
 		@Test
 		void 画像が5枚ならTOO_MANY_IMAGES() {
 			List<MultipartFile> five = List.of(file(PNG), file(PNG), file(PNG), file(PNG), file(PNG));
@@ -282,6 +286,7 @@ class PostServiceTests {
 			verifyNoInteractions(PostServiceTests.this.deleter);
 		}
 
+		// N-8・BR-5
 		@Test
 		void 削除はデータベースから消した後でS3の画像を消す() {
 			when(PostServiceTests.this.posts.findWithAuthorById(10L)).thenReturn(Optional.of(this.post));

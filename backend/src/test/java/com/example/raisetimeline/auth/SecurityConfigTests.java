@@ -58,6 +58,7 @@ class SecurityConfigTests {
 		assertError(this.mvc.get().uri("/api/auth/me").exchange(), ErrorCode.UNAUTHENTICATED);
 	}
 
+	// N-25
 	@Test
 	void 十五分たったJWTは401のTOKEN_EXPIREDで画面に取り直させる() {
 		Cookie token = accessToken();

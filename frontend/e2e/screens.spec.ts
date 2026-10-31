@@ -20,6 +20,7 @@ async function check(page: Page, ready: Locator): Promise<void> {
   expect.soft(scrollWidth, '横にスクロールしない').toBeLessThanOrEqual(clientWidth)
 }
 
+// N-18（axe のコントラストの検査）・N-20
 test('すべての画面に、アクセシビリティの違反と横のスクロールがない', async ({ browser }) => {
   // 表示名は 30 文字まで（「E2E 」と runId を足して 30 文字）
   const taro = user('ga', 'とてもながいなまえのユーザーです')

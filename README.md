@@ -261,9 +261,10 @@ API サーバーと画面の行は使えます（公開環境の行は予定で�
 | 画面 | `npm run build` | 型チェックと本番用のビルド |
 | 画面 | `npm run test:e2e` | Playwright で、主な流れ・各機能のシナリオ・権限・ログインの続き・全画面のアクセシビリティと横幅を画面から確かめる（下の「画面を通したテスト」） |
 | 画面 | `npm run perf -- <コマンド>` | 性能テスト。k6 と Playwright で、要件定義書 11.1 の目標の時間に収まるかを測る（下の「性能テスト」） |
+| テスト仕様書 | `node scripts/requirement-coverage.mjs`（リポジトリのフォルダで） | テストに書いた要件 ID から、要件 ID とテストの対応表（docs/test/requirement-coverage.md）を作り直す。`--check` を付けると、テストのない要件 ID があるか、対応表が古ければ失敗する（[テスト仕様書](docs/test/test-specification.md) 2 章） |
 | 公開環境 | `deploy/terraform` で `terraform fmt -check -recursive`・`terraform validate`・`tflint` | Terraform の書式・構文・書き方。AWS には接続しない |
 
-Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）が自動で実行します。いまは API サーバーの `mvnw verify` と、画面の `npm run gen:api`（作り直した型がコミットしたものと同じか）・`npm run lint`・`npm test`・`npm run build`、API の仕様書の HTML（成果物 `api-spec`）の作成、E2E テスト（ランナーの中で DB・MinIO・公開用の jar を起動して実行）、公開先のイメージのビルド（`docker build`。push はしない）、Terraform の `fmt -check`・`validate`・`tflint` です（性能テストは自動では実行しません）。
+Pull Request を作ったときは、GitHub Actions（[.github/workflows/ci.yml](.github/workflows/ci.yml)）が自動で実行します。いまは API サーバーの `mvnw verify` と、画面の `npm run gen:api`（作り直した型がコミットしたものと同じか）・`npm run lint`・`npm test`・`npm run build`、API の仕様書の HTML（成果物 `api-spec`）の作成、E2E テスト（ランナーの中で DB・MinIO・公開用の jar を起動して実行）、公開先のイメージのビルド（`docker build`。push はしない）、Terraform の `fmt -check`・`validate`・`tflint`、要件 ID とテストの対応の `--check` です（性能テストは自動では実行しません）。
 
 ### API サーバーのテストの種類
 

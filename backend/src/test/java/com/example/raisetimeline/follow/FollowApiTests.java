@@ -78,6 +78,7 @@ class FollowApiTests {
 		assertResult(unfollow(this.hanako, "Taro_Y"), false, 0);
 	}
 
+	// BR-6
 	@Test
 	void 重ねてフォロー_ない解除をしてもエラーにならず行は1つまで() {
 		assertResult(follow(this.hanako, "taro_y"), true, 1);

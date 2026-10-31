@@ -222,6 +222,7 @@ class CommentApiTests {
 		assertError(delete(this.hanako, commentId), HttpStatus.NOT_FOUND, "COMMENT_NOT_FOUND");
 	}
 
+	// BR-7
 	@Test
 	void 投稿者でもほかの人のコメントを削除しようとすると403で消えない() {
 		long commentId = id(comment(this.hanako, this.postId, "はなこのコメント"));
