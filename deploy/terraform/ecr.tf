@@ -1,5 +1,7 @@
 # API のイメージの置き場所。タグはコミット ID（deploy/deploy.sh が push する）で、同じタグの上書きはさせない
 
+# 採らない指摘（trivy）：KMS の顧客管理キー（AWS-0033）は月 1 ドルかかる。ECR の既定の暗号化（AES-256）で足りる
+#trivy:ignore:AWS-0033
 resource "aws_ecr_repository" "app" {
   name                 = "rt-app"
   image_tag_mutability = "IMMUTABLE"

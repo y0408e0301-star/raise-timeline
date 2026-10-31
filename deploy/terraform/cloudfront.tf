@@ -39,6 +39,10 @@ resource "aws_cloudfront_function" "router" {
   code    = file("${path.module}/functions/${var.running ? "spa" : "maintenance"}.js")
 }
 
+# 採らない指摘（trivy）：アクセスログ（AWS-0010）は API のログ（/rt/app）で足りる。WAF（AWS-0011）は月 5 ドル以上かかり、
+# 利用者が数十人の学習用には見合わない（要件定義書 R-1）
+#trivy:ignore:AWS-0010
+#trivy:ignore:AWS-0011
 resource "aws_cloudfront_distribution" "main" {
   enabled         = true
   comment         = "raise-timeline"
