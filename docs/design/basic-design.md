@@ -138,6 +138,15 @@ flowchart LR
 4. 届いたメール（AWS Notification）の「Confirm subscription」を押す
 5. `bash deploy/deploy.sh` で最初のイメージと画面を反映する（ECR にイメージがないうちは running=true にできないため、start.sh ではなく deploy.sh を使う）
 
+**すべて消すとき**
+
+元に戻せない。公開の URL も変わる（作り直すと別の URL になる）。
+
+1. deploy/terraform で `terraform apply -var rds_deletion_protection=false` で RDS の削除保護を外す（RDS が止まっていると、変更の後の待ち合わせで失敗と出るが、削除保護は外れる。`aws rds describe-db-instances` の DeletionProtection で確かめる）
+2. S3 の画面と画像のバケット（`aws s3 rm s3://<バケット> --recursive`）と ECR（`aws ecr batch-delete-image`）を空にする。中身があると Terraform は消せない
+3. `terraform plan -destroy -var rds_deletion_protection=false` で中身を確かめてから、`terraform destroy -var rds_deletion_protection=false`（CloudFront の削除に 20 分ほどかかる）
+4. 消す前に取った最後のスナップショット（rt-db-final）が要らなければ、`aws rds delete-db-snapshot --db-snapshot-identifier rt-db-final` で消す
+
 **反映のきまり**
 
 - イメージのタグは上書きできず、Terraform は ECR に最後に push したイメージを使う。前のコミットに戻すときは、`git revert` で新しいコミットを作ってから反映する
