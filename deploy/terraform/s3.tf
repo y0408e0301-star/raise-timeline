@@ -10,17 +10,35 @@ locals {
   }
 }
 
+# 採らない指摘（trivy）：
+# - アクセスログ（AWS-0089）・バージョニング（AWS-0090）：学習用で、ログとバージョンの分の費用を増やさない。
+#   画像は投稿の削除などで消すもので（要件定義書 N-8）、画面は deploy.sh でいつでも置き直せる
+# - 顧客管理の KMS キー（AWS-0132）：月 1 ドルかかる。SSE-S3 で保存時の暗号化はしている
+#trivy:ignore:AWS-0089
+#trivy:ignore:AWS-0090
+#trivy:ignore:AWS-0132
 resource "aws_s3_bucket" "web" {
   bucket = local.buckets.web
 }
 
+#trivy:ignore:AWS-0089
+#trivy:ignore:AWS-0090
+#trivy:ignore:AWS-0132
 resource "aws_s3_bucket" "images" {
   bucket = local.buckets.images
 }
 
-resource "aws_s3_bucket_public_access_block" "all" {
-  for_each                = { web = aws_s3_bucket.web.id, images = aws_s3_bucket.images.id }
-  bucket                  = each.value
+# for_each でまとめると、trivy がバケットとの対応を読み取れず「ブロックがない」と判定するので、バケットごとに書く
+resource "aws_s3_bucket_public_access_block" "web" {
+  bucket                  = aws_s3_bucket.web.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_public_access_block" "images" {
+  bucket                  = aws_s3_bucket.images.id
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
@@ -36,6 +54,8 @@ resource "aws_s3_bucket_ownership_controls" "all" {
   }
 }
 
+# SSE-S3（AES256）。顧客管理の KMS キー（AWS-0132）は使わない（上の aws_s3_bucket と同じ理由）
+#trivy:ignore:AWS-0132
 resource "aws_s3_bucket_server_side_encryption_configuration" "all" {
   for_each = { web = aws_s3_bucket.web.id, images = aws_s3_bucket.images.id }
   bucket   = each.value
@@ -64,7 +84,7 @@ resource "aws_s3_bucket_policy" "web" {
     }]
   })
 
-  depends_on = [aws_s3_bucket_public_access_block.all]
+  depends_on = [aws_s3_bucket_public_access_block.web]
 }
 
 # 止めている間のページ（deploy/maintenance/index.html）

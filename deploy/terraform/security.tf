@@ -45,11 +45,25 @@ resource "aws_vpc_security_group_ingress_rule" "app_from_alb" {
   referenced_security_group_id = aws_security_group.alb.id
 }
 
-# ECR・Parameter Store・CloudWatch Logs（インターネット経由）、S3（エンドポイント経由）、RDS へ出る
-resource "aws_vpc_security_group_egress_rule" "app_all" {
+# ECR・Parameter Store・CloudWatch Logs（インターネット経由）と S3（エンドポイント経由）は、どれも HTTPS で宛先の IP が決まらない。
+# NAT ゲートウェイも VPC エンドポイント（インターフェース型）も置かないので、443 は宛先を絞れない（インフラ設計書 方針 6）
+#trivy:ignore:AWS-0104
+resource "aws_vpc_security_group_egress_rule" "app_https" {
   security_group_id = aws_security_group.app.id
-  ip_protocol       = "-1"
+  description       = "HTTPS to AWS APIs (ECR, SSM, CloudWatch Logs, S3)"
+  ip_protocol       = "tcp"
+  from_port         = 443
+  to_port           = 443
   cidr_ipv4         = "0.0.0.0/0"
+}
+
+resource "aws_vpc_security_group_egress_rule" "app_to_db" {
+  security_group_id            = aws_security_group.app.id
+  description                  = "PostgreSQL to RDS"
+  ip_protocol                  = "tcp"
+  from_port                    = 5432
+  to_port                      = 5432
+  referenced_security_group_id = aws_security_group.db.id
 }
 
 # SG-3：RDS。Fargate のタスクからの 5432 だけを受ける

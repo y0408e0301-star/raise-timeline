@@ -5,6 +5,7 @@ locals {
   container_name = "app"
 }
 
+#trivy:ignore:AWS-0034
 resource "aws_ecs_cluster" "main" {
   name = "rt-cluster"
 

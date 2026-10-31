@@ -1,11 +1,15 @@
 # ログ・監視・費用の通知（インフラ設計書 3.3）
 
-# API のログ（1 行 1 つの JSON。基本設計書 2.3）。タスクの awslogs が送る
+# API のログ（1 行 1 つの JSON。基本設計書 2.3）。タスクの awslogs が送る。
+# 採らない指摘（trivy）：KMS の顧客管理キー（AWS-0017）は月 1 ドルかかる。ログにパスワード・JWT・Cookie・本文は出さない（基本設計書 2.3）
+#trivy:ignore:AWS-0017
 resource "aws_cloudwatch_log_group" "app" {
   name              = "/rt/app"
   retention_in_days = 30
 }
 
+# 採らない指摘（trivy）：暗号化（AWS-0095）。送るのはアラームの名前と値だけで、秘密の情報は含まない
+#trivy:ignore:AWS-0095
 resource "aws_sns_topic" "alerts" {
   name = "rt-alerts"
 }

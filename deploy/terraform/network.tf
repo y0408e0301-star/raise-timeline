@@ -6,6 +6,8 @@ locals {
   private_subnets = { a = "10.0.10.0/24", c = "10.0.11.0/24" }
 }
 
+# 採らない指摘（trivy）：VPC フローログ（AWS-0178）。受ける通信は SG で ALB と CloudFront に絞っていて、ログの分の費用を増やさない
+#trivy:ignore:AWS-0178
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true

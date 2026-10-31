@@ -6,6 +6,13 @@ resource "aws_db_subnet_group" "main" {
   subnet_ids = [for s in aws_subnet.private : s.id]
 }
 
+# 採らない指摘（trivy）：
+# - バックアップの期間（AWS-0077）：無料プランの上限で 1 日にしている（下の backup_retention_period）
+# - Performance Insights（AWS-0133）：利用者が数十人で、遅いクエリは API のログ（遅いリクエストの WARN）で見つける
+# - IAM 認証（AWS-0176）：DB はプライベートサブネットにあり Fargate のタスクからしかつながらない（SG-3）。パスワードは Parameter Store
+#trivy:ignore:AWS-0077
+#trivy:ignore:AWS-0133
+#trivy:ignore:AWS-0176
 resource "aws_db_instance" "main" {
   identifier     = "rt-db"
   engine         = "postgres"
