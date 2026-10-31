@@ -72,3 +72,14 @@ test('一度使ったリフレッシュトークンをもう一度使うと、�
   await page.goto('/')
   await expect(page).toHaveURL(/\/login$/)
 })
+
+test('通信が切れたらお知らせ欄に M-20 を出し、戻ったら消す（機能定義書 2 章）', async ({ browser }) => {
+  const page = await signup(browser, user('of', 'じろう'))
+  const context = page.context()
+  const notice = page.getByRole('banner').getByRole('alert')
+
+  await context.setOffline(true)
+  await expect(notice).toHaveText('インターネットに接続されていません。接続を確認してください。')
+  await context.setOffline(false)
+  await expect(notice).toBeHidden()
+})
