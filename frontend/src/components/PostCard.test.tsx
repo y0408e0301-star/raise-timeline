@@ -165,6 +165,7 @@ describe('編集', () => {
 })
 
 describe('削除', () => {
+  // N-19
   it('確認ダイアログに M-10 を出し、「削除」で投稿を消してもらう', async () => {
     const fetch = mockFetch({ 'DELETE /api/posts/1': () => json(204) })
     const { onDelete } = renderCard(post())

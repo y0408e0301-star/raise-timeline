@@ -161,6 +161,7 @@ class ProfileEditApiTests {
 
 	// ---- アイコン画像（PF-8〜PF-10）----
 
+	// N-8
 	@Test
 	void 五MBちょうどのJPEGとPNGとWebPをアイコンにでき前のアイコンはS3から消える() throws Exception {
 		int head = 12;
@@ -250,6 +251,7 @@ class ProfileEditApiTests {
 			.hasStatus(HttpStatus.NO_CONTENT);
 	}
 
+	// N-14
 	@Test
 	void バケットのiconsのURLを署名なしで開いてもアイコンは見られない() throws Exception {
 		changeIcon(this.taro, ImageApiTests.png(10));

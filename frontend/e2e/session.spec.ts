@@ -8,6 +8,7 @@ import { signup, user, xsrfHeader } from './helpers.ts'
 const cookie = async (context: BrowserContext, name: string): Promise<Cookie | undefined> =>
   (await context.cookies()).find((c) => c.name === name)
 
+// A-8・N-25
 test('JWT が切れても、リフレッシュトークンで取り直して使い続けられる', async ({ browser }) => {
   const page = await signup(browser, user('ar', 'たろう'))
   const context = page.context()
@@ -28,6 +29,7 @@ test('JWT が切れても、リフレッシュトークンで取り直して使�
   await expect(page).toHaveURL(/\/login$/)
 })
 
+// N-25
 test('ログアウトした後は、前のリフレッシュトークンを使えない', async ({ browser }) => {
   const page = await signup(browser, user('ao', 'はなこ'))
   const context = page.context()

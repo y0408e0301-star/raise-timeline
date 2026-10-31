@@ -85,6 +85,7 @@ class ImageStorageTests {
 		verify(this.s3).deleteObject(DeleteObjectRequest.builder().bucket("rt-images-test").key("posts/a.png").build());
 	}
 
+	// N-14
 	@Test
 	void 署名付きURLは15分で切れる() {
 		ImageStorage.SignedUrl url = this.storage.signedUrl("posts/a.png");

@@ -133,6 +133,19 @@ class UserSearchApiTests {
 				""");
 	}
 
+	// S-3
+	@Test
+	void 自己紹介と投稿の本文は検索の対象にしない() {
+		addUser("hanako", "はなこ");
+		this.jdbc.update("UPDATE users SET bio = 'yamabiko が好き' WHERE username = 'hanako'");
+		this.jdbc.update("""
+				INSERT INTO posts (user_id, body) SELECT id, 'yamabiko の写真' FROM users WHERE username = 'viewer'
+				""");
+
+		assertThat(usernames(search("yamabiko"))).isEmpty();
+		assertThat(usernames(search("はなこ"))).containsExactly("hanako");
+	}
+
 	@Test
 	void 一致しないときは空の一覧() {
 		assertThat(search("nobody")).hasStatus(HttpStatus.OK)

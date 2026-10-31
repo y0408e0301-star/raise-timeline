@@ -77,6 +77,7 @@ class FollowRepositoryTests {
 		assertThat(this.follows.count()).isZero();
 	}
 
+	// F-5
 	@Test
 	void フォロー数とフォロワー数とフォローしている人を数える() {
 		this.follows.insertIfAbsent(this.taro, this.hanako, NOW);

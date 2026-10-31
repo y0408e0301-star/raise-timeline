@@ -243,6 +243,7 @@ describe('編集（W-9・W-10）', () => {
 })
 
 describe('削除（W-7）', () => {
+  // N-19
   it('確認ダイアログに M-10 を出し、「キャンセル」にカーソルを置く。「キャンセル」では何もしない', async () => {
     const fetch = renderAt('/', { 'POST /api/posts': () => json(201, post()) })
     await postFromForm('本文')

@@ -181,6 +181,7 @@ describe('コメントする（C-1・C-2）', () => {
 })
 
 describe('削除（C-5）', () => {
+  // N-19
   it('確認ダイアログに M-15 を出し、「削除」で一覧から消してコメント数を 1 減らす', async () => {
     renderPost({
       'GET /api/posts/1/comments': page([comment(1), mine(2, '消すコメント')]),

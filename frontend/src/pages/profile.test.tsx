@@ -222,6 +222,7 @@ describe('G-6 への移動', () => {
     expect(followerLink()).toHaveAccessibleName('9 フォロワー')
   })
 
+  // F-5
   it('フォロワー数から G-8 を開くと見出しは表示名で、「←」で G-6 に戻る', async () => {
     renderAt('/users/Taro_Y', {
       ...taroRoutes,
