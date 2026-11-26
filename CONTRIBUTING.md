@@ -60,7 +60,7 @@
 | どこで | 何を止めるか |
 | --- | --- |
 | git フック（[.githooks/](.githooks/)） | main へのコミット、ルールに合わない名前のブランチでのコミット、main への push |
-| GitHub | このリポジトリは private で GitHub Free のため、ブランチ保護は使えない（Pro にするか public にすると使える）。squash マージのみ・マージ後のブランチ自動削除は設定済み |
+| GitHub | squash マージのみ・マージ後のブランチ自動削除は設定済み。ブランチ保護は設定していない（開発中は private の GitHub Free で使えなかった。2026-11-26 に public にした） |
 | Claude Code | [CLAUDE.md](CLAUDE.md) とユーザー設定のフックで、上の禁止事項を実行させない |
 
 ### 初回だけ必要な設定
